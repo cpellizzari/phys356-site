@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW 32 — ML vs. MMSE Estimation | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Homework Assignment</div>
+    <h1>HW 32 — Comparing ML and MMSE Estimators (MBIP Fig. 2.1)</h1>
+    <div class="hw-meta">
+      <span>📘 Related: <a href="../lesson32.html" style="color:rgba(255,255,255,0.9)">Lesson 32</a></span>
+      <span>🛠 MATLAB required</span>
+      <span>📬 Submit: single <code>.m</code> script or Live Script (.mlx)</span>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">📖</span> Background</h2>
+    <p>
+      This assignment recreates the comparison from Section 2.3.3 of the <em>Model Based Image Processing</em> (MBIP) textbook (Bouman, Purdue). The goal is to compare the ML and MMSE estimators on a correlated signal buried in white Gaussian noise.
+    </p>
+    <p>
+      The unknown signal \(X \in \mathbb{R}^p\) is modeled as a Gaussian random vector with zero mean and covariance matrix \(R_x\), where the \((i,j)\) entry is:
+    </p>
+    <div class="math-block">
+      \[
+        [R_x]_{i,j} = \frac{1}{1 + \left|\dfrac{i-j}{10}\right|^2}
+      \]
+    </div>
+    <p>
+      This covariance models a smooth signal: nearby components are strongly correlated and distant components are weakly correlated. The observation is \(Y = X + W\), where \(W \sim \mathcal{N}(0, \sigma_w^2 I)\) is independent white Gaussian noise with \(\sigma_w = 0.75\) and \(p = 50\).
+    </p>
+    <p>
+      The two estimators are:
+    </p>
+    <div class="math-block">
+      \[
+        \hat X_{\mathrm{ML}} = Y \qquad \text{(just the noisy observation)}
+      \]
+      \[
+        \hat X_{\mathrm{MMSE}} = R_x (R_x + R_w)^{-1} Y \qquad \text{where } R_w = \sigma_w^2 I
+      \]
+    </div>
+  </div>
+
+  <!-- Tasks -->
+  <div class="problem">
+    <h3>Tasks</h3>
+
+    <h4>Part 1 — Generate the Data</h4>
+    <ol>
+      <li>
+        <strong>Build the covariance matrix \(R_x\).</strong> Construct the \(50 \times 50\) matrix with entries \([R_x]_{i,j} = 1/(1 + |{(i-j)/10}|^2)\) for \(i, j = 1, \ldots, 50\).
+      </li>
+      <li>
+        <strong>Generate a realization of \(X\).</strong> Draw a single random vector \(X \sim \mathcal{N}(0, R_x)\) using MATLAB's <code>mvnrnd</code> function. Transpose as needed so that \(X\) is a column vector.
+      </li>
+      <li>
+        <strong>Generate noise and observation.</strong> Generate \(W \sim \mathcal{N}(0, \sigma_w^2 I)\) and compute \(Y = X + W\).
+      </li>
+    </ol>
+
+    <h4>Part 2 — Compute the Estimates</h4>
+    <ol>
+      <li>Compute the ML estimate: \(\hat X_{\mathrm{ML}} = Y\).</li>
+      <li>Compute the MMSE estimate: \(\hat X_{\mathrm{MMSE}} = R_x(R_x + \sigma_w^2 I)^{-1} Y\).<br>
+          <em>Hint:</em> Use MATLAB's backslash operator or <code>inv()</code> for the matrix inverse. For numerical stability, prefer <code>R_x / (R_x + R_w)</code> or <code>R_x * ((R_x + R_w) \ eye(p))</code>.
+      </li>
+    </ol>
+
+    <h4>Part 3 — Recreate Figure 2.1</h4>
+    <p>
+      Create a single figure with four subplots arranged in a 2×2 grid:
+    </p>
+    <ol>
+      <li><strong>Top-left:</strong> Plot of the true signal \(X\). Title: "Original Signal, X".</li>
+      <li><strong>Top-right:</strong> Plot of the noisy observation \(Y\). Title: "Signal with Noise, Y".</li>
+      <li><strong>Bottom-left:</strong> Plot of the ML estimate \(\hat X_{\mathrm{ML}}\). Title: "ML Estimate of X".</li>
+      <li><strong>Bottom-right:</strong> Plot of the MMSE estimate \(\hat X_{\mathrm{MMSE}}\). Title: "MMSE Estimate of X".</li>
+    </ol>
+    <p>Label the \(x\)-axis as "Index" and the \(y\)-axis as "Value" on all panels. Use the same \(y\)-axis limits on all panels for easy comparison.</p>
+
+    <h4>Part 4 — Compute MSE</h4>
+    <p>
+      Compute the mean squared error for both estimates:
+    </p>
+    <div class="math-block">
+      \[
+        \text{MSE}_{\mathrm{ML}} = \frac{1}{p}\| \hat X_{\mathrm{ML}} - X \|^2, \qquad
+        \text{MSE}_{\mathrm{MMSE}} = \frac{1}{p}\| \hat X_{\mathrm{MMSE}} - X \|^2
+      \]
+    </div>
+    <p>Report both values. Which estimator has lower MSE for your realization?</p>
+
+    <h4>Part 5 — Explanation</h4>
+    <p>
+      In a few sentences, explain why the MMSE estimate is typically more accurate than the ML estimate for this problem. Your answer should address:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li>What prior information does the MMSE estimate use that the ML estimate ignores?</li>
+      <li>What is the trade-off the MMSE estimator makes (hint: is it unbiased)?</li>
+      <li>Would the MMSE advantage hold if \(\sigma_w \to 0\)? Why or why not?</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2><span class="section-icon">💡</span> Hints</h2>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;font-size:0.95rem;">
+      <li>Build \(R_x\) efficiently with nested loops or vectorized indexing: <code>[I, J] = meshgrid(1:p, 1:p); Rx = 1 ./ (1 + ((I-J)/10).^2);</code></li>
+      <li><code>mvnrnd(mu, Sigma)</code> returns a row vector by default; transpose with <code>'</code> to get a column vector.</li>
+      <li>Use <code>subplot(2,2,k)</code> for the four panels. Set consistent axis limits with <code>ylim([-3 3])</code> or similar after inspecting your data.</li>
+      <li>The MMSE estimate visually looks smoother than both \(Y\) and \(\hat X_{\mathrm{ML}}\) — this is the prior covariance doing its job.</li>
+    </ul>
+  </div>
+
+  <!-- Back nav -->
+  <div class="lesson-nav">
+    <a href="hw31.html" class="prev">← HW 31: ML Estimation</a>
+    <a href="hw33.html" class="next">
+      <div><span class="nav-label">Next HW</span><br>HW 33: Regression (ML/AI)</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

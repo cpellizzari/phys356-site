@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 37 — Backpropagation &amp; Training NNs | PHYS 356</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="lesson29.html">L29</a>
+      <a href="lesson30.html">L30</a>
+      <a href="lesson31.html">L31</a>
+      <a href="lesson32.html">L32</a>
+      <a href="lesson33.html">L33</a>
+      <a href="lesson34.html">L34</a>
+      <a href="lesson35.html">L35</a>
+      <a href="lesson36.html">L36</a>
+      <a href="lesson37.html">L37</a>
+      <a href="lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="lesson-banner">
+    <div class="lesson-meta">Lesson 37 &bull; Physics 356</div>
+    <h1>Backpropagation &amp; Training Neural Networks</h1>
+    <span class="reading-time">⏱ ~50 min read + in-class exercise</span>
+  </div>
+
+  <div class="objectives-box">
+    <h2>Learning Objectives</h2>
+    <ul>
+      <li>Apply the chain rule of calculus to compute gradients through composed functions.</li>
+      <li>Describe a computational graph and trace the forward and backward passes through it.</li>
+      <li>Derive the backpropagation equations for a two-layer network.</li>
+      <li>Explain the "closing the loop" relationship: backprop computes the gradients that SGD needs.</li>
+      <li>Implement a complete forward + backward pass for a shallow NN in MATLAB.</li>
+    </ul>
+  </div>
+
+  <div class="notation-box">
+    <h3>Notation used in this lesson</h3>
+    <div class="notation-grid">
+      <div class="notation-item"><span class="sym">\(\delta^{[\ell]}\)</span><span class="desc">Error signal at layer \(\ell\) (backprop term)</span></div>
+      <div class="notation-item"><span class="sym">\(\frac{\partial L}{\partial \mathbf{W}^{[\ell]}}\)</span><span class="desc">Gradient of loss w.r.t. layer weights</span></div>
+      <div class="notation-item"><span class="sym">\(\phi'\)</span><span class="desc">Derivative of activation function</span></div>
+      <div class="notation-item"><span class="sym">\(\odot\)</span><span class="desc">Element-wise (Hadamard) product</span></div>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">🌍</span> Background &amp; Motivation</h2>
+    <h3>Closing the loop</h3>
+    <p>
+      In Lesson 35 we learned that gradient descent requires the gradient \(\nabla L\) to update parameters. In Lesson 36 we built a neural network with many layers, each with its own weights and biases. The question now is: <strong>how do we efficiently compute \(\partial L / \partial \mathbf{W}^{[\ell]}\) for every layer?</strong>
+    </p>
+    <p>
+      <strong>Backpropagation</strong> is the answer. It is an application of the chain rule from calculus, applied systematically to the computational graph of the neural network. It is not a learning algorithm itself — it is a gradient <em>computation</em> algorithm. SGD (Lesson 35) then uses those gradients to update parameters.
+    </p>
+    <h3>Historical note</h3>
+    <p>
+      Backpropagation was popularized in the 1986 paper by Rumelhart, Hinton, and Williams. The key insight was that gradients can be computed efficiently by a backward pass through the same graph used for the forward pass — reusing already-computed intermediate values.
+    </p>
+  </div>
+
+  <!-- Key Concepts -->
+  <div class="card">
+    <h2><span class="section-icon">🧠</span> Key Concepts</h2>
+
+    <h3>1. The Chain Rule (Review)</h3>
+    <p>
+      If \(L\) depends on \(z\), which depends on \(w\), then:
+    </p>
+    <div class="math-block">
+      \[
+        \frac{dL}{dw} = \frac{dL}{dz} \cdot \frac{dz}{dw}
+      \]
+    </div>
+    <p>
+      For a chain of functions \(L = f_n(f_{n-1}(\cdots f_1(w) \cdots))\):
+    </p>
+    <div class="math-block">
+      \[
+        \frac{dL}{dw} = \frac{\partial f_n}{\partial f_{n-1}} \cdot \frac{\partial f_{n-1}}{\partial f_{n-2}} \cdots \frac{\partial f_1}{\partial w}
+      \]
+    </div>
+    <p>
+      Backpropagation is simply this chain rule applied layer-by-layer from the output back to the input, accumulating gradient contributions.
+    </p>
+
+    <h3>2. Computational Graphs</h3>
+    <p>
+      A <strong>computational graph</strong> represents a mathematical expression as a directed acyclic graph (DAG). Each node is an operation; each edge carries a value and (in the backward pass) a gradient.
+    </p>
+    <p>Example for a single neuron \(L = (\sigma(wx + b) - y)^2\):</p>
+    <div class="callout info" style="font-family:monospace;font-size:0.9rem;line-height:2;">
+      w, x → [multiply] → wx → [add b] → z → [σ] → p → [subtract y] → e → [square] → L
+    </div>
+    <p>
+      The <strong>forward pass</strong> evaluates left-to-right, computing and storing intermediate values. The <strong>backward pass</strong> propagates \(\frac{\partial L}{\partial \text{each node}}\) right-to-left using the chain rule.
+    </p>
+
+    <h3>3. Backprop for a Two-Layer Network</h3>
+    <p>
+      Network: \(\mathbf{x} \to [\mathbf{W}^{[1]}, \mathbf{b}^{[1]}] \to \text{ReLU} \to [\mathbf{W}^{[2]}, b^{[2]}] \to \sigma \to L_{\text{BCE}}\)
+    </p>
+    <p><strong>Forward pass (recap):</strong></p>
+    <div class="math-block">
+      \[
+        \mathbf{z}^{[1]} = \mathbf{W}^{[1]}\mathbf{x} + \mathbf{b}^{[1]}, \quad
+        \mathbf{a}^{[1]} = \text{ReLU}(\mathbf{z}^{[1]}), \quad
+        z^{[2]} = \mathbf{W}^{[2]}\mathbf{a}^{[1]} + b^{[2]}, \quad
+        \hat{p} = \sigma(z^{[2]})
+      \]
+    </div>
+    <p><strong>Backward pass (backprop):</strong></p>
+    <div class="math-block">
+      \[
+        \delta^{[2]} = \frac{\partial L}{\partial z^{[2]}} = \hat{p} - y
+        \quad \text{(cross-entropy + sigmoid — they simplify beautifully!)}
+      \]
+      \[
+        \frac{\partial L}{\partial \mathbf{W}^{[2]}} = \delta^{[2]} \,(\mathbf{a}^{[1]})^\top, \qquad
+        \frac{\partial L}{\partial b^{[2]}} = \delta^{[2]}
+      \]
+      \[
+        \delta^{[1]} = \frac{\partial L}{\partial \mathbf{z}^{[1]}} = (\mathbf{W}^{[2]})^\top \delta^{[2]} \odot \mathbf{1}[\mathbf{z}^{[1]} > 0]
+        \quad \text{(chain rule through ReLU)}
+      \]
+      \[
+        \frac{\partial L}{\partial \mathbf{W}^{[1]}} = \delta^{[1]} \mathbf{x}^\top, \qquad
+        \frac{\partial L}{\partial \mathbf{b}^{[1]}} = \delta^{[1]}
+      \]
+    </div>
+    <div class="callout tip">
+      <strong>Key pattern:</strong> Each layer's gradient depends on the <em>error signal from above</em> (\(\delta^{[\ell+1]}\)) multiplied back through the weight matrix and gated by the activation derivative. This is the "backpropagated error" interpretation.
+    </div>
+
+    <h3>4. The ReLU Derivative</h3>
+    <p>
+      \(\text{ReLU}'(z) = \mathbf{1}[z > 0]\) — it is 1 where the neuron was active, 0 where it was inactive. This is why the expression \(\odot \mathbf{1}[\mathbf{z}^{[1]} > 0]\) appears: we "gate" the gradient through neurons that fired.
+    </p>
+    <div class="callout warning">
+      <strong>Dying ReLU:</strong> If a neuron's pre-activation \(z\) is always negative, its gradient is always 0 — it never learns. This is called a "dead neuron." Careful initialization and moderate learning rates prevent this.
+    </div>
+
+    <h3>5. The General Backprop Algorithm</h3>
+    <p>For a network with \(L\) layers and mini-batch of \(B\) examples:</p>
+    <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
+      <li><strong>Forward pass:</strong> Compute and store \(\mathbf{z}^{[\ell]}\), \(\mathbf{a}^{[\ell]}\) for all \(\ell = 1, \ldots, L\).</li>
+      <li><strong>Compute output gradient:</strong> \(\delta^{[L]} = \nabla_{z^{[L]}} L\).</li>
+      <li><strong>Backpropagate</strong> from \(\ell = L-1\) down to \(1\): \(\delta^{[\ell]} = (\mathbf{W}^{[\ell+1]})^\top \delta^{[\ell+1]} \odot \phi'(\mathbf{z}^{[\ell]})\).</li>
+      <li><strong>Compute weight gradients:</strong> \(\frac{\partial L}{\partial \mathbf{W}^{[\ell]}} = \frac{1}{B}\delta^{[\ell]} (\mathbf{A}^{[\ell-1]})^\top\).</li>
+      <li><strong>Update parameters</strong> with SGD: \(\mathbf{W}^{[\ell]} \leftarrow \mathbf{W}^{[\ell]} - \alpha \frac{\partial L}{\partial \mathbf{W}^{[\ell]}}\).</li>
+    </ol>
+  </div>
+
+  <!-- Video -->
+  <div class="card">
+    <h2><span class="section-icon">▶</span> Recommended Video</h2>
+    <p>3Blue1Brown's backpropagation calculus video is the definitive visual treatment of the chain rule in neural networks:</p>
+    <div class="video-container">
+      <iframe src="https://www.youtube.com/embed/tIeHLnjs5U8"
+              title="3Blue1Brown — Backpropagation calculus"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen loading="lazy"></iframe>
+    </div>
+    <p class="video-caption">3Blue1Brown, "Backpropagation calculus" (Chapter 4, Neural Networks series)</p>
+  </div>
+
+  <!-- Worked Example -->
+  <div class="card">
+    <h2><span class="section-icon">💻</span> Worked Example — Full Forward + Backward Pass</h2>
+    <p>
+      This implements both the forward and backward pass for a 1-hidden-layer network. Compare this directly to the forward-only code in Lesson 36:
+    </p>
+<pre><code class="language-matlab">%% Lesson 37 — Full Backpropagation Example
+% Network: d → n1 → 1  (binary classification)
+% Activation: ReLU (hidden), Sigmoid (output)
+
+rng(42);
+d  = 4;   n1 = 8;   % small network for clarity
+N  = 50;            % batch size
+
+% Synthetic data
+X = randn(d, N);                % d × N
+y = double(sum(X) > 0)';        % N × 1 labels
+
+% Initialize parameters (Xavier)
+W1 = randn(n1,d)  * sqrt(2/d);  b1 = zeros(n1,1);
+W2 = randn(1, n1) * sqrt(2/n1); b2 = 0;
+
+relu    = @(z) max(0, z);
+sigmoid = @(z) 1 ./ (1 + exp(-z));
+alpha   = 0.05;  eps = 1e-8;
+
+loss_hist = zeros(200,1);
+
+for t = 1:200
+    %% ===== FORWARD PASS =====
+    Z1 = W1 * X + b1;          % n1 × N
+    A1 = relu(Z1);              % n1 × N
+
+    Z2 = W2 * A1 + b2;         % 1 × N
+    P  = sigmoid(Z2)';          % N × 1  — predicted probabilities
+
+    % Binary cross-entropy loss
+    L_val = -mean(y.*log(P+eps) + (1-y).*log(1-P+eps));
+    loss_hist(t) = L_val;
+
+    %% ===== BACKWARD PASS =====
+    % Output layer error
+    dZ2 = (P - y)';             % 1 × N  (chain rule: dL/dZ2 = p_hat - y)
+
+    % Gradients for W2, b2
+    dW2 = (dZ2 * A1') / N;     % 1 × n1
+    db2 = sum(dZ2, 2) / N;     % scalar
+
+    % Backprop through hidden layer
+    dA1 = W2' * dZ2;            % n1 × N
+    dZ1 = dA1 .* double(Z1>0); % n1 × N  (ReLU gate)
+
+    % Gradients for W1, b1
+    dW1 = (dZ1 * X') / N;      % n1 × d
+    db1 = sum(dZ1, 2) / N;     % n1 × 1
+
+    %% ===== SGD UPDATE =====
+    W2 = W2 - alpha * dW2;
+    b2 = b2 - alpha * db2;
+    W1 = W1 - alpha * dW1;
+    b1 = b1 - alpha * db1;
+end
+
+%% Results
+fprintf('Final loss: %.4f\n', loss_hist(end));
+P_final = sigmoid(W2 * relu(W1*X + b1) + b2)';
+acc = mean(double(P_final >= 0.5) == y);
+fprintf('Training accuracy: %.2f%%\n', acc*100);
+
+figure;
+plot(loss_hist, 'b-', 'LineWidth', 2);
+xlabel('Iteration'); ylabel('Cross-Entropy Loss');
+title('Backprop + SGD Training'); grid on;
+</code></pre>
+    <div class="callout info">
+      <strong>Key line to study:</strong> <code>dZ1 = dA1 .* double(Z1>0)</code> — this is the chain rule applied to ReLU. <code>double(Z1>0)</code> is the derivative: 1 where the neuron fired, 0 where it did not.
+    </div>
+  </div>
+
+  <!-- In-Class Exercise (Printable) -->
+  <div class="card" style="border:2px dashed var(--usafa-blue);">
+    <h2><span class="section-icon">✏️</span> In-Class Exercise (Printable)</h2>
+    <p style="font-style:italic;color:var(--text-secondary);">Work through this by hand. Show all steps.</p>
+
+    <h3>Setup</h3>
+    <p>Consider a tiny network with \(d=2\), \(n_1=2\), output \(n_2=1\).</p>
+    <p>Given (at a particular training step):</p>
+    <div class="math-block">
+      \[
+        \mathbf{x} = \begin{bmatrix}1\\2\end{bmatrix}, \quad y = 1, \quad
+        \mathbf{W}^{[1]} = \begin{bmatrix}0.5 & -0.3\\0.1 & 0.8\end{bmatrix}, \quad
+        \mathbf{b}^{[1]} = \begin{bmatrix}0\\0\end{bmatrix}
+      \]
+      \[
+        \mathbf{W}^{[2]} = \begin{bmatrix}0.4 & -0.6\end{bmatrix}, \quad
+        b^{[2]} = 0.1
+      \]
+    </div>
+
+    <h3>Tasks</h3>
+    <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;font-size:0.95rem;">
+      <li><strong>(a)</strong> Compute \(\mathbf{z}^{[1]}\) and \(\mathbf{a}^{[1]} = \text{ReLU}(\mathbf{z}^{[1]})\).</li>
+      <li><strong>(b)</strong> Compute \(z^{[2]}\) and \(\hat{p} = \sigma(z^{[2]})\).</li>
+      <li><strong>(c)</strong> Compute the binary cross-entropy loss \(L\) for this single example.</li>
+      <li><strong>(d)</strong> Backprop: compute \(\delta^{[2]} = \hat{p} - y\).</li>
+      <li><strong>(e)</strong> Compute \(\frac{\partial L}{\partial \mathbf{W}^{[2]}}\) and \(\frac{\partial L}{\partial b^{[2]}}\).</li>
+      <li><strong>(f)</strong> Backprop through layer 1: compute \(\delta^{[1]} = (\mathbf{W}^{[2]})^\top \delta^{[2]} \odot \mathbf{1}[\mathbf{z}^{[1]}>0]\).</li>
+      <li><strong>(g)</strong> Compute \(\frac{\partial L}{\partial \mathbf{W}^{[1]}}\) and \(\frac{\partial L}{\partial \mathbf{b}^{[1]}}\).</li>
+      <li><strong>(h)</strong> With \(\alpha = 0.1\), perform one SGD update on all parameters. What are the new values of \(\mathbf{W}^{[1]}\)?</li>
+    </ol>
+
+    <h3>Expected Answers (Check your work)</h3>
+    <details>
+      <summary style="cursor:pointer;color:var(--accent);font-weight:600;margin-top:0.5rem;">Click to reveal</summary>
+      <div style="margin-top:0.75rem;">
+        <p><strong>(a)</strong> \(\mathbf{z}^{[1]} = [-0.1,\ 1.7]^\top\), \(\mathbf{a}^{[1]} = [0,\ 1.7]^\top\) (ReLU zeros the negative)</p>
+        <p><strong>(b)</strong> \(z^{[2]} = 0.4(0) + (-0.6)(1.7) + 0.1 = -0.92\), \(\hat{p} = \sigma(-0.92) \approx 0.285\)</p>
+        <p><strong>(c)</strong> \(L = -\log(0.285) \approx 1.255\)</p>
+        <p><strong>(d)</strong> \(\delta^{[2]} = 0.285 - 1 = -0.715\)</p>
+        <p><strong>(e)</strong> \(\frac{\partial L}{\partial \mathbf{W}^{[2]}} = \delta^{[2]}\mathbf{a}^{[1]\top} = [-0.715 \cdot 0,\ -0.715 \cdot 1.7] = [0,\ -1.215]\); \(\frac{\partial L}{\partial b^{[2]}} = -0.715\)</p>
+        <p><strong>(f)</strong> \((\mathbf{W}^{[2]})^\top \delta^{[2]} = [-0.286,\ 0.429]^\top\); gate with \([0,\ 1]\): \(\delta^{[1]} = [0,\ 0.429]^\top\)</p>
+        <p><strong>(g)</strong> \(\frac{\partial L}{\partial \mathbf{W}^{[1]}} = \delta^{[1]}\mathbf{x}^\top = \begin{bmatrix}0&0\\0.429&0.858\end{bmatrix}\)</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2><span class="section-icon">📝</span> Summary</h2>
+    <table class="summary-table">
+      <thead><tr><th>Concept</th><th>Key Idea</th></tr></thead>
+      <tbody>
+        <tr><td>Chain rule</td><td>\(\frac{dL}{dw} = \frac{dL}{dz}\cdot\frac{dz}{dw}\) — applied layer by layer backward</td></tr>
+        <tr><td>Output delta</td><td>\(\delta^{[L]} = \hat{p} - y\) for BCE + sigmoid (elegant simplification)</td></tr>
+        <tr><td>Hidden delta</td><td>\(\delta^{[\ell]} = (\mathbf{W}^{[\ell+1]})^\top\delta^{[\ell+1]} \odot \phi'(\mathbf{z}^{[\ell]})\)</td></tr>
+        <tr><td>Weight gradient</td><td>\(\frac{\partial L}{\partial \mathbf{W}^{[\ell]}} = \delta^{[\ell]}(\mathbf{a}^{[\ell-1]})^\top\)</td></tr>
+        <tr><td>Full training loop</td><td>Forward pass → loss → backward pass → SGD update → repeat</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- References -->
+  <div class="card references">
+    <h2><span class="section-icon">📚</span> References</h2>
+    <ol>
+      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Ch. 6.5 (Backprop). MIT Press.</li>
+      <li>3Blue1Brown. (2017). <em>Backpropagation calculus</em> [Video]. YouTube. <a href="https://www.youtube.com/watch?v=tIeHLnjs5U8" target="_blank" rel="noopener">youtube.com</a></li>
+      <li>Rumelhart, D. E., Hinton, G. E., &amp; Williams, R. J. (1986). Learning representations by back-propagating errors. <em>Nature, 323</em>(6088), 533–536.</li>
+      <li>Karpathy, A. (2022). <em>micrograd</em> [GitHub]. <a href="https://github.com/karpathy/micrograd" target="_blank" rel="noopener">github.com/karpathy/micrograd</a></li>
+    </ol>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="lesson36.html" class="prev">← L36: Neural Networks</a>
+    <a href="lesson38.html" class="next">
+      <div><span class="nav-label">Next Lesson</span><br>L38: CNNs, Transformers &amp; LLMs</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

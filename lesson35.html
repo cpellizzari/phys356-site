@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 35 — Gradient Descent &amp; SGD | PHYS 356</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+  <!-- Chart.js for interactive demo -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="lesson29.html">L29</a>
+      <a href="lesson30.html">L30</a>
+      <a href="lesson31.html">L31</a>
+      <a href="lesson32.html">L32</a>
+      <a href="lesson33.html">L33</a>
+      <a href="lesson34.html">L34</a>
+      <a href="lesson35.html">L35</a>
+      <a href="lesson36.html">L36</a>
+      <a href="lesson37.html">L37</a>
+      <a href="lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="lesson-banner">
+    <div class="lesson-meta">Lesson 35 &bull; Physics 356</div>
+    <h1>Gradient Descent &amp; Stochastic Gradient Descent</h1>
+    <span class="reading-time">⏱ ~40 min read + interactive demo</span>
+  </div>
+
+  <div class="objectives-box">
+    <h2>Learning Objectives</h2>
+    <ul>
+      <li>Derive the gradient descent update rule from first principles.</li>
+      <li>Compute gradients of MSE and binary cross-entropy with respect to model parameters.</li>
+      <li>Explain the role of the learning rate and diagnose too-large vs. too-small values.</li>
+      <li>Distinguish batch gradient descent, SGD, and mini-batch SGD.</li>
+      <li>Implement gradient descent to train the logistic regression classifier from Lesson 34.</li>
+    </ul>
+  </div>
+
+  <div class="notation-box">
+    <h3>Notation used in this lesson</h3>
+    <div class="notation-grid">
+      <div class="notation-item"><span class="sym">\(\boldsymbol{\theta}\)</span><span class="desc">All model parameters \((\mathbf{w}, b)\)</span></div>
+      <div class="notation-item"><span class="sym">\(L(\boldsymbol{\theta})\)</span><span class="desc">Loss as a function of parameters</span></div>
+      <div class="notation-item"><span class="sym">\(\nabla_{\boldsymbol{\theta}} L\)</span><span class="desc">Gradient of loss w.r.t. parameters</span></div>
+      <div class="notation-item"><span class="sym">\(\alpha\)</span><span class="desc">Learning rate (step size)</span></div>
+      <div class="notation-item"><span class="sym">\(t\)</span><span class="desc">Iteration (step) index</span></div>
+      <div class="notation-item"><span class="sym">\(B\)</span><span class="desc">Mini-batch size</span></div>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">🌍</span> Background &amp; Motivation</h2>
+    <h3>The optimization problem</h3>
+    <p>
+      In Lesson 34 we defined a loss function \(L(\boldsymbol{\theta})\) that measures how wrong our model is. Now we need to <em>minimize</em> it. In most ML problems, \(L\) is a function of thousands to billions of parameters, and there is no closed-form solution — we must use iterative numerical optimization.
+    </p>
+    <p>
+      <strong>Gradient descent</strong> is the backbone of nearly all ML training. The core idea is beautifully simple: always take a small step in the direction that decreases the loss most steeply — the negative gradient direction.
+    </p>
+    <h3>An analogy</h3>
+    <p>
+      Imagine you are lost in a foggy mountain range and want to reach the lowest valley. You cannot see far, but you can feel which direction is locally downhill. Gradient descent is exactly this: at each step, look at the local slope (the gradient) and step downhill. Given enough small steps, you will find a valley (local minimum).
+    </p>
+  </div>
+
+  <!-- Key Concepts -->
+  <div class="card">
+    <h2><span class="section-icon">🧠</span> Key Concepts</h2>
+
+    <h3>1. Gradient Descent Update Rule</h3>
+    <p>
+      Given the current parameters \(\boldsymbol{\theta}^{(t)}\), we update them by stepping opposite the gradient:
+    </p>
+    <div class="math-block">
+      \[
+        \boldsymbol{\theta}^{(t+1)} = \boldsymbol{\theta}^{(t)} - \alpha \, \nabla_{\boldsymbol{\theta}} L\!\left(\boldsymbol{\theta}^{(t)}\right)
+      \]
+    </div>
+    <p>
+      Where \(\alpha > 0\) is the <strong>learning rate</strong> — the step size. We repeat this update until the loss stops decreasing (convergence).
+    </p>
+    <div class="callout info">
+      <strong>Why the negative gradient?</strong> The gradient \(\nabla L\) points in the direction of steepest <em>ascent</em>. Subtracting it therefore moves us in the direction of steepest <em>descent</em>.
+    </div>
+
+    <h3>2. Gradients for the Logistic Regression Loss</h3>
+    <p>
+      For logistic regression with binary cross-entropy, the gradients work out to a remarkably clean form. For a single example \((\mathbf{x}, y)\):
+    </p>
+    <div class="math-block">
+      \[
+        \frac{\partial L}{\partial \mathbf{w}} = (\hat{p} - y)\,\mathbf{x}
+        \qquad
+        \frac{\partial L}{\partial b} = \hat{p} - y
+      \]
+    </div>
+    <p>
+      For \(N\) training examples (batch gradient descent):
+    </p>
+    <div class="math-block">
+      \[
+        \nabla_\mathbf{w} L = \frac{1}{N} \sum_{i=1}^{N} (\hat{p}_i - y_i)\mathbf{x}_i
+        = \frac{1}{N} \mathbf{X}^\top (\hat{\mathbf{p}} - \mathbf{y})
+        \qquad
+        \nabla_b L = \frac{1}{N} \sum_{i=1}^N (\hat{p}_i - y_i)
+      \]
+    </div>
+    <div class="callout tip">
+      <strong>Key insight:</strong> The gradient \((\hat{p}_i - y_i)\) is simply the prediction error. When the model is wrong, the error is large and the gradient is large — exactly what we want.
+    </div>
+
+    <h3>3. The Learning Rate — Most Critical Hyperparameter</h3>
+    <p>
+      The learning rate \(\alpha\) controls the step size at each iteration:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;">
+      <li><strong>Too small:</strong> training is painfully slow; many iterations to converge.</li>
+      <li><strong>Too large:</strong> overshoots the minimum; loss oscillates or diverges.</li>
+      <li><strong>Just right:</strong> converges smoothly in a reasonable number of iterations.</li>
+    </ul>
+    <p>
+      There is no formula for the perfect \(\alpha\). Common starting values: \(10^{-3}\) to \(10^{-1}\). Use the interactive demo below to build intuition.
+    </p>
+
+    <h3>4. Batch vs. SGD vs. Mini-Batch</h3>
+    <table class="summary-table" style="margin-top:0.75rem;">
+      <thead><tr><th>Variant</th><th>Gradient Computed Over</th><th>Update Frequency</th><th>Noise</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Batch GD</strong></td>
+          <td>All \(N\) samples</td>
+          <td>Once per epoch</td>
+          <td>Low — exact gradient</td>
+        </tr>
+        <tr>
+          <td><strong>SGD</strong></td>
+          <td>1 sample</td>
+          <td>Every sample</td>
+          <td>High — noisy but fast</td>
+        </tr>
+        <tr>
+          <td><strong>Mini-batch SGD</strong></td>
+          <td>\(B\) samples (e.g., \(B=32\))</td>
+          <td>Every \(B\) samples</td>
+          <td>Moderate — best trade-off</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      In practice, <strong>mini-batch SGD</strong> with \(B \in \{32, 64, 128\}\) is standard. The noise in the gradient acts as a regularizer and helps escape sharp local minima.
+    </p>
+
+    <h3>5. Epoch vs. Iteration</h3>
+    <p>
+      One <strong>epoch</strong> = one full pass through the training dataset. One <strong>iteration</strong> = one gradient update (processes \(B\) samples). With \(N=10000\) and \(B=100\), there are 100 iterations per epoch.
+    </p>
+  </div>
+
+  <!-- Interactive Demo -->
+  <div class="card">
+    <h2><span class="section-icon">🎛</span> Interactive Demo — Learning Rate Effect</h2>
+    <p>
+      This demo runs gradient descent on a 1D quadratic loss \(L(w) = (w - 3)^2\) (minimum at \(w^* = 3\), starting from \(w_0 = -4\)). Adjust the learning rate and observe how it affects convergence.
+    </p>
+    <div class="demo-container">
+      <div class="demo-controls">
+        <label for="lr-slider">Learning Rate \(\alpha\):</label>
+        <input type="range" id="lr-slider" min="0.005" max="1.05" step="0.005" value="0.1">
+        <span class="value-display" id="lr-display">0.100</span>
+        <button id="run-btn">Run GD</button>
+      </div>
+      <div id="demo-chart-container">
+        <canvas id="gd-chart"></canvas>
+      </div>
+      <div class="demo-info">
+        <span>Final Loss: <strong id="demo-final-loss">—</strong></span>
+        <span>Status: <strong id="demo-status">—</strong></span>
+      </div>
+    </div>
+    <div class="callout info" style="margin-top:0.75rem;">
+      <strong>Try these values:</strong> \(\alpha = 0.05\) (slow but converges) → \(\alpha = 0.5\) (fast convergence) → \(\alpha = 1.05\) (diverges!).
+    </div>
+  </div>
+
+  <!-- Video -->
+  <div class="card">
+    <h2><span class="section-icon">▶</span> Recommended Video</h2>
+    <p>3Blue1Brown explains gradient descent visually, connecting it to how neural networks learn:</p>
+    <div class="video-container">
+      <iframe src="https://www.youtube.com/embed/IHZwWFHWa-w"
+              title="3Blue1Brown — Gradient descent, how neural networks learn"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen loading="lazy"></iframe>
+    </div>
+    <p class="video-caption">3Blue1Brown, "Gradient descent, how neural networks learn" (Chapter 2, Neural Networks series)</p>
+  </div>
+
+  <!-- Worked Example -->
+  <div class="card">
+    <h2><span class="section-icon">💻</span> Worked Example — Training the Logistic Classifier</h2>
+    <p>
+      This continues directly from Lesson 34. We implement gradient descent to train the logistic regression classifier on the space-object dataset:
+    </p>
+<pre><code class="language-matlab">%% Lesson 35 — Gradient Descent for Logistic Regression
+% (Continues from Lesson 34 setup)
+rng(1); N = 200;
+X0 = [randn(N/2,1)*0.5+1, randn(N/2,1)*0.5+3];
+X1 = [randn(N/2,1)*0.5+3, randn(N/2,1)*0.5+1];
+X  = [X0; X1];
+y  = [zeros(N/2,1); ones(N/2,1)];
+
+sigmoid = @(s) 1 ./ (1 + exp(-s));
+
+%% --- Hyperparameters ---
+alpha  = 0.5;      % learning rate
+n_iter = 500;      % number of gradient descent steps
+
+%% --- Initialize parameters ---
+w = zeros(2,1);    % weight vector
+b = 0;             % bias
+
+%% --- Training loop ---
+loss_history = zeros(n_iter, 1);
+
+for t = 1:n_iter
+    % Forward pass
+    s     = X * w + b;            % N×1 raw scores
+    p_hat = sigmoid(s);            % N×1 predicted probabilities
+
+    % Loss (cross-entropy)
+    eps = 1e-8;
+    loss_history(t) = -mean(y .* log(p_hat+eps) + (1-y) .* log(1-p_hat+eps));
+
+    % Gradients (vectorized)
+    delta = p_hat - y;             % N×1 prediction errors
+    dw    = (X' * delta) / N;      % 2×1
+    db    = mean(delta);           % scalar
+
+    % Parameter update
+    w = w - alpha * dw;
+    b = b - alpha * db;
+end
+
+%% --- Final evaluation ---
+p_hat_final = sigmoid(X * w + b);
+y_pred = double(p_hat_final >= 0.5);
+acc = mean(y_pred == y);
+fprintf('Final accuracy: %.2f%%\n', acc*100);
+fprintf('Final loss: %.4f\n', loss_history(end));
+fprintf('Learned weights: w = [%.3f, %.3f], b = %.3f\n', w(1), w(2), b);
+
+%% --- Plot 1: Loss curve ---
+figure;
+plot(1:n_iter, loss_history, 'b-', 'LineWidth', 2);
+xlabel('Iteration'); ylabel('Cross-Entropy Loss');
+title(sprintf('Training Loss (lr=%.2f)', alpha));
+grid on;
+
+%% --- Plot 2: Decision boundary ---
+figure; hold on;
+scatter(X0(:,1), X0(:,2), 30, 'r', 'filled', 'DisplayName','Debris (y=0)');
+scatter(X1(:,1), X1(:,2), 30, 'b', 'filled', 'DisplayName','Satellite (y=1)');
+x1r = linspace(0, 5, 100);
+x2b = -(w(1)*x1r + b) / w(2);
+plot(x1r, x2b, 'k-', 'LineWidth', 2.5, 'DisplayName','Learned Boundary');
+xlabel('Radar Cross Section (norm.)');
+ylabel('Brightness Magnitude (norm.)');
+title('Trained Linear Classifier'); legend; grid on;
+xlim([0 5]); ylim([0 5]);
+</code></pre>
+    <div class="callout tip">
+      <strong>Experiment:</strong> Change <code>alpha</code> to 0.01 and 2.0. Plot the loss curves side by side. What do you observe?
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2><span class="section-icon">📝</span> Summary</h2>
+    <table class="summary-table">
+      <thead><tr><th>Concept</th><th>Formula / Key Idea</th></tr></thead>
+      <tbody>
+        <tr><td>GD update rule</td><td>\(\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \alpha \nabla_{\boldsymbol{\theta}} L\)</td></tr>
+        <tr><td>Logistic regression gradient</td><td>\(\nabla_\mathbf{w} L = \frac{1}{N}\mathbf{X}^\top(\hat{\mathbf{p}}-\mathbf{y})\)</td></tr>
+        <tr><td>Learning rate \(\alpha\)</td><td>Too small: slow. Too large: diverges. Tune by monitoring loss curve.</td></tr>
+        <tr><td>Mini-batch SGD</td><td>Batch size \(B \in \{32,64,128\}\); balances speed and noise.</td></tr>
+        <tr><td>Convergence check</td><td>Plot loss vs. iteration; should decrease and plateau.</td></tr>
+      </tbody>
+    </table>
+    <div class="callout info">
+      <strong>Looking ahead:</strong> In Lesson 37 you will see how gradient descent extends to neural networks via <em>backpropagation</em> — the algorithm that computes \(\nabla L\) efficiently through multiple layers.
+    </div>
+  </div>
+
+  <!-- References -->
+  <div class="card references">
+    <h2><span class="section-icon">📚</span> References</h2>
+    <ol>
+      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Ch. 8 (Optimization). MIT Press.</li>
+      <li>3Blue1Brown. (2017). <em>Gradient descent, how neural networks learn</em> [Video]. YouTube.</li>
+      <li>Bottou, L., Curtis, F. E., &amp; Nocedal, J. (2018). Optimization methods for large-scale machine learning. <em>SIAM Review, 60</em>(2), 223–311.</li>
+      <li>Ruder, S. (2016). <em>An overview of gradient descent optimization algorithms</em>. arXiv:1609.04747.</li>
+    </ol>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="lesson34.html" class="prev">← L34: Linear Classification</a>
+    <a href="lesson36.html" class="next">
+      <div><span class="nav-label">Next Lesson</span><br>L36: Neural Networks</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

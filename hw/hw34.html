@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW 34 — Linear Classifier: CSpOC Space Objects | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Homework Assignment</div>
+    <h1>HW 34 — Linear Classifier: CSpOC Space Objects</h1>
+    <div class="hw-meta">
+      <span>📘 Related: <a href="../lesson34.html" style="color:rgba(255,255,255,0.9)">Lesson 34</a>, <a href="../lesson35.html" style="color:rgba(255,255,255,0.9)">Lesson 35</a></span>
+      <span>🛠 MATLAB required</span>
+      <span>📬 Submit: single <code>.m</code> or <code>.mlx</code></span>
+    </div>
+  </div>
+
+  <!-- Overview -->
+  <div class="card">
+    <h2><span class="section-icon">📋</span> Overview</h2>
+    <p>
+      The Combined Space Operations Center (CSpOC) tracks approximately 27,000 objects in Earth orbit. A critical operational task is classifying radar returns as <strong>active satellites</strong> (y=1) vs. <strong>debris/rocket bodies</strong> (y=0). In this assignment you will build, train with gradient descent, and evaluate a logistic regression classifier on a simulated CSpOC-style dataset.
+    </p>
+    <div class="callout info">
+      <strong>This assignment spans Lessons 34 and 35:</strong> Problem 1–2 cover the model setup (L34), Problem 3 covers gradient descent training (L35), and Problem 4 covers evaluation and analysis.
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">📖</span> Background</h2>
+    <p>Features derived from radar observations include radar cross-section (RCS, a measure of reflectivity), visual magnitude, and orbital elements. Active satellites tend to have more controlled, predictable orbital behavior and different physical signatures than tumbling debris.</p>
+    <p>You will train a logistic regression model:</p>
+    <div style="background:var(--usafa-light);border-radius:8px;padding:1rem 1.5rem;margin:0.75rem 0;text-align:center;">
+      \[
+        \hat{p} = \sigma(\mathbf{w}^\top \mathbf{x} + b), \qquad \sigma(s) = \frac{1}{1+e^{-s}}
+      \]
+      \[
+        L = -\frac{1}{N}\sum_{i=1}^N \bigl[y_i \log\hat{p}_i + (1-y_i)\log(1-\hat{p}_i)\bigr]
+      \]
+    </div>
+    <p>And train it with gradient descent:</p>
+    <div style="background:var(--usafa-light);border-radius:8px;padding:1rem 1.5rem;margin:0.75rem 0;text-align:center;">
+      \[
+        \mathbf{w} \leftarrow \mathbf{w} - \alpha \cdot \frac{1}{N}\mathbf{X}^\top(\hat{\mathbf{p}} - \mathbf{y}), \qquad
+        b \leftarrow b - \alpha \cdot \frac{1}{N}\mathbf{1}^\top(\hat{\mathbf{p}} - \mathbf{y})
+      \]
+    </div>
+  </div>
+
+  <!-- Problem 1 -->
+  <div class="problem">
+    <h3>Problem 1 — Generate and Explore the Dataset (15 pts)</h3>
+    <ol>
+      <li><strong>(5 pts)</strong> Generate the dataset using the following code:
+<pre style="margin-top:0.5rem;"><code class="language-matlab">rng(356);
+N  = 600;   % total samples
+
+% Class 0: debris (low RCS, faint magnitude, high drag)
+rcs0  = 0.5 + randn(N/2,1)*0.3;
+mag0  = 5.5 + randn(N/2,1)*0.8;
+drag0 = 1.2 + randn(N/2,1)*0.4;
+X0    = [rcs0, mag0, drag0];
+
+% Class 1: active satellites (higher RCS, brighter, lower drag)
+rcs1  = 2.0 + randn(N/2,1)*0.4;
+mag1  = 3.5 + randn(N/2,1)*0.7;
+drag1 = 0.3 + randn(N/2,1)*0.2;
+X1    = [rcs1, mag1, drag1];
+
+X = [X0; X1];
+y = [zeros(N/2,1); ones(N/2,1)];
+
+% Shuffle
+idx = randperm(N);
+X   = X(idx,:);
+y   = y(idx);
+</code></pre>
+      </li>
+      <li><strong>(5 pts)</strong> Plot a 2D scatter plot of RCS vs. magnitude, color-coded by class. Do the classes appear linearly separable in this feature pair?</li>
+      <li><strong>(5 pts)</strong> Normalize the features (zero mean, unit variance, using training statistics). Split: 80% train, 20% test.</li>
+    </ol>
+  </div>
+
+  <!-- Problem 2 -->
+  <div class="problem">
+    <h3>Problem 2 — Model Setup (Lesson 34) (20 pts)</h3>
+    <ol>
+      <li><strong>(5 pts)</strong> Initialize the logistic regression model: \(\mathbf{w} = \mathbf{0}\), \(b = 0\). Implement the sigmoid function as an anonymous function.</li>
+      <li><strong>(10 pts)</strong> Compute the initial forward pass on all training examples (vectorized, using matrix operations). Compute and report the initial cross-entropy loss and initial accuracy. What do you expect them to be for a random/zero model?</li>
+      <li><strong>(5 pts)</strong> Plot the initial decision boundary (derived from \(\mathbf{w}^\top\mathbf{x}+b=0\)) on top of the 2D scatter plot. Why is the boundary at the origin?</li>
+    </ol>
+  </div>
+
+  <!-- Problem 3 -->
+  <div class="problem">
+    <h3>Problem 3 — Gradient Descent Training (Lesson 35) (35 pts)</h3>
+    <ol>
+      <li><strong>(20 pts)</strong> Implement the training loop using the update equations above. Use \(\alpha = 0.5\), 1000 iterations. Store the loss at each iteration.
+        <ul style="margin-top:0.4rem;padding-left:1rem;">
+          <li>At each iteration: forward pass → compute loss → compute gradients → update \(\mathbf{w}\) and \(b\).</li>
+          <li>Use fully vectorized MATLAB (no <code>for</code> loop over samples).</li>
+        </ul>
+      </li>
+      <li><strong>(10 pts)</strong> Plot the loss curve (loss vs. iteration). Does it decrease monotonically? What is the final training loss?</li>
+      <li><strong>(5 pts)</strong> Repeat with \(\alpha = 0.01\) and \(\alpha = 2.0\). Show all three loss curves on one plot. Describe the behavior for each learning rate.</li>
+    </ol>
+  </div>
+
+  <!-- Problem 4 -->
+  <div class="problem">
+    <h3>Problem 4 — Evaluation &amp; Analysis (30 pts)</h3>
+    <ol>
+      <li><strong>(10 pts)</strong> Evaluate the trained model (\(\alpha=0.5\)) on the test set. Report:
+        <ul style="margin-top:0.4rem;padding-left:1rem;">
+          <li>Test accuracy (fraction of correctly classified examples)</li>
+          <li>Test cross-entropy loss</li>
+          <li>Confusion matrix (2×2 table of TP/TN/FP/FN)</li>
+          <li>Precision, Recall, and F1-score for class 1 (active satellites)</li>
+        </ul>
+      </li>
+      <li><strong>(10 pts)</strong> Plot the learned decision boundary on the 2D scatter (RCS vs. magnitude) using the trained weights. Project the 3-feature boundary onto the 2D plane by setting drag to its mean value.</li>
+      <li><strong>(5 pts)</strong> Plot the distribution of predicted probabilities \(\hat{p}\) for each class (two overlapping histograms). How well-separated are the probability distributions?</li>
+      <li><strong>(5 pts)</strong> In space domain awareness, which error is more costly — a false positive (classifying debris as a satellite) or a false negative (classifying a satellite as debris)? Justify your answer. How would you adjust the classification threshold (default 0.5) to reduce your chosen error type?</li>
+    </ol>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="../lesson34.html" class="prev">← Back to Lesson 34</a>
+    <a href="hw35.html" class="next">
+      <div><span class="nav-label">Next HW</span><br>HW 35: Shallow Neural Network</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW 33 — Regression from an ML Perspective | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Homework Assignment</div>
+    <h1>HW 33 — Regression from a ML Perspective</h1>
+    <div class="hw-meta">
+      <span>📘 Related: <a href="../lesson33.html" style="color:rgba(255,255,255,0.9)">Lesson 33</a></span>
+      <span>🛠 MATLAB required</span>
+      <span>📁 Dataset: <code>physics_grades.mat</code></span>
+      <span>📬 Submit: single <code>.m</code> script or Live Script (.mlx)</span>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">📖</span> Background</h2>
+    <p>
+      For this assignment, you will approach curve fitting from a machine learning perspective. Your task will be to build a model to predict the final grades for Physics 215 students based on their Physics 110 grade.
+    </p>
+    <p>
+      In particular, your friend received a 3.5 (out of 4.0) in Physics 110 and is asking you to help determine if they should take Physics 215. They heard that people typically get a lower grade in 215 than they do in 110 and will not take the course if they anticipate getting less than a B. <strong>Should your friend take 215?</strong>
+    </p>
+    <p>For reference, the mapping between letter grade and numerical grade is:</p>
+    <table class="summary-table" style="max-width:200px;margin:1rem 0;">
+      <thead><tr><th>Letter</th><th>Numerical</th></tr></thead>
+      <tbody>
+        <tr><td>A</td><td>4.00</td></tr>
+        <tr><td>A−</td><td>3.67</td></tr>
+        <tr><td>B+</td><td>3.34</td></tr>
+        <tr><td>B</td><td>3.01</td></tr>
+        <tr><td>B−</td><td>2.68</td></tr>
+        <tr><td>C+</td><td>2.35</td></tr>
+        <tr><td>C</td><td>2.02</td></tr>
+        <tr><td>C−</td><td>1.69</td></tr>
+        <tr><td>D</td><td>1.36</td></tr>
+        <tr><td>F</td><td>1.03</td></tr>
+      </tbody>
+    </table>
+    <div class="callout info">
+      <strong>Reference:</strong> <em>Machine Learning for Humans</em> — see pg. 28 for the loss function formulation used in this assignment.
+    </div>
+  </div>
+
+  <!-- Tasks -->
+  <div class="problem">
+    <h3>Tasks</h3>
+    <ol>
+      <li>
+        <strong>Load and split the data.</strong> The MATLAB file <code>physics_grades.mat</code> contains 389 individuals' grades for both Physics 110 (first column) and Physics 215 (second column). Load this data and split it into a set for training your model and a set for testing.
+      </li>
+      <li>
+        <strong>Set up the loss function.</strong> Using a quadratic polynomial as your model, set up a loss equation as an anonymous function of your model parameters. Your loss function should take in a column vector of model parameters \([\beta_0;\ \beta_1;\ \beta_2]\) and output a scalar value for the loss. The \(x\) values should be the Physics 110 grades, and the \(y\) values should be the Physics 215 grades in the training set. Note that you may choose \(\lambda\) as you see fit.
+        <br><br>
+        Also set up a similar loss function to measure the error on the test data. This testing loss function should <em>not</em> include the regularization term, and the \(x, y\) data should be the grades in the testing set.
+      </li>
+      <li>
+        <strong>Train the model.</strong> Train your model using MATLAB's <code>fminsearch</code>. Note that this function only requires an anonymous function and initial conditions, not the gradient. The output will be the model parameters that minimize the loss on the training data.
+      </li>
+      <li>
+        <strong>Evaluate on test data.</strong> Measure the loss on your test data using your test loss function from Part 2.
+      </li>
+      <li>
+        <strong>Plot the results.</strong> Plot a scatter plot of the complete grade set and your quadratic model on the same plot.
+      </li>
+      <li>
+        <strong>Make a prediction.</strong> Using the learned model parameters, predict your friend's Physics 215 grade. Should they take the course?
+      </li>
+    </ol>
+  </div>
+
+  <!-- Back nav -->
+  <div class="lesson-nav">
+    <a href="../lesson33.html" class="prev">← Back to Lesson 33</a>
+    <a href="hw34.html" class="next">
+      <div><span class="nav-label">Next HW</span><br>HW 34: Linear Classifier</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

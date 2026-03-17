@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 32 — Statistical Estimation II: Bayesian Estimation | PHYS 356</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="lesson29.html">L29</a>
+      <a href="lesson30.html">L30</a>
+      <a href="lesson31.html">L31</a>
+      <a href="lesson32.html">L32</a>
+      <a href="lesson33.html">L33</a>
+      <a href="lesson34.html">L34</a>
+      <a href="lesson35.html">L35</a>
+      <a href="lesson36.html">L36</a>
+      <a href="lesson37.html">L37</a>
+      <a href="lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <!-- Banner -->
+  <div class="lesson-banner">
+    <div class="lesson-meta">Lesson 32 &bull; Physics 356</div>
+    <h1>Statistical Estimation II: Bayesian Estimation, MAP &amp; MMSE</h1>
+    <span class="reading-time">⏱ ~45 min read</span>
+  </div>
+
+  <!-- Objectives -->
+  <div class="objectives-box">
+    <h2>Learning Objectives</h2>
+    <ul>
+      <li>Explain the key difference between the frequentist and Bayesian frameworks.</li>
+      <li>Define the prior, likelihood, and posterior distributions.</li>
+      <li>Apply Bayes' rule to derive the posterior distribution from the forward model and prior.</li>
+      <li>State the MAP estimator and interpret it as minimizing negative log-posterior.</li>
+      <li>Derive the MMSE (minimum mean squared error) estimator as the posterior mean.</li>
+      <li>Work through the Gaussian signal-in-noise example and obtain closed-form MAP/MMSE estimates.</li>
+      <li>Explain the noise-to-signal ratio and its effect on the MMSE estimate.</li>
+      <li>Compare ML, MAP, and MMSE estimators and identify when each is preferred.</li>
+    </ul>
+  </div>
+
+  <!-- Notation -->
+  <div class="notation-box">
+    <h3>Notation used in this lesson</h3>
+    <div class="notation-grid">
+      <div class="notation-item"><span class="sym">\(X\)</span><span class="desc">Unknown quantity (random in Bayesian framework)</span></div>
+      <div class="notation-item"><span class="sym">\(Y\)</span><span class="desc">Observed data (random vector)</span></div>
+      <div class="notation-item"><span class="sym">\(p_x(x)\)</span><span class="desc">Prior distribution of \(X\)</span></div>
+      <div class="notation-item"><span class="sym">\(p_{y|x}(y|x)\)</span><span class="desc">Likelihood (forward model)</span></div>
+      <div class="notation-item"><span class="sym">\(p_{x|y}(x|y)\)</span><span class="desc">Posterior distribution of \(X\) given \(Y\)</span></div>
+      <div class="notation-item"><span class="sym">\(\hat X_{\mathrm{MAP}}\)</span><span class="desc">Maximum a posteriori estimate</span></div>
+      <div class="notation-item"><span class="sym">\(\hat X_{\mathrm{MMSE}}\)</span><span class="desc">Minimum MSE (posterior mean) estimate</span></div>
+      <div class="notation-item"><span class="sym">\(\sigma_x^2,\,\sigma_w^2\)</span><span class="desc">Signal and noise variances</span></div>
+      <div class="notation-item"><span class="sym">\(R_x,\,R_w\)</span><span class="desc">Signal and noise covariance matrices</span></div>
+    </div>
+  </div>
+
+  <!-- Section 1: Motivation -->
+  <div class="card">
+    <h2><span class="section-icon">💡</span> Motivation: Going Beyond Maximum Likelihood</h2>
+    <p>
+      The ML estimator is asymptotically optimal — it is as good as any unbiased estimator can be when the amount of data grows. However, it ignores one potentially powerful source of information: <em>prior knowledge</em> about what values \(\theta\) is likely to take.
+    </p>
+    <p>
+      Consider trying to estimate a smooth physical signal from a small number of noisy measurements. The ML estimator simply returns the noisy observations unchanged — it does not know the signal is smooth. A physicist, however, would not accept a wildly oscillating estimate if they knew the true signal varies slowly. <strong>Bayesian methods</strong> formalize exactly this kind of prior knowledge.
+    </p>
+    <div class="callout info">
+      <strong>When Bayesian methods help most:</strong> When the amount of data is small relative to the dimension of the unknown, or when strong prior information is available (e.g., the signal is smooth, non-negative, or constrained to a physical range). When data is abundant and prior information is weak, the ML and Bayesian estimates converge.
+    </div>
+  </div>
+
+  <!-- Section 2: Bayesian Framework -->
+  <div class="card">
+    <h2><span class="section-icon">🎲</span> The Bayesian Framework</h2>
+
+    <h3>Unknown as a random variable</h3>
+    <p>
+      The fundamental shift in the Bayesian approach: the unknown quantity \(X\) is modeled as a <strong>random variable</strong>, not a fixed constant. This allows us to assign a <strong>prior distribution</strong> \(p_x(x)\) that encodes our beliefs about \(X\) before seeing any data.
+    </p>
+    <div class="callout info">
+      <strong>Student Note:</strong> In the frequentist framework (Lesson 31), the unknown was written \(\theta\) (a fixed parameter). In the Bayesian framework, it is written \(X\) (a random variable). This is a notational convention to emphasize the philosophical difference, not a mathematical one.
+    </div>
+
+    <h3>The three key distributions</h3>
+    <table class="summary-table" style="margin:0.75rem 0;">
+      <thead><tr><th>Name</th><th>Notation</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Prior</strong></td><td>\(p_x(x)\)</td><td>What we believe about \(X\) before observing data</td></tr>
+        <tr><td><strong>Likelihood (forward model)</strong></td><td>\(p_{y|x}(y|x)\)</td><td>Probability of observing \(y\) if the true value is \(x\)</td></tr>
+        <tr><td><strong>Posterior</strong></td><td>\(p_{x|y}(x|y)\)</td><td>Updated belief about \(X\) after observing data \(y\)</td></tr>
+      </tbody>
+    </table>
+    <p>
+      The posterior is the central object in Bayesian estimation. It combines everything we know — the data and our prior — into a single distribution over \(X\).
+    </p>
+  </div>
+
+  <!-- Section 3: Bayes' Rule -->
+  <div class="card">
+    <h2><span class="section-icon">🔄</span> Bayes' Rule and the Posterior</h2>
+
+    <h3>Bayes' rule</h3>
+    <p>
+      The posterior is obtained from the prior and forward model via <strong>Bayes' rule</strong>:
+    </p>
+    <div class="math-block">
+      \[
+        p_{x|y}(x|y) = \frac{p_{y|x}(y|x)\, p_x(x)}{p_y(y)}
+      \]
+    </div>
+    <div class="callout info">
+      <strong>Student Note:</strong> The denominator \(p_y(y) = \int p_{y|x}(y|x)\,p_x(x)\,dx\) is the <strong>normalizing constant</strong> (also called the <em>partition function</em> \(z_y\)). It does not depend on \(x\) — it just ensures the posterior integrates to 1. When maximizing over \(x\), it can be dropped.
+    </div>
+
+    <h3>MAP estimator</h3>
+    <p>
+      The <strong>maximum a posteriori (MAP)</strong> estimator finds the mode of the posterior distribution:
+    </p>
+    <div class="math-block">
+      \[ \hat X_{\mathrm{MAP}} = \underset{x \in \Omega}{\operatorname{arg\,max}}\; p_{x|y}(x|Y) \]
+    </div>
+    <p>
+      Using Bayes' rule and dropping the constant denominator, this becomes:
+    </p>
+    <div class="math-block">
+      \begin{align}
+        \hat X_{\mathrm{MAP}} &= \underset{x}{\operatorname{arg\,max}}\;\bigl\{ \log p_{y|x}(y|x) + \log p_x(x) \bigr\} \\[4pt]
+                              &= \underset{x}{\operatorname{arg\,min}}\;\bigl\{ -\log p_{y|x}(y|x) - \log p_x(x) \bigr\}
+      \end{align}
+    </div>
+    <div class="callout info">
+      <strong>Student Note:</strong> The MAP estimate balances two competing objectives: (1) fit the data well (minimize negative log-likelihood) and (2) be consistent with the prior (minimize negative log-prior). This is the fundamental trade-off in Bayesian estimation.
+    </div>
+
+    <h3>MMSE estimator</h3>
+    <p>
+      The <strong>minimum mean squared error (MMSE)</strong> estimator minimizes the expected squared error \(\mathbb{E}[\|X - \hat X\|^2]\) over the posterior. It is the <strong>posterior mean</strong>:
+    </p>
+    <div class="math-block">
+      \[ \hat X_{\mathrm{MMSE}} = \mathbb{E}[X \mid Y] = \int x\; p_{x|y}(x|Y)\, dx \]
+    </div>
+    <p>
+      For a Gaussian posterior, the mean and mode coincide, so \(\hat X_{\mathrm{MMSE}} = \hat X_{\mathrm{MAP}}\) in that special case.
+    </p>
+  </div>
+
+  <!-- Section 4: Gaussian Example -->
+  <div class="card">
+    <h2><span class="section-icon">📈</span> Example: Gaussian Signal in Gaussian Noise (MBIP Example 2.6)</h2>
+
+    <h3>Problem setup</h3>
+    <p>
+      Let \(X \sim \mathcal{N}(0, \sigma_x^2)\) be the unknown scalar signal, \(W \sim \mathcal{N}(0, \sigma_w^2)\) be independent noise, and the observation be \(Y = X + W\). We want to estimate \(X\) from \(Y\).
+    </p>
+    <p>
+      The prior and forward model are:
+    </p>
+    <div class="math-block">
+      \[
+        p_x(x) = \frac{1}{\sqrt{2\pi\sigma_x^2}} \exp\!\left\{-\frac{x^2}{2\sigma_x^2}\right\}, \qquad
+        p_{y|x}(y|x) = \frac{1}{\sqrt{2\pi\sigma_w^2}} \exp\!\left\{-\frac{(y-x)^2}{2\sigma_w^2}\right\}
+      \]
+    </div>
+
+    <h3>Posterior distribution</h3>
+    <p>
+      Multiplying the prior and likelihood and completing the square, the posterior is Gaussian:
+    </p>
+    <div class="math-block">
+      \[
+        p_{x|y}(x|y) = \frac{1}{\sqrt{2\pi\sigma_{x|y}^2}} \exp\!\left\{-\frac{1}{2\sigma_{x|y}^2}(x - \mu_{x|y})^2\right\}
+      \]
+    </div>
+    <p>where the posterior mean and variance are:</p>
+    <div class="math-block">
+      \[
+        \mu_{x|y} = \frac{\sigma_x^2}{\sigma_x^2 + \sigma_w^2}\, y, \qquad
+        \sigma_{x|y}^2 = \frac{\sigma_x^2\, \sigma_w^2}{\sigma_x^2 + \sigma_w^2}
+      \]
+    </div>
+    <div class="callout info">
+      <strong>Student Note:</strong> The posterior is still Gaussian — this is a special property of Gaussian priors with Gaussian likelihoods. For jointly Gaussian \(X\) and \(Y\), the MAP, MMSE, and conditional median estimates are all identical:
+      \(\hat X_{\mathrm{MAP}} = \hat X_{\mathrm{MMSE}} = \hat X_{\mathrm{median}}\).
+    </div>
+
+    <h3>MMSE estimate and the noise-to-signal ratio</h3>
+    <p>
+      Since the posterior is Gaussian, \(\hat X_{\mathrm{MMSE}} = \mu_{x|y}\):
+    </p>
+    <div class="math-block">
+      \[
+        \hat X_{\mathrm{MMSE}} = \frac{\sigma_x^2}{\sigma_x^2 + \sigma_w^2}\, Y = \frac{1}{1 + \sigma_w^2/\sigma_x^2}\, Y
+      \]
+    </div>
+    <div class="callout info">
+      <strong>Student Note:</strong> The MMSE estimate is \(Y\) <em>attenuated</em> by a factor between 0 and 1. The attenuation depends on the <strong>noise-to-signal ratio</strong> \(\sigma_w^2/\sigma_x^2\):
+      <ul style="margin-top:0.5rem;padding-left:1.2rem;">
+        <li>Low noise (\(\sigma_w^2 \ll \sigma_x^2\)): attenuation ≈ 1 → \(\hat X \approx Y\) (trust the data).</li>
+        <li>High noise (\(\sigma_w^2 \gg \sigma_x^2\)): attenuation ≈ 0 → \(\hat X \approx 0\) (trust the prior mean).</li>
+      </ul>
+      This attenuation reduces MSE but introduces bias: \(\mathbb{E}[\hat X_{\mathrm{MMSE}} | X] = \frac{\sigma_x^2}{\sigma_x^2+\sigma_w^2} X &lt; X\).
+    </div>
+
+    <h3>Compare with ML</h3>
+    <p>
+      The ML estimate treats \(X\) as a fixed unknown parameter. Maximizing the likelihood \(p_{y|x}(y|x)\) over \(x\) gives simply:
+    </p>
+    <div class="math-block">
+      \[ \hat X_{\mathrm{ML}} = Y \]
+    </div>
+    <p>
+      The ML estimate is unbiased (\(\mathbb{E}[\hat X_{\mathrm{ML}} | X] = X\)) but noisy — it just returns the raw observation. The MMSE estimate is biased but has lower MSE when \(\sigma_w^2\) is not negligible.
+    </p>
+  </div>
+
+  <!-- Section 5: Multivariate Case -->
+  <div class="card">
+    <h2><span class="section-icon">🔢</span> Multivariate Gaussian Estimation (Example 2.7)</h2>
+    <p>
+      The scalar result generalizes directly to vectors. Let \(X \sim \mathcal{N}(0, R_x)\), \(W \sim \mathcal{N}(0, R_w)\) (independent), and \(Y = X + W\). Then the MMSE estimate of the vector \(X\) given \(Y\) is:
+    </p>
+    <div class="math-block">
+      \[ \hat X_{\mathrm{MMSE}} = \mathbb{E}[X \mid Y] = R_x(R_x + R_w)^{-1} Y \]
+    </div>
+    <p>
+      The posterior covariance (uncertainty after observing \(Y\)) is:
+    </p>
+    <div class="math-block">
+      \[ R_{x|y} = (R_x^{-1} + R_w^{-1})^{-1} \]
+    </div>
+    <div class="callout info">
+      <strong>Student Note:</strong> Two important observations for jointly Gaussian variables: (1) the posterior mean is a <em>linear</em> function of the data \(Y\); (2) the posterior covariance \(R_{x|y}\) does not depend on \(Y\). These two properties are special to Gaussians and do not hold for general distributions.
+    </div>
+    <p>
+      This is the formula you will implement in HW 32 for a 50-dimensional signal reconstruction problem.
+    </p>
+  </div>
+
+  <!-- MATLAB Example -->
+  <div class="card">
+    <h2><span class="section-icon">💻</span> Worked Example — MATLAB</h2>
+    <p>
+      This example demonstrates the scalar Gaussian case from Example 2.6: comparing the ML and MMSE estimates for a single observation. Your HW 32 extends this to the full 50-dimensional multivariate case from Example 2.7 — use this example to build intuition first.
+    </p>
+<pre><code class="language-matlab">%% Lesson 32 — Scalar Bayesian Estimation (demonstration, Example 2.6)
+% X ~ N(0, sigma_x^2),  W ~ N(0, sigma_w^2),  Y = X + W
+% ML estimate:   X_hat_ML   = Y
+% MMSE estimate: X_hat_MMSE = (sigma_x^2 / (sigma_x^2 + sigma_w^2)) * Y
+
+rng(7);
+sigma_x2 = 2.0;   % signal variance
+sigma_w2 = 3.0;   % noise variance  (high noise scenario)
+
+%% Single trial
+X_true  = randn * sqrt(sigma_x2);
+W       = randn * sqrt(sigma_w2);
+Y       = X_true + W;
+
+X_ML   = Y;
+X_MMSE = (sigma_x2 / (sigma_x2 + sigma_w2)) * Y;
+
+fprintf('True X     = %+.4f\n', X_true);
+fprintf('Observation Y = %+.4f\n', Y);
+fprintf('ML  estimate  = %+.4f  (error = %.4f)\n', X_ML,   abs(X_ML   - X_true));
+fprintf('MMSE estimate = %+.4f  (error = %.4f)\n', X_MMSE, abs(X_MMSE - X_true));
+
+%% Monte Carlo: compare MSE over many trials
+M     = 10000;
+err_ML   = zeros(M,1);
+err_MMSE = zeros(M,1);
+
+for i = 1:M
+  Xi = randn * sqrt(sigma_x2);
+  Yi = Xi + randn * sqrt(sigma_w2);
+  err_ML(i)   = (Yi - Xi)^2;
+  err_MMSE(i) = ((sigma_x2/(sigma_x2+sigma_w2))*Yi - Xi)^2;
+end
+
+fprintf('\nEmpirical MSE (ML)   = %.4f\n', mean(err_ML));
+fprintf('Empirical MSE (MMSE) = %.4f\n', mean(err_MMSE));
+
+% Theoretical MSE for MMSE estimator = sigma_x|y^2 + bias^2
+sigma_xgy2 = sigma_x2 * sigma_w2 / (sigma_x2 + sigma_w2);
+bias2      = ((sigma_w2/(sigma_x2+sigma_w2))^2) * sigma_x2;
+fprintf('Theoretical MSE (MMSE) = %.4f\n', sigma_xgy2 + bias2);
+</code></pre>
+    <div class="callout info">
+      <strong>What to observe:</strong> With high noise (\(\sigma_w^2 &gt; \sigma_x^2\)), the MMSE estimate has lower MSE than ML despite being biased. The attenuation factor pulls estimates toward the prior mean (zero), which helps on average when the noise is large. Try changing <code>sigma_w2</code> to 0.1 to see the low-noise regime where ML and MMSE nearly coincide.
+    </div>
+  </div>
+
+  <!-- ML vs MAP vs MMSE comparison -->
+  <div class="card">
+    <h2><span class="section-icon">⚖️</span> Comparing ML, MAP, and MMSE</h2>
+    <table class="summary-table">
+      <thead><tr><th>Estimator</th><th>Treats \(X\) as</th><th>Formula</th><th>Biased?</th><th>Best when</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>ML</strong></td>
+          <td>Fixed unknown</td>
+          <td>\(\arg\max_x \log p_{y|x}(y|x)\)</td>
+          <td>Approx. unbiased for large \(n\)</td>
+          <td>Lots of data; weak/no prior</td>
+        </tr>
+        <tr>
+          <td><strong>MAP</strong></td>
+          <td>Random</td>
+          <td>\(\arg\max_x \{\log p_{y|x} + \log p_x\}\)</td>
+          <td>Generally yes</td>
+          <td>Prior is known; finding mode matters</td>
+        </tr>
+        <tr>
+          <td><strong>MMSE</strong></td>
+          <td>Random</td>
+          <td>\(\mathbb{E}[X|Y]\) (posterior mean)</td>
+          <td>Generally yes</td>
+          <td>Prior is known; minimizing MSE matters</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout warning">
+      <strong>When Bayesian can hurt:</strong> If the assumed prior \(p_x(x)\) does not reflect reality, both MAP and MMSE estimates can be significantly worse than ML. A wrong prior is worse than no prior.
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2><span class="section-icon">📝</span> Summary</h2>
+    <table class="summary-table">
+      <thead><tr><th>Concept</th><th>Key Idea</th></tr></thead>
+      <tbody>
+        <tr><td>Bayesian vs. frequentist</td><td>Bayesian models \(X\) as random and incorporates a prior; frequentist treats \(\theta\) as fixed.</td></tr>
+        <tr><td>Prior \(p_x(x)\)</td><td>Encodes knowledge about \(X\) before seeing data.</td></tr>
+        <tr><td>Posterior \(p_{x|y}(x|y)\)</td><td>Updated distribution of \(X\) after observing \(Y\); computed via Bayes' rule.</td></tr>
+        <tr><td>MAP estimator</td><td>Mode of the posterior; minimizes \(-\log p_{y|x} - \log p_x\).</td></tr>
+        <tr><td>MMSE estimator</td><td>Posterior mean; minimizes expected squared error.</td></tr>
+        <tr><td>Gaussian case (scalar)</td><td>\(\hat X_{\mathrm{MMSE}} = \frac{\sigma_x^2}{\sigma_x^2+\sigma_w^2} Y\); attenuated version of \(Y\).</td></tr>
+        <tr><td>Noise-to-signal ratio</td><td>\(\sigma_w^2/\sigma_x^2\) controls the attenuation. High noise → strong shrinkage toward prior mean.</td></tr>
+        <tr><td>Multivariate case</td><td>\(\hat X_{\mathrm{MMSE}} = R_x(R_x+R_w)^{-1}Y\); uses signal covariance matrix as prior.</td></tr>
+        <tr><td>Gaussian special property</td><td>MAP = MMSE = conditional median; posterior mean is linear in \(Y\); posterior variance independent of \(Y\).</td></tr>
+      </tbody>
+    </table>
+    <a href="hw/hw32.html" class="hw-button">📋 HW 32 — ML vs. MMSE: Recreating MBIP Figure 2.1</a>
+  </div>
+
+  <!-- References -->
+  <div class="card references">
+    <h2><span class="section-icon">📚</span> References</h2>
+    <ol>
+      <li>Bouman, C.A. <em>Model Based Image Processing</em>, Purdue University, 2013, §§2.3.2–2.3.3. (See embedded notes in the course PDF.)</li>
+      <li>Harvard Smithsonian CfA. "Black Hole Image." <em>Event Horizon Telescope</em>, 2019. (Bayesian imaging methods at work.) Video: <a href="https://www.youtube.com/watch?v=iiAi6Y3yaI4" target="_blank" rel="noopener">youtube.com/watch?v=iiAi6Y3yaI4</a></li>
+    </ol>
+  </div>
+
+  <!-- Lesson Nav -->
+  <div class="lesson-nav">
+    <a href="lesson31.html" class="prev">
+      <div>← <span class="nav-label">Previous</span><br>L31: Maximum Likelihood</div>
+    </a>
+    <a href="lesson33.html" class="next">
+      <div><span class="nav-label">Next Lesson</span><br>L33: What is ML &amp; AI?</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

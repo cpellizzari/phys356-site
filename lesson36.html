@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 36 — Neural Networks | PHYS 356</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="lesson29.html">L29</a>
+      <a href="lesson30.html">L30</a>
+      <a href="lesson31.html">L31</a>
+      <a href="lesson32.html">L32</a>
+      <a href="lesson33.html">L33</a>
+      <a href="lesson34.html">L34</a>
+      <a href="lesson35.html">L35</a>
+      <a href="lesson36.html">L36</a>
+      <a href="lesson37.html">L37</a>
+      <a href="lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="lesson-banner">
+    <div class="lesson-meta">Lesson 36 &bull; Physics 356</div>
+    <h1>Neural Networks — Architecture &amp; Forward Pass</h1>
+    <span class="reading-time">⏱ ~45 min read</span>
+  </div>
+
+  <div class="objectives-box">
+    <h2>Learning Objectives</h2>
+    <ul>
+      <li>Describe a feedforward neural network in terms of layers, neurons, weights, biases, and activations.</li>
+      <li>Write the forward pass equations for a multi-layer network in both scalar and matrix form.</li>
+      <li>Compare common activation functions: sigmoid, tanh, and ReLU, and explain why ReLU is preferred.</li>
+      <li>State the Universal Approximation Theorem and understand its significance and limitations.</li>
+      <li>Implement the forward pass of a shallow (1 hidden layer) neural network in MATLAB.</li>
+    </ul>
+  </div>
+
+  <div class="notation-box">
+    <h3>Notation used in this lesson</h3>
+    <div class="notation-grid">
+      <div class="notation-item"><span class="sym">\(L\)</span><span class="desc">Number of layers (not loss here)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{W}^{[\ell]}\)</span><span class="desc">Weight matrix, layer \(\ell\)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{b}^{[\ell]}\)</span><span class="desc">Bias vector, layer \(\ell\)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{z}^{[\ell]}\)</span><span class="desc">Pre-activation (linear combination)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{a}^{[\ell]}\)</span><span class="desc">Activation (post-activation)</span></div>
+      <div class="notation-item"><span class="sym">\(n^{[\ell]}\)</span><span class="desc">Number of neurons in layer \(\ell\)</span></div>
+      <div class="notation-item"><span class="sym">\(\phi(\cdot)\)</span><span class="desc">Activation function</span></div>
+      <div class="notation-item"><span class="sym">\(\hat{\mathbf{y}}\)</span><span class="desc">Network output (predictions)</span></div>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">🌍</span> Background &amp; Motivation</h2>
+    <h3>The limitation of linear models</h3>
+    <p>
+      The linear classifier from Lessons 34–35 is powerful but fundamentally limited: it can only learn linear decision boundaries. Real data is rarely linearly separable. Satellite orbit families, material phases, particle signatures — these require curved, complex boundaries.
+    </p>
+    <p>
+      <strong>Neural networks</strong> overcome this by stacking multiple layers of linear transformations, each followed by a nonlinear <em>activation function</em>. The composition of these layers can represent arbitrarily complex functions — a result formalized by the Universal Approximation Theorem.
+    </p>
+    <h3>Biological inspiration (and where it ends)</h3>
+    <p>
+      Artificial neurons are loosely inspired by biological neurons: they receive inputs, compute a weighted sum, and fire (activate) if the sum exceeds a threshold. However, modern neural networks are best thought of as <em>parameterized function approximators</em>, not brain simulations. The biological analogy is more historical than mechanistic.
+    </p>
+  </div>
+
+  <!-- Key Concepts -->
+  <div class="card">
+    <h2><span class="section-icon">🧠</span> Key Concepts</h2>
+
+    <h3>1. Network Architecture</h3>
+    <p>
+      A <strong>feedforward neural network</strong> (also called a multi-layer perceptron, MLP) consists of:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;">
+      <li><strong>Input layer:</strong> receives the feature vector \(\mathbf{x} \in \mathbb{R}^d\). No computation here.</li>
+      <li><strong>Hidden layers:</strong> one or more layers where learning happens. Each neuron receives all outputs from the previous layer.</li>
+      <li><strong>Output layer:</strong> produces the prediction \(\hat{\mathbf{y}}\). For regression: linear output. For classification: sigmoid (binary) or softmax (multi-class).</li>
+    </ul>
+    <p>
+      We describe the architecture by listing the number of neurons per layer. Example: a network with input \(d=10\), one hidden layer of 64 neurons, and output of 1 is written as <code>[10 → 64 → 1]</code>.
+    </p>
+
+    <h3>2. The Forward Pass (Single Layer)</h3>
+    <p>
+      For layer \(\ell\), the computation is:
+    </p>
+    <div class="math-block">
+      \[
+        \underbrace{\mathbf{z}^{[\ell]}}_{\text{pre-activation}}
+        = \mathbf{W}^{[\ell]} \mathbf{a}^{[\ell-1]} + \mathbf{b}^{[\ell]}
+        \qquad \longrightarrow \qquad
+        \underbrace{\mathbf{a}^{[\ell]}}_{\text{activation}}
+        = \phi\!\left(\mathbf{z}^{[\ell]}\right)
+      \]
+    </div>
+    <p>
+      Where \(\mathbf{W}^{[\ell]} \in \mathbb{R}^{n^{[\ell]} \times n^{[\ell-1]}}\) is the weight matrix, \(\mathbf{b}^{[\ell]} \in \mathbb{R}^{n^{[\ell]}}\) is the bias vector, and \(\phi\) is applied element-wise.
+    </p>
+
+    <h3>3. Full Forward Pass (Two-Layer Network)</h3>
+    <p>
+      A network with one hidden layer and a binary classification output:
+    </p>
+    <div class="math-block">
+      \[
+        \mathbf{a}^{[0]} = \mathbf{x} \quad \text{(input)}
+      \]
+      \[
+        \mathbf{z}^{[1]} = \mathbf{W}^{[1]} \mathbf{x} + \mathbf{b}^{[1]}, \qquad \mathbf{a}^{[1]} = \text{ReLU}(\mathbf{z}^{[1]})
+      \]
+      \[
+        z^{[2]} = \mathbf{W}^{[2]} \mathbf{a}^{[1]} + b^{[2]}, \qquad \hat{y} = \sigma(z^{[2]})
+      \]
+    </div>
+    <p>
+      The network applies a learned <em>nonlinear</em> transformation from \(\mathbf{x}\) to \(\hat{y}\) in three matrix operations. The power comes from learning \(\mathbf{W}^{[1]}, \mathbf{b}^{[1]}, \mathbf{W}^{[2]}, b^{[2]}\) jointly.
+    </p>
+
+    <h3>4. Activation Functions</h3>
+    <p>
+      Without activations, stacking linear layers is useless — you just get another linear layer. Nonlinearity is essential.
+    </p>
+    <table class="summary-table" style="margin-top:0.75rem;">
+      <thead><tr><th>Function</th><th>Formula</th><th>Range</th><th>Common Use</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Sigmoid</strong></td>
+          <td>\(\sigma(z) = \frac{1}{1+e^{-z}}\)</td>
+          <td>\((0,1)\)</td>
+          <td>Binary output layer</td>
+        </tr>
+        <tr>
+          <td><strong>Tanh</strong></td>
+          <td>\(\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}\)</td>
+          <td>\((-1,1)\)</td>
+          <td>Hidden layers (older)</td>
+        </tr>
+        <tr>
+          <td><strong>ReLU</strong></td>
+          <td>\(\max(0, z)\)</td>
+          <td>\([0,\infty)\)</td>
+          <td>Hidden layers (modern default)</td>
+        </tr>
+        <tr>
+          <td><strong>Softmax</strong></td>
+          <td>\(\frac{e^{z_k}}{\sum_j e^{z_j}}\)</td>
+          <td>\((0,1)\), sums to 1</td>
+          <td>Multi-class output layer</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout info">
+      <strong>Why ReLU?</strong> Sigmoid and tanh saturate (gradient ≈ 0) for large inputs — the "vanishing gradient" problem that makes deep networks hard to train. ReLU has gradient exactly 1 for positive inputs, enabling training of much deeper networks.
+    </div>
+
+    <h3>5. Parameter Count</h3>
+    <p>
+      For a network \(d \to n_1 \to n_2 \to n_\text{out}\), the total parameters are:
+    </p>
+    <div class="math-block">
+      \[
+        \text{Total params} = \underbrace{d \cdot n_1 + n_1}_{\mathbf{W}^{[1]},\mathbf{b}^{[1]}} + \underbrace{n_1 \cdot n_2 + n_2}_{\mathbf{W}^{[2]},\mathbf{b}^{[2]}} + \underbrace{n_2 \cdot n_\text{out} + n_\text{out}}_{\mathbf{W}^{[3]},\mathbf{b}^{[3]}}
+      \]
+    </div>
+    <p>
+      Modern networks have millions to billions of parameters. Understanding the count helps you reason about model capacity and overfitting risk.
+    </p>
+
+    <h3>6. Universal Approximation Theorem</h3>
+    <p>
+      A feedforward network with <em>one hidden layer</em> and a nonlinear activation can approximate any continuous function on a compact domain to arbitrary accuracy, given enough neurons. This is a theoretical existence result — it does not say learning is easy, only that the capacity is there.
+    </p>
+    <div class="callout warning">
+      <strong>Important caveat:</strong> The theorem guarantees expressiveness, not learnability. In practice, deep networks (many layers, fewer neurons each) generalize better and are easier to train than very wide shallow networks.
+    </div>
+  </div>
+
+  <!-- Video -->
+  <div class="card">
+    <h2><span class="section-icon">▶</span> Recommended Video</h2>
+    <p>The 3Blue1Brown neural network series is the gold standard visual introduction. Watch episodes 1 and 2:</p>
+    <div class="video-container">
+      <iframe src="https://www.youtube.com/embed/aircAruvnKk"
+              title="3Blue1Brown — Neural Networks Chapter 1"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen loading="lazy"></iframe>
+    </div>
+    <p class="video-caption">3Blue1Brown, "But what is a neural network?" (Chapter 1) — focus on the architecture walkthrough</p>
+  </div>
+
+  <!-- Worked Example -->
+  <div class="card">
+    <h2><span class="section-icon">💻</span> Worked Example — MATLAB Forward Pass</h2>
+    <p>
+      We implement the forward pass of a 2-layer network on the <code>sat_data.mat</code> satellite dataset. This is the setup you will use in HW 35 to build a full training loop.
+    </p>
+<pre><code class="language-matlab">%% Lesson 36 — Neural Network Forward Pass
+% Dataset: sat_data.mat
+% Features: orbital parameters of satellites
+% Labels: maneuver type classification
+
+% Load data (assumes sat_data.mat is in the working directory)
+load('sat_data.mat');   % provides: X_train, y_train, X_test, y_test
+% X_train: N_train × d  (normalized features)
+% y_train: N_train × 1  (binary labels: 0 or 1)
+
+[N, d] = size(X_train);
+fprintf('Training samples: %d,  Features: %d\n', N, d);
+
+%% --- Network architecture: d → 32 → 16 → 1 ---
+n1 = 32;   % hidden layer 1 size
+n2 = 16;   % hidden layer 2 size
+
+% Initialize weights (Xavier initialization)
+W1 = randn(n1, d)  * sqrt(2/d);     % n1 × d
+b1 = zeros(n1, 1);                   % n1 × 1
+W2 = randn(n2, n1) * sqrt(2/n1);    % n2 × n1
+b2 = zeros(n2, 1);                   % n2 × 1
+W3 = randn(1,  n2) * sqrt(2/n2);    % 1  × n2
+b3 = 0;                              % scalar
+
+%% --- Activation functions ---
+relu    = @(z) max(0, z);
+sigmoid = @(z) 1 ./ (1 + exp(-z));
+
+%% --- Forward pass (single sample) ---
+x = X_train(1,:)';   % d × 1 — first training example
+
+z1 = W1 * x  + b1;   % n1 × 1
+a1 = relu(z1);        % n1 × 1
+
+z2 = W2 * a1 + b2;   % n2 × 1
+a2 = relu(z2);        % n2 × 1
+
+z3 = W3 * a2 + b3;   % scalar
+y_hat = sigmoid(z3); % predicted probability ∈ (0,1)
+
+fprintf('True label: %d,  Predicted probability: %.4f\n', y_train(1), y_hat);
+
+%% --- Vectorized forward pass (all N training samples) ---
+% Transpose X_train to d × N for matrix ops
+Xt = X_train';        % d × N
+
+Z1 = W1 * Xt + b1;   % n1 × N
+A1 = relu(Z1);        % n1 × N
+
+Z2 = W2 * A1 + b2;   % n2 × N
+A2 = relu(Z2);        % n2 × N
+
+Z3 = W3 * A2 + b3;   % 1 × N
+P_hat = sigmoid(Z3)'; % N × 1 — predicted probabilities
+
+%% --- Initial loss (before training) ---
+eps = 1e-8;
+y = y_train;
+L = -mean(y .* log(P_hat+eps) + (1-y) .* log(1-P_hat+eps));
+acc_init = mean(double(P_hat >= 0.5) == y);
+fprintf('Initial loss: %.4f,  Accuracy: %.2f%%\n', L, acc_init*100);
+
+%% NOTE: This is only the forward pass.
+%% In HW35 you will implement backpropagation to compute
+%% gradients and train the network with SGD.
+</code></pre>
+    <div class="callout tip">
+      <strong>Xavier initialization:</strong> Initializing weights with \(\mathcal{N}(0, \sqrt{2/n_\text{in}})\) keeps activations from exploding or vanishing at initialization. This is a standard best practice.
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2><span class="section-icon">📝</span> Summary</h2>
+    <table class="summary-table">
+      <thead><tr><th>Concept</th><th>Key Idea</th></tr></thead>
+      <tbody>
+        <tr><td>Layer computation</td><td>\(\mathbf{z}^{[\ell]} = \mathbf{W}^{[\ell]}\mathbf{a}^{[\ell-1]}+\mathbf{b}^{[\ell]}\), \(\mathbf{a}^{[\ell]}=\phi(\mathbf{z}^{[\ell]})\)</td></tr>
+        <tr><td>ReLU</td><td>\(\max(0,z)\) — default hidden layer activation; avoids vanishing gradients</td></tr>
+        <tr><td>Parameters</td><td>Each layer \(\ell\) has \(n^{[\ell]} \times n^{[\ell-1]}\) weights + \(n^{[\ell]}\) biases</td></tr>
+        <tr><td>Forward pass</td><td>Chain of matrix-vector products + pointwise nonlinearities</td></tr>
+        <tr><td>Universal approximation</td><td>One hidden layer + nonlinearity can approximate any continuous function</td></tr>
+      </tbody>
+    </table>
+    <a href="hw/hw35.html" class="hw-button">📋 HW 35 — Shallow Neural Network (sat_data.mat)</a>
+  </div>
+
+  <!-- References -->
+  <div class="card references">
+    <h2><span class="section-icon">📚</span> References</h2>
+    <ol>
+      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Chs. 6–7. MIT Press.</li>
+      <li>3Blue1Brown. (2017). <em>But what is a neural network?</em> [Video]. YouTube.</li>
+      <li>Cybenko, G. (1989). Approximation by superpositions of a sigmoidal function. <em>Mathematics of Control, Signals and Systems, 2</em>(4), 303–314.</li>
+      <li>He, K. et al. (2015). Delving deep into rectifiers: Surpassing human-level performance on ImageNet. <em>ICCV 2015</em>.</li>
+    </ol>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="lesson35.html" class="prev">← L35: Gradient Descent</a>
+    <a href="lesson37.html" class="next">
+      <div><span class="nav-label">Next Lesson</span><br>L37: Backprop &amp; Training NNs</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

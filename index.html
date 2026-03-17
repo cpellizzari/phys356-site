@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Physics 356 — Advanced Topics in Computational Physics</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'], ['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+
+<!-- ===== Site Header ===== -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="lesson29.html">L29</a>
+      <a href="lesson30.html">L30</a>
+      <a href="lesson31.html">L31</a>
+      <a href="lesson32.html">L32</a>
+      <a href="lesson33.html">L33</a>
+      <a href="lesson34.html">L34</a>
+      <a href="lesson35.html">L35</a>
+      <a href="lesson36.html">L36</a>
+      <a href="lesson37.html">L37</a>
+      <a href="lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===== Main Content ===== -->
+<main class="page-wrapper">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="course-code">Physics 356 &mdash; Lessons 29–38</div>
+    <h1>Advanced Topics in Computational Physics</h1>
+    <p>Ten lessons spanning numerical optimization, statistical estimation, and machine learning &amp; AI — the computational backbone of modern physics research and engineering.</p>
+  </section>
+
+  <!-- ===== Module 1: Optimization ===== -->
+  <h2 style="font-size:1.2rem;font-weight:700;color:var(--usafa-blue);margin-bottom:1rem;">Optimization</h2>
+  <div class="lesson-grid">
+
+    <a href="lesson29.html" class="lesson-card">
+      <span class="lesson-num">Lesson 29</span>
+      <h3>1D Optimization: Bracketing &amp; GSS</h3>
+      <p>Local vs. global minima, bracketing algorithm, golden section search, and MATLAB implementation.</p>
+      <div class="card-footer">
+        <span class="tag">1D Methods</span>
+        <span class="tag hw">HW 29</span>
+      </div>
+    </a>
+
+    <a href="lesson30.html" class="lesson-card">
+      <span class="lesson-num">Lesson 30</span>
+      <h3>Gradient-Based Optimization</h3>
+      <p>Gradient review, gradient descent with fixed step size, steepest descent with optimal step, convergence criteria.</p>
+      <div class="card-footer">
+        <span class="tag">Multidimensional</span>
+        <span class="tag hw">HW 30</span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- ===== Module 2: Statistical Estimation ===== -->
+  <h2 style="font-size:1.2rem;font-weight:700;color:var(--usafa-blue);margin:2rem 0 1rem;">Statistical Estimation</h2>
+  <div class="lesson-grid">
+
+    <a href="lesson31.html" class="lesson-card">
+      <span class="lesson-num">Lesson 31</span>
+      <h3>Frequentist Estimation &amp; ML</h3>
+      <p>Gaussian distributions, frequentist framework, bias/variance/MSE, maximum likelihood estimator, Cramér-Rao bound.</p>
+      <div class="card-footer">
+        <span class="tag">Frequentist</span>
+        <span class="tag hw">HW 31</span>
+      </div>
+    </a>
+
+    <a href="lesson32.html" class="lesson-card">
+      <span class="lesson-num">Lesson 32</span>
+      <h3>Bayesian Estimation: MAP &amp; MMSE</h3>
+      <p>Prior, likelihood, posterior, Bayes' rule, MAP estimator, MMSE estimator, ML vs. MMSE comparison.</p>
+      <div class="card-footer">
+        <span class="tag">Bayesian</span>
+        <span class="tag hw">HW 32</span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- ===== Module 3: Machine Learning & AI ===== -->
+  <h2 style="font-size:1.2rem;font-weight:700;color:var(--usafa-blue);margin:2rem 0 1rem;">Machine Learning &amp; Artificial Intelligence</h2>
+  <div class="lesson-grid">
+
+    <a href="lesson33.html" class="lesson-card">
+      <span class="lesson-num">Lesson 33</span>
+      <h3>What is ML &amp; AI?</h3>
+      <p>Definitions, types of learning, the ML pipeline, regression, regularization, and real-world physics applications.</p>
+      <div class="card-footer">
+        <span class="tag">Intro</span>
+        <span class="tag hw">HW 33</span>
+      </div>
+    </a>
+
+    <a href="lesson34.html" class="lesson-card">
+      <span class="lesson-num">Lesson 34</span>
+      <h3>Supervised Learning</h3>
+      <p>k-NN, SVM, logistic regression, score functions, decision boundaries, MSE vs. cross-entropy.</p>
+      <div class="card-footer">
+        <span class="tag">Classification</span>
+        <span class="tag hw">HW 34</span>
+      </div>
+    </a>
+
+    <a href="lesson35.html" class="lesson-card">
+      <span class="lesson-num">Lesson 35</span>
+      <h3>Unsupervised Learning</h3>
+      <p>k-means clustering, PCA, dimensionality reduction, and applications to satellite data.</p>
+      <div class="card-footer">
+        <span class="tag">Clustering</span>
+        <span class="tag hw">HW 35</span>
+      </div>
+    </a>
+
+    <a href="lesson36.html" class="lesson-card">
+      <span class="lesson-num">Lesson 36</span>
+      <h3>Linear Classification &amp; Loss Functions</h3>
+      <p>Linear classifier, loss functions, stochastic gradient descent, and the connection to Lessons 29–30.</p>
+      <div class="card-footer">
+        <span class="tag">Optimization</span>
+        <span class="tag">SGD</span>
+      </div>
+    </a>
+
+    <a href="lesson37.html" class="lesson-card">
+      <span class="lesson-num">Lesson 37</span>
+      <h3>Neural Networks &amp; Backpropagation</h3>
+      <p>Architecture, forward pass, chain rule, backpropagation algorithm, training neural networks.</p>
+      <div class="card-footer">
+        <span class="tag">Neural Networks</span>
+        <span class="tag">Backprop</span>
+      </div>
+    </a>
+
+    <a href="lesson38.html" class="lesson-card">
+      <span class="lesson-num">Lesson 38</span>
+      <h3>CNNs, Transformers &amp; LLMs</h3>
+      <p>Convolutional layers, pooling, attention mechanism, transformers, and large language models.</p>
+      <div class="card-footer">
+        <span class="tag">Modern ML</span>
+        <span class="tag hw">HW 38</span>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- HW Links -->
+  <div class="card">
+    <h2><span class="section-icon">📋</span> Homework Assignments</h2>
+    <p>Each assignment is an HTML page with MATLAB tasks. Submit as a single <code>.m</code> script (or Live Script) unless otherwise noted.</p>
+    <table class="summary-table">
+      <thead><tr><th>Assignment</th><th>Topic</th><th>Related Lesson</th></tr></thead>
+      <tbody>
+        <tr><td><a href="hw/hw29.html">HW 29</a></td><td>GSS on the Buckingham Potential</td><td>Lesson 29</td></tr>
+        <tr><td><a href="hw/hw30.html">HW 30</a></td><td>Gradient Descent UDF</td><td>Lesson 30</td></tr>
+        <tr><td><a href="hw/hw31.html">HW 31</a></td><td>ML Estimation: Laser Speckle</td><td>Lesson 31</td></tr>
+        <tr><td><a href="hw/hw32.html">HW 32</a></td><td>ML vs. MMSE: Recreating MBIP Fig. 2.1</td><td>Lesson 32</td></tr>
+        <tr><td><a href="hw/hw33.html">HW 33</a></td><td>Regression from an ML Perspective</td><td>Lesson 33</td></tr>
+        <tr><td><a href="hw/hw34.html">HW 34</a></td><td>Linear Classifier (GEO Space Objects)</td><td>Lessons 34–35</td></tr>
+        <tr><td><a href="hw/hw35.html">HW 35</a></td><td>Shallow Neural Network</td><td>Lessons 36–37</td></tr>
+        <tr><td><a href="hw/hw38.html">HW 38</a></td><td>CNNs and Transformers</td><td>Lesson 38</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Learning Flow -->
+  <div class="card">
+    <h2><span class="section-icon">🗺</span> Learning Flow</h2>
+    <p>The ten lessons build deliberately on each other across three connected topics:</p>
+    <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
+      <li><strong>L29</strong> — 1D optimization: bracket the minimum, then narrow with Golden Section Search.</li>
+      <li><strong>L30</strong> — extend to <em>N</em> dimensions using the gradient. GD and SD algorithms.</li>
+      <li><strong>L31</strong> — estimation from data: frequentist framework, maximum likelihood.</li>
+      <li><strong>L32</strong> — incorporate prior knowledge: Bayesian estimation, MAP, MMSE.</li>
+      <li><strong>L33</strong> — the big picture of ML: data → model → loss → optimization → evaluation.</li>
+      <li><strong>L34</strong> — supervised learning: k-NN, SVM, logistic regression.</li>
+      <li><strong>L35</strong> — unsupervised learning: k-means, PCA.</li>
+      <li><strong>L36</strong> — linear classifier + loss + SGD (optimization from L29–30 returns here).</li>
+      <li><strong>L37</strong> — neural networks: architecture and backpropagation.</li>
+      <li><strong>L38</strong> — state of the art: CNNs, transformers, and LLMs.</li>
+    </ol>
+    <div class="callout info" style="margin-top:1rem;">
+      <strong>Prerequisites:</strong> Basic linear algebra (matrix multiplication, dot products), calculus (derivatives, partial derivatives), MATLAB programming, and introductory probability are sufficient for L29–L32. L33–L38 build on those foundations.
+    </div>
+  </div>
+
+</main>
+
+<!-- ===== Footer ===== -->
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

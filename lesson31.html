@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 31 — Statistical Estimation I: Maximum Likelihood | PHYS 356</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="lesson29.html">L29</a>
+      <a href="lesson30.html">L30</a>
+      <a href="lesson31.html">L31</a>
+      <a href="lesson32.html">L32</a>
+      <a href="lesson33.html">L33</a>
+      <a href="lesson34.html">L34</a>
+      <a href="lesson35.html">L35</a>
+      <a href="lesson36.html">L36</a>
+      <a href="lesson37.html">L37</a>
+      <a href="lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <!-- Banner -->
+  <div class="lesson-banner">
+    <div class="lesson-meta">Lesson 31 &bull; Physics 356</div>
+    <h1>Statistical Estimation I: Frequentist Methods &amp; Maximum Likelihood</h1>
+    <span class="reading-time">⏱ ~40 min read</span>
+  </div>
+
+  <!-- Objectives -->
+  <div class="objectives-box">
+    <h2>Learning Objectives</h2>
+    <ul>
+      <li>State the PDF of a Gaussian distribution and identify its mean and variance parameters.</li>
+      <li>Write the PDF of a multivariate Gaussian using vector-matrix notation.</li>
+      <li>Describe the frequentist framework: unknown \(\theta\), estimator \(\hat\theta = T(Y)\).</li>
+      <li>Define bias, variance, and mean squared error (MSE) of an estimator.</li>
+      <li>State the maximum likelihood (ML) estimator and derive it for a simple Gaussian example.</li>
+      <li>Explain what it means for an estimator to be consistent, unbiased, and UMVU.</li>
+      <li>Explain the significance of the Cramér-Rao bound.</li>
+    </ul>
+  </div>
+
+  <!-- Notation -->
+  <div class="notation-box">
+    <h3>Notation used in this lesson</h3>
+    <div class="notation-grid">
+      <div class="notation-item"><span class="sym">\(\theta\)</span><span class="desc">Unknown parameter (scalar or vector)</span></div>
+      <div class="notation-item"><span class="sym">\(\hat\theta\)</span><span class="desc">Estimate of \(\theta\)</span></div>
+      <div class="notation-item"><span class="sym">\(\bar\theta\)</span><span class="desc">Mean of the estimator \(\mathbb{E}[\hat\theta]\)</span></div>
+      <div class="notation-item"><span class="sym">\(Y\)</span><span class="desc">Observed random vector (data)</span></div>
+      <div class="notation-item"><span class="sym">\(p_\theta(y)\)</span><span class="desc">PDF of \(Y\) parameterized by \(\theta\)</span></div>
+      <div class="notation-item"><span class="sym">\(\mu,\,\sigma^2\)</span><span class="desc">Mean and variance of a Gaussian</span></div>
+      <div class="notation-item"><span class="sym">\(R\)</span><span class="desc">Covariance matrix (multivariate Gaussian)</span></div>
+      <div class="notation-item"><span class="sym">\(\text{MSE}_\theta\)</span><span class="desc">Mean squared error of estimate</span></div>
+    </div>
+  </div>
+
+  <!-- Section 1: Motivation -->
+  <div class="card">
+    <h2><span class="section-icon">🔭</span> Motivation: Estimating Unknown Quantities from Data</h2>
+    <p>
+      In many physics experiments you cannot measure a quantity of interest directly. Instead, you observe a noisy, indirect signal and must <em>infer</em> the underlying quantity from that signal. This is the estimation problem.
+    </p>
+    <p>
+      Examples are everywhere: inferring the mass of a particle from a track in a detector, estimating the distance to a star from its apparent brightness, determining the temperature of a plasma from its emission spectrum, or recovering the true intensity of a laser beam from speckle-corrupted measurements. In each case, your measurement is a random variable that depends on the unknown quantity you want to estimate.
+    </p>
+    <p>
+      Two broad frameworks address this problem: <strong>frequentist</strong> (the subject of this lesson) and <strong>Bayesian</strong> (Lesson 32). Both are valuable; understanding when to use each is a core skill.
+    </p>
+  </div>
+
+  <!-- Section 2: Common Distributions -->
+  <div class="card">
+    <h2><span class="section-icon">📊</span> Common Probability Distributions</h2>
+
+    <h3>The Gaussian (Normal) Distribution</h3>
+    <p>
+      The most widely used distribution in physics and engineering is the <strong>Gaussian distribution</strong>, written \(X \sim \mathcal{N}(\mu, \sigma^2)\). Its probability density function (PDF) is:
+    </p>
+    <div class="math-block">
+      \[
+        p(x) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\!\left\{ -\frac{1}{2\sigma^2}(x - \mu)^2 \right\}
+      \]
+    </div>
+    <div class="callout info">
+      <strong>Student Note:</strong> For a Gaussian random variable \(X \sim \mathcal{N}(\mu, \sigma^2)\):
+      \(\mathbb{E}[X] = \mu\) and \(\mathbb{E}[(X-\mu)^2] = \sigma^2\).
+      The parameters \(\mu\) and \(\sigma^2\) are exactly the mean and variance — there is no ambiguity.
+    </div>
+
+    <h3>The Multivariate Gaussian Distribution</h3>
+    <p>
+      When \(X \in \mathbb{R}^p\) is a vector rather than a scalar, the Gaussian generalizes to:
+    </p>
+    <div class="math-block">
+      \[
+        p(x) = \frac{1}{(2\pi)^{p/2}} |R|^{-1/2} \exp\!\left\{ -\frac{1}{2}(x - \mu)^T R^{-1}(x - \mu) \right\}
+      \]
+    </div>
+    <p>
+      where \(\mu \in \mathbb{R}^p\) is the <strong>mean vector</strong> and \(R \in \mathbb{R}^{p \times p}\) is the <strong>covariance matrix</strong> (symmetric positive-definite). We write \(X \sim \mathcal{N}(\mu, R)\).
+    </p>
+    <div class="callout info">
+      <strong>Student Note:</strong> For \(X \sim \mathcal{N}(\mu, R)\):
+      \(\mathbb{E}[X] = \mu\) and \(\mathbb{E}[(X-\mu)(X-\mu)^T] = R\).
+      The \((i,j)\) entry of \(R\) is the covariance between components \(X_i\) and \(X_j\). Diagonal entries are variances.
+    </div>
+
+    <h3>Other distributions</h3>
+    <p>
+      Not all physical measurements are Gaussian. Counting experiments (photons, decay events) follow Poisson distributions. Some intensity measurements (e.g., laser speckle) follow exponential distributions. The estimation framework below applies to any distribution — the key is knowing (or assuming) the form of \(p_\theta(y)\).
+    </p>
+  </div>
+
+  <!-- Section 3: Frequentist Framework -->
+  <div class="card">
+    <h2><span class="section-icon">📐</span> The Frequentist Framework</h2>
+
+    <h3>Setup</h3>
+    <p>
+      In the <strong>frequentist approach</strong>, the unknown quantity \(\theta\) is treated as a fixed but unknown constant (not random). We observe data \(Y \in \mathbb{R}^n\) drawn from a distribution \(p_\theta(y)\) that depends on \(\theta\). Our goal is to design a function \(T: \mathbb{R}^n \to \Omega\) such that
+    </p>
+    <div class="math-block">
+      \[ \hat\theta = T(Y) \]
+    </div>
+    <p>
+      is a good estimate of the true \(\theta\). Because \(T\) is a function of the random vector \(Y\), the estimate \(\hat\theta\) is itself a random variable — it varies across repeated experiments.
+    </p>
+    <div class="callout info">
+      <strong>Student Note:</strong> The estimator \(\hat\theta\) is a random variable because it is a function of the random data \(Y\). The <em>mean</em> of the estimator, \(\bar\theta = \mathbb{E}[\hat\theta]\), tells us where the estimates tend to cluster on average.
+    </div>
+
+    <h3>Bias, variance, and MSE</h3>
+    <p>
+      Three quantities characterize the quality of an estimator:
+    </p>
+    <table class="summary-table" style="margin:0.75rem 0;">
+      <thead><tr><th>Quantity</th><th>Definition</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Bias</strong></td>
+          <td>\(\text{bias}_\theta = \bar\theta - \theta\)</td>
+          <td>Systematic offset: does the estimator on average give the right answer?</td>
+        </tr>
+        <tr>
+          <td><strong>Variance</strong></td>
+          <td>\(\text{var}_\theta = \mathbb{E}_\theta\!\left[(\hat\theta - \bar\theta)^2\right]\)</td>
+          <td>Spread of estimates around their mean: how consistent is it?</td>
+        </tr>
+        <tr>
+          <td><strong>MSE</strong></td>
+          <td>\(\text{MSE}_\theta = \mathbb{E}_\theta\!\left[(\hat\theta - \theta)^2\right]\)</td>
+          <td>Overall error from the true value: the quantity we most care about.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>These are related by the fundamental identity:</p>
+    <div class="math-block">
+      \[ \text{MSE}_\theta = \text{var}_\theta + (\text{bias}_\theta)^2 \]
+    </div>
+    <p>
+      An estimator is <strong>unbiased</strong> if \(\text{bias}_\theta = 0\) for all \(\theta\), i.e., \(\bar\theta = \theta\). An unbiased estimator's MSE equals its variance.
+    </p>
+
+    <h3>Consistency</h3>
+    <p>
+      An estimator \(\hat\theta_n\) based on \(n\) observations is <strong>consistent</strong> if it converges to the true \(\theta\) in probability as \(n \to \infty\). Consistency is the minimum property we expect of an estimator: with enough data, it should converge to the truth.
+    </p>
+    <p>
+      The <strong>uniformly minimum variance unbiased (UMVU)</strong> estimator is the best possible unbiased estimator — it achieves the lowest variance among all unbiased estimators, for every value of \(\theta\).
+    </p>
+  </div>
+
+  <!-- Section 4: ML Estimator -->
+  <div class="card">
+    <h2><span class="section-icon">🎯</span> The Maximum Likelihood (ML) Estimator</h2>
+
+    <h3>Definition</h3>
+    <p>
+      The most widely used frequentist estimator is the <strong>maximum likelihood (ML) estimator</strong>. The idea is simple: choose the value of \(\theta\) that makes the observed data \(Y\) most probable.
+    </p>
+    <div class="math-block">
+      \[
+        \hat\theta_{\mathrm{ML}} = \underset{\theta \in \Omega}{\operatorname{arg\,max}}\; p_\theta(Y)
+                                  = \underset{\theta \in \Omega}{\operatorname{arg\,max}}\; \log p_\theta(Y)
+      \]
+    </div>
+    <div class="callout info">
+      <strong>Student Note:</strong> We maximize \(\log p_\theta(Y)\) (the log-likelihood) rather than \(p_\theta(Y)\) directly. Since \(\log\) is a monotonically increasing function, the maximum is at the same \(\theta\). The log turns products of probabilities into sums, which is much easier to differentiate and optimize.
+    </div>
+
+    <h3>Properties of the ML estimator</h3>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;font-size:0.95rem;">
+      <li><strong>Consistent:</strong> \(\hat\theta_{\mathrm{ML}} \to \theta\) as the number of observations \(n \to \infty\).</li>
+      <li><strong>Asymptotically efficient:</strong> As \(n \to \infty\), the ML estimate attains the <strong>Cramér-Rao bound</strong> — the theoretical lower bound on the variance of any unbiased estimator. No unbiased estimator can do better asymptotically.</li>
+      <li><strong>Not necessarily unbiased</strong> for finite \(n\), but bias vanishes as \(n\) grows.</li>
+    </ul>
+    <div class="callout info">
+      <strong>Student Note:</strong> The Cramér-Rao bound says that the variance of any unbiased estimator is bounded below by \(1 / \mathcal{I}(\theta)\), where \(\mathcal{I}(\theta)\) is the Fisher information. The ML estimator achieves this bound asymptotically — it is as good as any unbiased estimator can be, given enough data.
+    </div>
+
+    <h3>Deriving the ML estimator: Gaussian mean (Example 2.3)</h3>
+    <p>
+      Let \(\{Y_k\}_{k=1}^n\) be i.i.d. random variables with distribution \(\mathcal{N}(\theta, \sigma^2)\) where \(\sigma^2\) is known and \(\theta\) is the unknown mean. The log-likelihood for \(n\) independent observations is:
+    </p>
+    <div class="math-block">
+      \[
+        \log p_\theta(Y) = -\frac{1}{2\sigma^2}\sum_{k=1}^n (Y_k - \theta)^2 - \frac{n}{2}\log(2\pi\sigma^2)
+      \]
+    </div>
+    <p>
+      Differentiating with respect to \(\theta\) and setting equal to zero:
+    </p>
+    <div class="math-block">
+      \[
+        \frac{d \log p_\theta(Y)}{d\theta}\bigg|_{\theta = \hat\theta} = \frac{1}{\sigma^2}\sum_{k=1}^n (Y_k - \hat\theta) = 0
+      \]
+    </div>
+    <p>Solving for \(\hat\theta\):</p>
+    <div class="math-block">
+      \[ \hat\theta_{\mathrm{ML}} = \frac{1}{n}\sum_{k=1}^n Y_k \]
+    </div>
+    <div class="callout info">
+      <strong>Student Note:</strong> The ML estimate of the Gaussian mean is simply the <em>sample mean</em> — the average of the observations. Moreover, for this specific case, the ML estimator is also unbiased and UMVU (the best possible unbiased estimator). This is a special property of the Gaussian; most ML estimators are not unbiased for finite \(n\).
+    </div>
+  </div>
+
+  <!-- MATLAB Example -->
+  <div class="card">
+    <h2><span class="section-icon">💻</span> Worked Example — MATLAB</h2>
+    <p>
+      This example demonstrates ML estimation of the mean of a Gaussian distribution. We generate data, compute the ML estimate, and verify that it is unbiased by averaging over many realizations.
+      The Gaussian distribution is used here for illustration — your HW 31 applies ML estimation to a <em>different</em> distribution (exponential).
+    </p>
+<pre><code class="language-matlab">%% Lesson 31 — ML Estimation of Gaussian Mean (demonstration)
+% True parameter: theta = 3 (the mean)
+% Distribution: Y ~ N(theta, sigma^2), sigma^2 = 4 (known)
+% ML estimator: theta_hat = mean(Y)
+% (HW 31 uses a different distribution -- do not use this directly)
+
+rng(42);
+theta_true = 3.0;
+sigma2     = 4.0;
+
+%% Single experiment: estimate from n=20 samples
+n = 20;
+Y = theta_true + sqrt(sigma2) * randn(n, 1);
+theta_hat = mean(Y);
+fprintf('True theta = %.2f,  ML estimate = %.4f\n', theta_true, theta_hat);
+
+%% Demonstrate unbiasedness: average over M=1000 experiments
+M     = 1000;
+n_vec = [5, 10, 20, 50, 100, 200];
+mean_est = zeros(size(n_vec));
+var_est  = zeros(size(n_vec));
+
+for j = 1:length(n_vec)
+  estimates = zeros(M, 1);
+  for i = 1:M
+    Y_i = theta_true + sqrt(sigma2) * randn(n_vec(j), 1);
+    estimates(i) = mean(Y_i);
+  end
+  mean_est(j) = mean(estimates);
+  var_est(j)  = var(estimates);
+end
+
+%% Plot
+figure;
+subplot(2,1,1);
+plot(n_vec, mean_est, 'bo-', 'LineWidth', 1.5);
+yline(theta_true, 'r--', 'LineWidth', 1.5);
+xlabel('n (samples)'); ylabel('Mean of \hat\theta');
+title('ML Estimator Mean vs. Number of Samples');
+legend('Mean of estimates', 'True \theta'); grid on;
+
+subplot(2,1,2);
+semilogy(n_vec, var_est, 'bs-', 'LineWidth', 1.5); hold on;
+semilogy(n_vec, sigma2 ./ n_vec, 'r--', 'LineWidth', 1.5);
+xlabel('n (samples)'); ylabel('Var(\hat\theta)  [log scale]');
+title('Variance of ML Estimator (should scale as \sigma^2/n)');
+legend('Empirical variance', '\sigma^2/n (Cramér-Rao)'); grid on;
+</code></pre>
+    <div class="callout info">
+      <strong>What to observe:</strong> The mean of the estimates stays near the true \(\theta = 3\) for all \(n\) (unbiasedness). The variance decreases as \(1/n\), matching the Cramér-Rao bound for this problem. This is the signature of a consistent, efficient estimator.
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2><span class="section-icon">📝</span> Summary</h2>
+    <table class="summary-table">
+      <thead><tr><th>Concept</th><th>Key Idea</th></tr></thead>
+      <tbody>
+        <tr><td>Frequentist framework</td><td>\(\theta\) is unknown but fixed. Estimate it from data \(Y\) using \(\hat\theta = T(Y)\).</td></tr>
+        <tr><td>Bias</td><td>\(\bar\theta - \theta\): systematic offset of the estimator from the truth.</td></tr>
+        <tr><td>Variance</td><td>Spread of the estimator around its mean across repeated experiments.</td></tr>
+        <tr><td>MSE</td><td>\(\text{var} + \text{bias}^2\): overall mean squared distance from the true \(\theta\).</td></tr>
+        <tr><td>Consistency</td><td>Estimator converges to \(\theta\) as \(n \to \infty\). Minimum requirement.</td></tr>
+        <tr><td>ML estimator</td><td>\(\hat\theta_{\mathrm{ML}} = \arg\max_\theta \log p_\theta(Y)\). Consistent and asymptotically efficient.</td></tr>
+        <tr><td>Cramér-Rao bound</td><td>Lower bound on variance of any unbiased estimator. ML attains it asymptotically.</td></tr>
+        <tr><td>Gaussian mean ML</td><td>Sample mean \((1/n)\sum Y_k\) — unbiased and UMVU for this case.</td></tr>
+      </tbody>
+    </table>
+    <a href="hw/hw31.html" class="hw-button">📋 HW 31 — ML Estimation: Laser Speckle</a>
+  </div>
+
+  <!-- References -->
+  <div class="card references">
+    <h2><span class="section-icon">📚</span> References</h2>
+    <ol>
+      <li>Bouman, C.A. <em>Model Based Image Processing</em>, Purdue University, 2013, §§2.2–2.3.1.</li>
+      <li>Wikipedia contributors. "Estimation theory." <em>Wikipedia, The Free Encyclopedia</em>, 2019. (Read through the Maximum Likelihood section.)</li>
+      <li>Scratchapixel. "Estimators." <em>Mathematics &amp; Physics for Computer Graphics</em>. (Alternative reference with less mathematical notation.)</li>
+    </ol>
+  </div>
+
+  <!-- Lesson Nav -->
+  <div class="lesson-nav">
+    <a href="lesson30.html" class="prev">
+      <div>← <span class="nav-label">Previous</span><br>L30: Gradient-Based Optimization</div>
+    </a>
+    <a href="lesson32.html" class="next">
+      <div><span class="nav-label">Next Lesson</span><br>L32: Bayesian Estimation</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

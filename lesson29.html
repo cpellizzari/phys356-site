@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 29 — 1D Optimization: Bracketing &amp; GSS | PHYS 356</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="lesson29.html">L29</a>
+      <a href="lesson30.html">L30</a>
+      <a href="lesson31.html">L31</a>
+      <a href="lesson32.html">L32</a>
+      <a href="lesson33.html">L33</a>
+      <a href="lesson34.html">L34</a>
+      <a href="lesson35.html">L35</a>
+      <a href="lesson36.html">L36</a>
+      <a href="lesson37.html">L37</a>
+      <a href="lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <!-- Banner -->
+  <div class="lesson-banner">
+    <div class="lesson-meta">Lesson 29 &bull; Physics 356</div>
+    <h1>1D Optimization: Bracketing &amp; Golden Section Search</h1>
+    <span class="reading-time">⏱ ~30 min read</span>
+  </div>
+
+  <!-- Objectives -->
+  <div class="objectives-box">
+    <h2>Learning Objectives</h2>
+    <ul>
+      <li>Distinguish between local and global minima of a function.</li>
+      <li>Explain why a bracket is required before many 1D optimization algorithms.</li>
+      <li>Implement the bracketing algorithm using exponentially growing step sizes.</li>
+      <li>Derive the golden ratio parameter \(\rho\) from the equal-efficiency condition.</li>
+      <li>Execute the Golden Section Search (GSS) algorithm step by step.</li>
+      <li>Implement bracketing and GSS as MATLAB user-defined functions (UDFs) that accept any function handle.</li>
+    </ul>
+  </div>
+
+  <!-- Notation -->
+  <div class="notation-box">
+    <h3>Notation used in this lesson</h3>
+    <div class="notation-grid">
+      <div class="notation-item"><span class="sym">\(f(x)\)</span><span class="desc">Scalar function to minimize</span></div>
+      <div class="notation-item"><span class="sym">\([a,\,c]\)</span><span class="desc">Bracket interval containing the minimum</span></div>
+      <div class="notation-item"><span class="sym">\(\Delta_k\)</span><span class="desc">Step size at iteration \(k\)</span></div>
+      <div class="notation-item"><span class="sym">\(\Delta_0\)</span><span class="desc">Initial step size</span></div>
+      <div class="notation-item"><span class="sym">\(\rho\)</span><span class="desc">GSS reduction parameter \(\approx 0.382\)</span></div>
+      <div class="notation-item"><span class="sym">\(\phi\)</span><span class="desc">Golden ratio \(=(1+\sqrt{5})/2\approx 1.618\)</span></div>
+      <div class="notation-item"><span class="sym">\(x^*\)</span><span class="desc">Location of the minimum</span></div>
+      <div class="notation-item"><span class="sym">\(\epsilon\)</span><span class="desc">Convergence tolerance</span></div>
+    </div>
+  </div>
+
+  <!-- Section 1: Maxima and Minima -->
+  <div class="card">
+    <h2><span class="section-icon">📉</span> Maxima, Minima, and Why They Matter</h2>
+
+    <h3>The optimization problem</h3>
+    <p>
+      Optimization is the task of finding the value of \(x\) that minimizes (or maximizes) a function \(f(x)\). This appears throughout physics: finding the equilibrium separation of two atoms, minimizing the potential energy of a molecule, fitting a model to data, or training a machine learning algorithm all reduce to optimization.
+    </p>
+    <p>
+      The standard calculus approach — set \(f'(x) = 0\) and solve — works when \(f\) has a clean analytic form. In computational physics, however, \(f(x)\) is often the output of a simulation or numerical calculation. You can <em>evaluate</em> it at any point, but you cannot differentiate it analytically. Numerical optimization algorithms address exactly this situation.
+    </p>
+
+    <h3>Local vs. global minima</h3>
+    <p>
+      A <strong>local minimum</strong> is a point \(x^*\) where \(f(x^*) \leq f(x)\) for all \(x\) sufficiently close to \(x^*\). A <strong>global minimum</strong> is the point where \(f\) is smallest over its entire domain. Most real functions have many local minima but only one global minimum.
+    </p>
+    <div class="callout info">
+      <strong>Physics example:</strong> The global minimum of a potential energy surface gives the true ground-state configuration. Local minima correspond to metastable equilibria — the system rests there unless disturbed by enough energy to escape the local well.
+    </div>
+    <p>
+      The algorithms in this lesson find <em>a</em> minimum, which may be local or global depending on where you start. For functions with a single minimum (unimodal functions), local and global are the same.
+    </p>
+
+    <h3>Unimodal functions</h3>
+    <p>
+      A function is <strong>unimodal</strong> on an interval \([a, b]\) if it has exactly one local minimum there. Both the bracketing algorithm and GSS assume unimodality. If your function has multiple minima you must either restrict the search domain or use a global strategy (e.g., running GSS from many starting points).
+    </p>
+  </div>
+
+  <!-- Section 2: Bracketing -->
+  <div class="card">
+    <h2><span class="section-icon">📐</span> Bracketing a Minimum</h2>
+
+    <h3>What is a bracket?</h3>
+    <p>
+      A <strong>bracket</strong> is a triple of points \(a &lt; b &lt; c\) such that
+    </p>
+    <div class="math-block">
+      \[ f(b) &lt; f(a) \qquad \text{and} \qquad f(b) &lt; f(c). \]
+    </div>
+    <p>
+      Since the function goes down from \(a\) to \(b\) and then back up from \(b\) to \(c\), a unimodal function must have its minimum somewhere inside \([a, c]\). GSS and many other 1D algorithms require such a bracket as input.
+    </p>
+
+    <h3>The bracketing algorithm</h3>
+    <p>
+      Given an initial guess \(x_0\) and an initial step size \(\Delta_0\), evaluate \(f\) at \(x_0\) and at both neighbors \(x_0 \pm \Delta_0\):
+    </p>
+    <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;font-size:0.95rem;">
+      <li><strong>Check if already bracketed.</strong> If \(f(x_0) &lt; f(x_0 - \Delta_0)\) and \(f(x_0) &lt; f(x_0 + \Delta_0)\), then \([x_0 - \Delta_0,\; x_0 + \Delta_0]\) is a valid bracket. Done.</li>
+      <li><strong>Identify downhill direction.</strong> If \(f(x_0 - \Delta_0) &lt; f(x_0)\), the minimum is to the left; otherwise it is to the right.</li>
+      <li><strong>Walk downhill with doubling steps.</strong> At each iteration \(k\), take a step of size \(\Delta_k = 2^k \Delta_0\) in the downhill direction.</li>
+      <li><strong>Stop when the function increases.</strong> Once \(f\) starts to increase after decreasing, the minimum lies between the last three evaluated points.</li>
+    </ol>
+    <div class="math-block">
+      \[ \Delta_k = 2^k \Delta_0 \]
+    </div>
+    <div class="callout warning">
+      <strong>Bracket endpoint rule:</strong> Because we do not know which side of the lowest evaluated point the minimum lies on, the bracket uses the <em>second-to-last</em> and <em>last</em> points as endpoints, with the lowest point as the center. In other words, use points \(k-2\) and \(k\) as endpoints with \(k-1\) as center &mdash; not just the last two points.
+    </div>
+
+    <h3>Why exponentially growing steps?</h3>
+    <p>
+      Doubling the step at each iteration means we cover exponentially more distance while still making progress. If the minimum is far from \(x_0\), a fixed step size would require many iterations; doubling gets there quickly. The tradeoff is a larger bracket on exit, but GSS will tighten it efficiently.
+    </p>
+  </div>
+
+  <!-- Section 3: Golden Section Search -->
+  <div class="card">
+    <h2><span class="section-icon">✦</span> Golden Section Search (GSS)</h2>
+
+    <h3>Core idea</h3>
+    <p>
+      Given a bracket \([a, b]\), evaluate \(f\) at two interior points and eliminate the portion of the interval that cannot contain the minimum. Repeat until the interval is narrower than the required tolerance \(\epsilon\).
+    </p>
+    <p>
+      Place the two interior points symmetrically:
+    </p>
+    <div class="math-block">
+      \[ c = a + \rho(b - a), \qquad d = b - \rho(b - a), \]
+    </div>
+    <p>where \(\rho &lt; 1/2\). Then compare \(f(c)\) and \(f(d)\):</p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
+      <li>If \(f(c) &lt; f(d)\): minimum is in \([a, d]\). Discard \([d, b]\).</li>
+      <li>If \(f(c) \geq f(d)\): minimum is in \([c, b]\). Discard \([a, c]\).</li>
+    </ul>
+    <p>
+      The interval shrinks by a factor of \((1 - \rho)\) each step.
+    </p>
+
+    <h3>Deriving \(\rho\): the equal-efficiency condition</h3>
+    <p>
+      After the first step, one of the two interior points from the previous iteration is already inside the new (smaller) interval. If we place the new interior point to be symmetric as before, one evaluation is reused — only <strong>one new function evaluation</strong> is needed per step after initialization.
+    </p>
+    <p>
+      For the algorithm to be equally efficient regardless of which half is discarded, the ratio of interval widths must be the same both ways. This gives the constraint
+    </p>
+    <div class="math-block">
+      \[ \rho^2 - 3\rho + 1 = 0. \]
+    </div>
+    <p>Taking the root satisfying \(\rho &lt; 1/2\):</p>
+    <div class="math-block">
+      \[ \rho = \frac{3 - \sqrt{5}}{2} \approx 0.382. \]
+    </div>
+    <p>
+      Note that \(1 - \rho = (\sqrt{5} - 1)/2 \approx 0.618\), and the ratio \(\rho/(1-\rho) = (1-\rho)/1\) — this is the defining property of the <strong>golden section</strong>, familiar from architecture and art. The interval is reduced by factor \(1 - \rho \approx 0.618\) at each step:
+    </p>
+    <div class="math-block">
+      \[ \text{width after } N \text{ steps} = (0.618)^N \cdot (b_0 - a_0). \]
+    </div>
+    <div class="callout info">
+      <strong>Efficiency:</strong> After the first two function evaluations, every subsequent step costs exactly <em>one</em> new evaluation. This is the best possible for derivative-free 1D minimization of a unimodal function.
+    </div>
+
+    <h3>Full algorithm</h3>
+    <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;font-size:0.95rem;">
+      <li>Given bracket \([a, b]\), set \(c = a + \rho(b-a)\) and \(d = b - \rho(b-a)\). Evaluate \(f(c)\) and \(f(d)\).</li>
+      <li><strong>If \(f(c) &lt; f(d)\):</strong> set \(b \leftarrow d\), \(d \leftarrow c\), \(f_d \leftarrow f_c\), compute new \(c = a + \rho(b-a)\), evaluate \(f(c)\).</li>
+      <li><strong>Else:</strong> set \(a \leftarrow c\), \(c \leftarrow d\), \(f_c \leftarrow f_d\), compute new \(d = b - \rho(b-a)\), evaluate \(f(d)\).</li>
+      <li>If \(b - a \leq \epsilon\), stop. Return \(\hat{x} = (a+b)/2\).</li>
+      <li>Otherwise, go to step 2.</li>
+    </ol>
+
+    <h3>Limitation: GSS is 1D only</h3>
+    <p>
+      Unlike binary search for roots, there is no straightforward generalization of GSS to functions of more than one variable. For multidimensional optimization problems we need gradient-based methods, which are covered in Lesson 30.
+    </p>
+  </div>
+
+  <!-- MATLAB Example -->
+  <div class="card">
+    <h2><span class="section-icon">💻</span> Worked Example — MATLAB</h2>
+    <p>
+      This example demonstrates bracketing and GSS on the function \(f(x) = (x-3)^2 + 2\sin(x)\).
+      This is a simple demonstration function — it is <em>not</em> the function used in HW 29. Your homework will require you to apply these same general-purpose UDFs to a different physical potential.
+    </p>
+<pre><code class="language-matlab">%% Lesson 29 — Bracketing + Golden Section Search (demonstration)
+% f(x) = (x-3)^2 + 2*sin(x)
+% Minimum near x ≈ 2.1 (verify analytically: f'(x) = 2(x-3)+2cos(x) = 0)
+
+f = @(x) (x - 3).^2 + 2*sin(x);
+
+%% 1. Bracket the minimum
+x0 = 4.0;   % initial guess (to the right of the minimum)
+D0 = 0.5;   % initial step size
+[a, b_ctr, c] = bracket_min(f, x0, D0);
+fprintf('Bracket: a=%.4f  b=%.4f  c=%.4f\n', a, b_ctr, c);
+
+%% 2. Golden Section Search
+tol  = 1e-8;
+xmin = gss(f, a, c, tol);
+fprintf('Minimum at x = %.8f,  f(x) = %.8f\n', xmin, f(xmin));
+
+%% 3. Plot
+xp = linspace(0, 6, 500);
+figure;
+plot(xp, f(xp), 'b-', 'LineWidth', 1.8); hold on;
+plot([a, c], f([a, c]), 'ks', 'MarkerSize', 10, 'DisplayName', 'Bracket ends');
+plot(b_ctr,  f(b_ctr),  'kd', 'MarkerSize', 10, 'DisplayName', 'Bracket center');
+plot(xmin,   f(xmin),   'r*', 'MarkerSize', 14, 'DisplayName', 'GSS minimum');
+xlabel('x'); ylabel('f(x)');
+title('GSS on f(x) = (x\minus3)^2 + 2sin(x)');
+legend; grid on;
+
+%% ===== UDFs (place in separate files or at end of script) =====
+
+function [a, b, c] = bracket_min(f, x0, D0)
+% bracket_min  Find three points [a,b,c] bracketing the minimum of f.
+%   x0  - initial guess
+%   D0  - initial step size (positive scalar)
+  fL = f(x0 - D0);  f0 = f(x0);  fR = f(x0 + D0);
+
+  % Already bracketed?
+  if f0 <= fL && f0 <= fR
+    a = x0 - D0;  b = x0;  c = x0 + D0;  return;
+  end
+
+  % Identify downhill direction
+  dir = sign(fL - fR);   % +1 = go right, -1 = go left
+
+  xprev2 = x0;
+  xprev1 = x0 + dir * D0;
+  for k = 1:60
+    xnew = x0 + dir * 2^k * D0;
+    if f(xnew) > f(xprev1)
+      % We have passed the minimum: bracket is [xprev2, xnew]
+      pts = sort([xprev2, xprev1, xnew]);
+      a = pts(1);  b = pts(2);  c = pts(3);
+      return;
+    end
+    xprev2 = xprev1;
+    xprev1 = xnew;
+  end
+  error('bracket_min: did not converge in 60 iterations.');
+end
+
+function xmin = gss(f, a, b, tol)
+% gss  Golden section search for minimum of f on [a,b].
+  rho = (3 - sqrt(5)) / 2;          % ≈ 0.382
+  c  = a + rho*(b - a);
+  d  = b - rho*(b - a);
+  fc = f(c);  fd = f(d);
+
+  while (b - a) > tol
+    if fc < fd
+      b = d;  d = c;  fd = fc;
+      c = a + rho*(b - a);  fc = f(c);
+    else
+      a = c;  c = d;  fc = fd;
+      d = b - rho*(b - a);  fd = f(d);
+    end
+  end
+  xmin = (a + b) / 2;
+end
+</code></pre>
+    <div class="callout info">
+      <strong>Note on generality:</strong> Both UDFs accept an arbitrary function handle <code>f</code>. HW 29 asks you to apply them to a <em>different</em> physical function — you should not hard-code \(f\) inside the UDF.
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2><span class="section-icon">📝</span> Summary</h2>
+    <table class="summary-table">
+      <thead><tr><th>Concept</th><th>Key Idea</th></tr></thead>
+      <tbody>
+        <tr><td>Local vs. global minimum</td><td>Local: lowest nearby. Global: lowest overall. GSS finds a local minimum.</td></tr>
+        <tr><td>Unimodal</td><td>Exactly one local minimum in the search interval — required assumption for GSS.</td></tr>
+        <tr><td>Bracket</td><td>Triple \(a &lt; b &lt; c\) with \(f(b) &lt; f(a)\) and \(f(b) &lt; f(c)\); guarantees minimum is in \([a,c]\).</td></tr>
+        <tr><td>Bracketing step size</td><td>\(\Delta_k = 2^k \Delta_0\); take larger and larger steps until minimum is passed.</td></tr>
+        <tr><td>GSS parameter \(\rho\)</td><td>\((3-\sqrt{5})/2 \approx 0.382\); derived from equal-efficiency condition.</td></tr>
+        <tr><td>GSS convergence rate</td><td>Interval shrinks by factor \(\approx 0.618\) per step; one new eval per step after startup.</td></tr>
+        <tr><td>Limitation</td><td>GSS is 1D only. Multidimensional functions require gradient-based methods (Lesson 30).</td></tr>
+      </tbody>
+    </table>
+    <a href="hw/hw29.html" class="hw-button">📋 HW 29 — GSS on the Buckingham Potential</a>
+  </div>
+
+  <!-- References -->
+  <div class="card references">
+    <h2><span class="section-icon">📚</span> References</h2>
+    <ol>
+      <li>Newman, M. <em>Computational Physics</em>, 1st Ed., Self Published, 2012, §6.4 (pp. 278–283).</li>
+      <li>Chong, E.K.P. and Zak, S.H. <em>An Introduction to Optimization</em>, 4th Ed., John Wiley &amp; Sons, 2013, §7.2 (pp. 104–108).</li>
+      <li>Pellizzari, C.A. <em>Physics 356 — Supplement on Bracketing</em>, USAFA, 2021.</li>
+    </ol>
+  </div>
+
+  <!-- Lesson Nav -->
+  <div class="lesson-nav">
+    <a href="index.html" class="prev">← Home</a>
+    <a href="lesson30.html" class="next">
+      <div><span class="nav-label">Next Lesson</span><br>L30: Gradient-Based Optimization</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

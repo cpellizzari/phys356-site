@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW 31 — ML Estimation: Laser Speckle | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Homework Assignment</div>
+    <h1>HW 31 — Maximum Likelihood Estimation: Laser Speckle</h1>
+    <div class="hw-meta">
+      <span>📘 Related: <a href="../lesson31.html" style="color:rgba(255,255,255,0.9)">Lesson 31</a></span>
+      <span>🛠 MATLAB required</span>
+      <span>📬 Submit: single <code>.m</code> script or Live Script (.mlx)</span>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">📖</span> Background</h2>
+    <p>
+      When coherent light (e.g., a laser) reflects off a surface that is rough relative to the illumination wavelength, the reflected field exhibits <strong>laser speckle</strong> — a grainy, random intensity pattern visible when you shine a laser at a wall. This is not a measurement error; it is a physical consequence of the coherent superposition of waves scattered from many random surface features.
+    </p>
+    <p>
+      When we measure the speckle intensity integrated over a finite area — as a camera pixel or the eye does — the measured value \(x_i\) is not the true mean intensity \(\theta\) of the reflected field. Instead, it is well modeled as an <strong>exponentially distributed</strong> random variable:
+    </p>
+    <div class="math-block">
+      \[
+        p(x_i) = \theta\, e^{-\theta x_i}, \quad x_i \geq 0
+      \]
+    </div>
+    <p>
+      where \(\theta\) is the actual intensity of the reflected light (units: W/m²). Suppose we illuminate a surface with a laser and collect \(n\) independent measurements \(X = [x_1, x_2, \ldots, x_n]\) using a single-pixel camera (the camera acquires one pixel at a time, with slight illumination angle variations between shots ensuring independence).
+    </p>
+    <div class="callout info">
+      <strong>MATLAB note:</strong> MATLAB's <code>exprnd</code> function uses the <em>mean</em> of the distribution as its input parameter, which for the exponential is \(1/\theta\). So to generate samples with parameter \(\theta = 2\), use <code>exprnd(1/theta, n, 1)</code>.
+    </div>
+  </div>
+
+  <!-- Tasks -->
+  <div class="problem">
+    <h3>Questions</h3>
+
+    <h4>Question 1 — Derive the ML Estimator (written)</h4>
+    <p>
+      Derive an expression for the maximum likelihood estimate \(\hat\theta_{\mathrm{ML}}\) of the true intensity \(\theta\) given \(n\) independent measurements \(X = [x_1, \ldots, x_n]\).
+    </p>
+    <p>
+      <em>Hint:</em> Because the measurements are independent, the joint likelihood is the product of the individual likelihoods:
+      \[p_\theta(X) = \prod_{i=1}^n p(x_i) = \prod_{i=1}^n \theta\, e^{-\theta x_i}.\]
+      It is easier to maximize the <strong>log-likelihood</strong> \(\log p_\theta(X)\) than the product directly.
+    </p>
+
+    <h4>Question 2 — MATLAB Simulation</h4>
+    <p>Assume \(\theta = 2\) W/m². Write a MATLAB script to do the following:</p>
+    <ol type="a">
+      <li>
+        <strong>Generate data and compute estimates.</strong> For each value of \(n \in \{1, 2, 3, \ldots, 100\}\):
+        <ol type="i">
+          <li>Generate 50 independent realizations of \(X_i = [x_1, x_2, \ldots, x_n]\) for \(i = 1, \ldots, 50\). Each \(X_i\) is a vector of \(n\) exponential random variables.</li>
+          <li>For each realization, compute the ML estimate \(\hat\theta_{\mathrm{ML}}(X_i)\) using your formula from Question 1.</li>
+          <li>Compute the mean and variance of the 50 estimates for this value of \(n\).</li>
+        </ol>
+      </li>
+      <li>
+        <strong>Plot results.</strong> Create a figure with two subplots:
+        <ol type="i">
+          <li>Top panel: mean of \(\hat\theta_{\mathrm{ML}}\) vs. \(n\) (linear scale). Include a horizontal dashed line at \(\theta = 2\).</li>
+          <li>Bottom panel: variance of \(\hat\theta_{\mathrm{ML}}\) vs. \(n\) using <code>semilogy</code> (log scale on the \(y\)-axis).</li>
+        </ol>
+        Label all axes with units and include a descriptive title on each panel.
+      </li>
+    </ol>
+
+    <h4>Question 3 — Conclusions</h4>
+    <p>
+      Based on your plots, what can you conclude about the behavior of the ML estimator as the number of measurements \(n\) increases? Address the following:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li>Does the mean of the estimates converge to the true value \(\theta = 2\)? What property of the estimator does this reflect?</li>
+      <li>How does the variance behave as a function of \(n\)? What does this tell you about the uncertainty in the estimate?</li>
+      <li>How many measurements would you need in practice to achieve a reliable estimate of \(\theta\)?</li>
+    </ul>
+  </div>
+
+  <!-- Back nav -->
+  <div class="lesson-nav">
+    <a href="hw30.html" class="prev">← HW 30: Gradient Descent</a>
+    <a href="hw32.html" class="next">
+      <div><span class="nav-label">Next HW</span><br>HW 32: ML vs. MMSE</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

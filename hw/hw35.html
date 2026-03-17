@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW 35 — Shallow Neural Network (sat_data.mat) | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Homework Assignment</div>
+    <h1>HW 35 — Shallow Neural Network</h1>
+    <div class="hw-meta">
+      <span>📘 Related: <a href="../lesson36.html" style="color:rgba(255,255,255,0.9)">Lesson 36</a>, <a href="../lesson37.html" style="color:rgba(255,255,255,0.9)">Lesson 37</a></span>
+      <span>🛠 MATLAB required</span>
+      <span>📁 Dataset: <code>sat_data.mat</code></span>
+      <span>📬 Submit: <code>.m</code> or <code>.mlx</code></span>
+    </div>
+  </div>
+
+  <!-- Overview -->
+  <div class="card">
+    <h2><span class="section-icon">📋</span> Overview</h2>
+    <p>
+      In this assignment you will implement a complete shallow (one hidden layer) neural network from scratch in MATLAB — including Xavier initialization, the forward pass, backpropagation, and mini-batch SGD training. You will apply it to the <code>sat_data.mat</code> satellite maneuver classification dataset.
+    </p>
+    <div class="callout info">
+      <strong>No toolboxes:</strong> You may <em>not</em> use MATLAB's Deep Learning Toolbox for this assignment. Implement every layer, activation, and gradient computation yourself. This builds the deep understanding that makes using toolboxes meaningful later.
+    </div>
+  </div>
+
+  <!-- Dataset -->
+  <div class="card">
+    <h2><span class="section-icon">📁</span> Dataset: sat_data.mat</h2>
+    <p>
+      The <code>sat_data.mat</code> file contains satellite sensor data. Load it with:
+    </p>
+<pre><code class="language-matlab">load('sat_data.mat');
+% Variables provided:
+%   X_train  —  N_train × d  feature matrix (already normalized)
+%   y_train  —  N_train × 1  binary labels (0 = nominal, 1 = maneuvering)
+%   X_test   —  N_test  × d  feature matrix
+%   y_test   —  N_test  × 1  binary labels
+</code></pre>
+    <p>
+      Features include radar cross-section over time, Doppler shift measurements, and derived orbital element residuals. Labels indicate whether the satellite performed an unscheduled maneuver in the observation window.
+    </p>
+    <div class="callout warning">
+      <strong>If sat_data.mat is not available:</strong> Generate a stand-in dataset using the code below. Your instructor will confirm which to use.
+    </div>
+<pre><code class="language-matlab">% Synthetic stand-in (use only if sat_data.mat unavailable)
+rng(356);
+d = 12;  N_train = 800;  N_test = 200;
+X_train = randn(N_train, d);
+y_train = double(sum(X_train(:,1:3), 2) + randn(N_train,1) > 0);
+X_test  = randn(N_test,  d);
+y_test  = double(sum(X_test(:,1:3),  2) + randn(N_test,1)  > 0);
+</code></pre>
+  </div>
+
+  <!-- Problem 1 -->
+  <div class="problem">
+    <h3>Problem 1 — Network Initialization (15 pts)</h3>
+    <ol>
+      <li><strong>(5 pts)</strong> Determine \(d\) from the loaded data. Choose an architecture: \(d \to n_1 \to 1\) with \(n_1 = 32\) hidden neurons. Report the total number of trainable parameters.</li>
+      <li><strong>(10 pts)</strong> Initialize parameters using Xavier initialization:
+        \[\mathbf{W}^{[1]} \sim \mathcal{N}\!\left(0, \sqrt{\tfrac{2}{d}}\right), \quad
+          \mathbf{W}^{[2]} \sim \mathcal{N}\!\left(0, \sqrt{\tfrac{2}{n_1}}\right)\]
+        Initialize biases \(\mathbf{b}^{[1]} = \mathbf{0}\), \(b^{[2]} = 0\). Verify that the initial output of <code>W2 * relu(W1 * X_train(1,:)' + b1) + b2</code> is in a reasonable range (i.e., not exploding). Report the mean and std of all initial pre-activations \(\mathbf{z}^{[1]}\) over the training set.
+      </li>
+    </ol>
+  </div>
+
+  <!-- Problem 2 -->
+  <div class="problem">
+    <h3>Problem 2 — Forward Pass (20 pts)</h3>
+    <ol>
+      <li><strong>(10 pts)</strong> Implement the vectorized forward pass for the full training set. Your implementation must use matrix operations (no loops over samples). Store \(\mathbf{Z}^{[1]}\), \(\mathbf{A}^{[1]}\), \(\mathbf{Z}^{[2]}\), \(\hat{\mathbf{p}}\) — you will need them in backprop.
+        \[
+          \mathbf{Z}^{[1]} = \mathbf{W}^{[1]}\mathbf{X}^\top + \mathbf{b}^{[1]}, \quad
+          \mathbf{A}^{[1]} = \text{ReLU}(\mathbf{Z}^{[1]}), \quad
+          \mathbf{Z}^{[2]} = \mathbf{W}^{[2]}\mathbf{A}^{[1]} + b^{[2]}, \quad
+          \hat{\mathbf{p}} = \sigma(\mathbf{Z}^{[2]})^\top
+        \]
+      </li>
+      <li><strong>(5 pts)</strong> Compute and report the initial cross-entropy loss on the training set.</li>
+      <li><strong>(5 pts)</strong> Compute and report the initial accuracy on the training set. Is it close to 50%? Should it be?</li>
+    </ol>
+  </div>
+
+  <!-- Problem 3 -->
+  <div class="problem">
+    <h3>Problem 3 — Backpropagation (30 pts)</h3>
+    <ol>
+      <li><strong>(20 pts)</strong> Implement the backward pass. For each mini-batch, compute all gradients using the equations from Lesson 37:
+        \[
+          \boldsymbol{\delta}^{[2]} = \hat{\mathbf{p}} - \mathbf{y}, \quad
+          \frac{\partial L}{\partial \mathbf{W}^{[2]}} = \frac{1}{B}\boldsymbol{\delta}^{[2]\top} \mathbf{A}^{[1]\top}, \quad
+          \frac{\partial L}{\partial b^{[2]}} = \frac{1}{B}\sum \delta^{[2]}
+        \]
+        \[
+          \boldsymbol{\delta}^{[1]} = (\mathbf{W}^{[2]})^\top \boldsymbol{\delta}^{[2]\top} \odot \mathbf{1}[\mathbf{Z}^{[1]} > 0], \quad
+          \frac{\partial L}{\partial \mathbf{W}^{[1]}} = \frac{1}{B}\boldsymbol{\delta}^{[1]} \mathbf{X}_B^\top, \quad
+          \frac{\partial L}{\partial \mathbf{b}^{[1]}} = \frac{1}{B}\boldsymbol{\delta}^{[1]}\mathbf{1}
+        \]
+      </li>
+      <li><strong>(10 pts)</strong> Verify your gradients with a numerical gradient check. For one scalar parameter \(w_{11}^{[1]}\), compute:
+        \[\frac{\partial L}{\partial w_{11}^{[1]}} \approx \frac{L(w_{11}^{[1]}+\epsilon) - L(w_{11}^{[1]}-\epsilon)}{2\epsilon}, \quad \epsilon = 10^{-5}\]
+        Report the analytic gradient, numerical approximation, and their relative error. Acceptable: relative error \(< 10^{-4}\).
+      </li>
+    </ol>
+  </div>
+
+  <!-- Problem 4 -->
+  <div class="problem">
+    <h3>Problem 4 — Mini-Batch SGD Training (25 pts)</h3>
+    <ol>
+      <li><strong>(15 pts)</strong> Implement a training loop with:
+        <ul style="margin-top:0.4rem;padding-left:1rem;">
+          <li>Mini-batch size \(B = 64\)</li>
+          <li>Learning rate \(\alpha = 0.01\)</li>
+          <li>50 epochs</li>
+          <li>At each epoch: shuffle training data, iterate over mini-batches, compute loss and gradients, update all parameters</li>
+          <li>Record training loss per epoch</li>
+        </ul>
+      </li>
+      <li><strong>(5 pts)</strong> Plot training loss vs. epoch. Is convergence smooth? Would you expect smoother convergence with larger or smaller batch size?</li>
+      <li><strong>(5 pts)</strong> Evaluate on the test set. Report test accuracy, test loss, precision, recall, and F1-score. Compare to the logistic regression results from HW 34 — did the neural network improve performance?</li>
+    </ol>
+  </div>
+
+  <!-- Problem 5 -->
+  <div class="problem">
+    <h3>Problem 5 — Architecture Exploration (10 pts — choose one)</h3>
+    <p style="color:var(--text-secondary);">Select <strong>one</strong> of the following extensions to explore:</p>
+    <ol type="A">
+      <li><strong>(10 pts) Hidden layer width:</strong> Train networks with \(n_1 \in \{4, 8, 16, 32, 64\}\). Plot test accuracy vs. \(n_1\). Is bigger always better?</li>
+      <li><strong>(10 pts) Learning rate schedule:</strong> Implement a simple cosine annealing schedule where \(\alpha(t) = \alpha_{\max}\cdot\frac{1+\cos(\pi t/T)}{2}\). Compare convergence to constant \(\alpha = 0.01\).</li>
+      <li><strong>(10 pts) Second hidden layer:</strong> Extend the network to \(d \to 32 \to 16 \to 1\). Implement the additional backprop equations and verify with a gradient check. Report test accuracy.</li>
+    </ol>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="../lesson36.html" class="prev">← Back to Lesson 36</a>
+    <a href="hw38.html" class="next">
+      <div><span class="nav-label">Next HW</span><br>HW 38: CNNs &amp; Transformers</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

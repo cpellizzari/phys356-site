@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 30 — Gradient-Based Optimization | PHYS 356</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="lesson29.html">L29</a>
+      <a href="lesson30.html">L30</a>
+      <a href="lesson31.html">L31</a>
+      <a href="lesson32.html">L32</a>
+      <a href="lesson33.html">L33</a>
+      <a href="lesson34.html">L34</a>
+      <a href="lesson35.html">L35</a>
+      <a href="lesson36.html">L36</a>
+      <a href="lesson37.html">L37</a>
+      <a href="lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <!-- Banner -->
+  <div class="lesson-banner">
+    <div class="lesson-meta">Lesson 30 &bull; Physics 356</div>
+    <h1>Gradient-Based Optimization: Gradient Descent &amp; Steepest Descent</h1>
+    <span class="reading-time">⏱ ~35 min read</span>
+  </div>
+
+  <!-- Objectives -->
+  <div class="objectives-box">
+    <h2>Learning Objectives</h2>
+    <ul>
+      <li>Explain why GSS cannot be generalized to multidimensional functions.</li>
+      <li>Define the gradient as a vector of partial derivatives and interpret its magnitude and direction.</li>
+      <li>Compute gradients analytically and evaluate them at specific points.</li>
+      <li>Implement the gradient descent (GD) update rule and explain the role of step size \(\gamma\).</li>
+      <li>Describe the steepest descent (SD) algorithm and how it selects the optimal \(\gamma\) at each step.</li>
+      <li>Apply a convergence criterion based on the L2 norm of successive iterates.</li>
+      <li>Implement GD as a MATLAB UDF that accepts a function handle and gradient handle.</li>
+    </ul>
+  </div>
+
+  <!-- Notation -->
+  <div class="notation-box">
+    <h3>Notation used in this lesson</h3>
+    <div class="notation-grid">
+      <div class="notation-item"><span class="sym">\(f(x)\)</span><span class="desc">Scalar function to minimize (\(x\) is a vector)</span></div>
+      <div class="notation-item"><span class="sym">\(\nabla f(x)\)</span><span class="desc">Gradient vector of \(f\) at \(x\)</span></div>
+      <div class="notation-item"><span class="sym">\(x^k\)</span><span class="desc">Current estimate of the minimum at iteration \(k\)</span></div>
+      <div class="notation-item"><span class="sym">\(\gamma\)</span><span class="desc">Step size (scalar; fixed in GD, optimized in SD)</span></div>
+      <div class="notation-item"><span class="sym">\(\gamma^k\)</span><span class="desc">Optimal step size at iteration \(k\) (SD only)</span></div>
+      <div class="notation-item"><span class="sym">\(\epsilon\)</span><span class="desc">Convergence threshold</span></div>
+      <div class="notation-item"><span class="sym">\(\|\cdot\|_2\)</span><span class="desc">Euclidean (L2) norm: \(\|v\|_2 = \sqrt{v^T v}\)</span></div>
+      <div class="notation-item"><span class="sym">\(\partial f / \partial x_i\)</span><span class="desc">Partial derivative with respect to \(x_i\)</span></div>
+    </div>
+  </div>
+
+  <!-- Section 1: Motivation -->
+  <div class="card">
+    <h2><span class="section-icon">🌐</span> Why We Need a New Approach</h2>
+    <p>
+      Golden Section Search is robust and efficient for one-dimensional functions, but it cannot be extended to higher dimensions. There is no multidimensional analogue of "the interval containing the minimum shrinks from both ends." A 2D function has infinitely many directions to explore, and bracketing along all of them simultaneously is impractical.
+    </p>
+    <p>
+      Many important physics and engineering problems involve minimizing functions of many variables — the energy of a molecular configuration (\(3N\) coordinates), the parameters of a fitted model, or the weights of a neural network. We need an approach that scales.
+    </p>
+    <div class="callout info">
+      <strong>Key insight:</strong> The gradient \(\nabla f(x)\) points in the direction of <em>steepest increase</em>. Moving in the <em>opposite</em> direction — against the gradient — moves downhill toward the minimum. This is the foundation of all gradient-based optimization.
+    </div>
+  </div>
+
+  <!-- Section 2: Gradient Review -->
+  <div class="card">
+    <h2><span class="section-icon">∇</span> Gradient Review</h2>
+
+    <h3>Definition</h3>
+    <p>
+      The <strong>gradient</strong> is the multivariable generalization of the derivative. For a scalar function \(f(x)\) of an \(n\)-dimensional vector \(x = [x_1, x_2, \ldots, x_n]^T\), the gradient is the column vector of partial derivatives:
+    </p>
+    <div class="math-block">
+      \[
+        \nabla f(x) = \begin{bmatrix} \dfrac{\partial f}{\partial x_1} \\[8pt] \dfrac{\partial f}{\partial x_2} \\ \vdots \\ \dfrac{\partial f}{\partial x_n} \end{bmatrix}
+      \]
+    </div>
+    <p>
+      The gradient is itself a function of position \(x\). It has both a <strong>magnitude</strong> (how steep the function is at that point) and a <strong>direction</strong> (pointing toward the greatest rate of increase). At a minimum, the gradient is zero: \(\nabla f(x^*) = 0\).
+    </p>
+
+    <h3>Example: \(f(x) = 4x_1^2 + x_2^2\)</h3>
+    <p>
+      This 2D quadratic has a minimum at the origin. Its gradient is:
+    </p>
+    <div class="math-block">
+      \[ \nabla f(x) = \begin{bmatrix} 8x_1 \\ 2x_2 \end{bmatrix} \]
+    </div>
+    <p>
+      Evaluating at three points:
+    </p>
+    <table class="summary-table" style="margin:0.75rem 0;">
+      <thead><tr><th>Point \(x\)</th><th>Gradient \(\nabla f(x)\)</th><th>Interpretation</th></tr></thead>
+      <tbody>
+        <tr><td>\([0,\ -1]^T\)</td><td>\([0,\ -2]^T\)</td><td>Pointing straight down — move up to reach minimum</td></tr>
+        <tr><td>\([-1,\ 0]^T\)</td><td>\([-8,\ 0]^T\)</td><td>Pointing left — move right</td></tr>
+        <tr><td>\([-1,\ 1]^T\)</td><td>\([-8,\ 2]^T\)</td><td>Pointing left and up — move right and down</td></tr>
+      </tbody>
+    </table>
+    <div class="callout info">
+      <strong>Contour plot intuition:</strong> On a contour plot, the gradient is always <em>perpendicular to the contour lines</em> and points toward higher contour values. Moving against the gradient — inward toward the center — moves toward lower values and the minimum.
+    </div>
+  </div>
+
+  <!-- Section 3: Gradient Descent -->
+  <div class="card">
+    <h2><span class="section-icon">📐</span> Gradient Descent (GD)</h2>
+
+    <h3>Update rule</h3>
+    <p>
+      The gradient descent algorithm starts at an initial point \(x^0\) and repeatedly moves in the direction opposite the gradient:
+    </p>
+    <div class="math-block">
+      \[ x^{k+1} = x^k - \gamma\, \nabla f(x^k) \]
+    </div>
+    <p>
+      where \(k\) is the iteration number and \(\gamma &gt; 0\) is the <strong>step size</strong> (also called the learning rate). Because \(x\) and \(\nabla f\) are both vectors, this is a vector subtraction: each component of \(x\) is updated by a step proportional to the corresponding partial derivative.
+    </p>
+
+    <h3>The challenge of choosing \(\gamma\)</h3>
+    <p>
+      The step size \(\gamma\) is fixed for all iterations in basic GD and must be chosen carefully:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
+      <li><strong>\(\gamma\) too small:</strong> The algorithm makes tiny steps and converges very slowly — or may never reach the minimum within a practical number of iterations.</li>
+      <li><strong>\(\gamma\) too large:</strong> Each step overshoots the minimum. The algorithm bounces back and forth across the minimum and may diverge entirely.</li>
+      <li><strong>\(\gamma\) just right:</strong> The algorithm converges steadily to the minimum.</li>
+    </ul>
+    <div class="callout warning">
+      <strong>There is no universal rule</strong> for choosing \(\gamma\). It depends on the curvature of \(f\). In practice, \(\gamma\) is treated as a hyperparameter: try a few values, monitor convergence, and adjust. Despite this challenge, GD is widely used — including in almost every neural network training algorithm.
+    </div>
+  </div>
+
+  <!-- Section 4: Steepest Descent -->
+  <div class="card">
+    <h2><span class="section-icon">🎯</span> Steepest Descent (SD)</h2>
+
+    <h3>Optimal step size per iteration</h3>
+    <p>
+      Steepest descent uses the same update rule as GD, but instead of a fixed \(\gamma\), it finds the <em>optimal</em> step size at each iteration. The optimal \(\gamma^k\) is the one that produces the maximum decrease in \(f\) along the current gradient direction:
+    </p>
+    <div class="math-block">
+      \[
+        \gamma^k = \underset{\gamma}{\operatorname{argmin}} \left\{ f\!\left( x^k - \gamma\, \nabla f(x^k) \right) \right\}
+      \]
+    </div>
+    <p>
+      Note that \(f\bigl(x^k - \gamma\,\nabla f(x^k)\bigr)\) is a scalar function of the <em>scalar</em> variable \(\gamma\) only — \(x^k\) is the known current position, not a variable. This is a 1D optimization problem, which can be solved with GSS from Lesson 29.
+    </p>
+    <div class="callout info">
+      <strong>Why this is better in principle:</strong> Each SD step is guaranteed to make the largest possible decrease for the given gradient direction. No tuning of \(\gamma\) is required.
+    </div>
+    <div class="callout warning">
+      <strong>Why GD is often used instead:</strong> Solving a 1D optimization (GSS) at every iteration adds significant computational overhead. For large-scale problems (e.g., neural networks with millions of parameters), this cost dominates the total runtime. Fixed-\(\gamma\) GD, despite requiring careful tuning, is usually faster in practice.
+    </div>
+  </div>
+
+  <!-- Section 5: Convergence -->
+  <div class="card">
+    <h2><span class="section-icon">🔁</span> Convergence and Stopping Criteria</h2>
+
+    <h3>Why convergence is not guaranteed</h3>
+    <p>
+      Gradient-based algorithms follow the local downhill path, regardless of whether it leads to the global minimum. Starting from a different \(x^0\) may lead to a different local minimum. For non-convex functions, the initial point matters.
+    </p>
+    <p>
+      As the algorithm approaches a minimum, \(\nabla f(x^k) \to 0\), so the update steps \(x^{k+1} - x^k = -\gamma\nabla f(x^k)\) also shrink toward zero. The algorithm slows down near the minimum — this is expected and not a sign of failure.
+    </p>
+
+    <h3>Stopping condition</h3>
+    <p>
+      A practical stopping rule is to halt when the change in position between consecutive iterates falls below a threshold \(\epsilon\):
+    </p>
+    <div class="math-block">
+      \[ \| x^k - x^{k-1} \|_2 \leq \epsilon \]
+    </div>
+    <p>
+      where the <strong>L2 (Euclidean) norm</strong> of a vector \(v\) is
+    </p>
+    <div class="math-block">
+      \[ \| v \|_2 = \sqrt{v^T v} = \sqrt{\sum_i v_i^2}. \]
+    </div>
+    <p>
+      Alternative stopping rules include checking the magnitude of the gradient (\(\|\nabla f\|_2 \leq \epsilon\)) or the change in function value (\(|f^k - f^{k-1}| \leq \epsilon\)). All three are reasonable; in MATLAB, <code>norm(x_new - x_old)</code> computes the L2 norm directly.
+    </p>
+  </div>
+
+  <!-- MATLAB Example -->
+  <div class="card">
+    <h2><span class="section-icon">💻</span> Worked Example — MATLAB</h2>
+    <p>
+      This example runs gradient descent on the 2D function \(f(x) = 4x_1^2 + x_2^2\) (minimum at the origin) and plots the convergence path on a contour plot.
+      The function and initial point are chosen to be clearly distinct from HW 30 — your homework uses a different function with a minimum away from the origin.
+    </p>
+<pre><code class="language-matlab">%% Lesson 30 — Gradient Descent (demonstration)
+% f(x1, x2) = 4*x1^2 + x2^2    (minimum at origin)
+% Gradient:   [8*x1; 2*x2]
+
+f      = @(x) 4*x(1)^2 + x(2)^2;
+grad_f = @(x) [8*x(1); 2*x(2)];
+
+gamma   = 0.10;   % fixed step size
+epsilon = 1e-5;   % stopping threshold
+x       = [1.5; 1.5];  % initial guess (not at the minimum)
+
+% Store path for plotting
+path = x;
+
+for k = 1:500
+  x_new = x - gamma * grad_f(x);
+  path  = [path, x_new];           %#ok grow array for plotting
+  if norm(x_new - x) < epsilon
+    fprintf('Converged at k=%d,  x=[%.6f; %.6f],  f=%.2e\n', ...
+            k, x_new(1), x_new(2), f(x_new));
+    break;
+  end
+  x = x_new;
+end
+
+%% Contour plot with GD path
+[X1, X2] = meshgrid(linspace(-2,2,200), linspace(-2,2,200));
+F = 4*X1.^2 + X2.^2;
+
+figure;
+contourf(X1, X2, F, 20, 'LineColor', 'none'); colorbar; hold on;
+contour(X1, X2, F, 20, 'k', 'LineWidth', 0.5);
+plot(path(1,:), path(2,:), 'w.-', 'MarkerSize', 8, 'LineWidth', 1.5, ...
+     'DisplayName', 'GD path');
+plot(path(1,1),   path(2,1),   'gs', 'MarkerSize', 10, ...
+     'LineWidth', 2, 'DisplayName', 'Start');
+plot(path(1,end), path(2,end), 'r*', 'MarkerSize', 12, ...
+     'LineWidth', 2, 'DisplayName', 'Minimum');
+xlabel('x_1'); ylabel('x_2');
+title(sprintf('Gradient Descent  \\gamma=%.2f', gamma));
+legend; axis equal; grid on;
+</code></pre>
+    <div class="callout info">
+      <strong>Try different step sizes:</strong> Set <code>gamma = 0.01</code> (slow convergence), <code>gamma = 0.24</code> (near-zigzag), and <code>gamma = 0.26</code> (diverges). This illustrates why choosing \(\gamma\) matters.
+    </div>
+    <div class="callout info">
+      <strong>HW 30 asks you to write a general-purpose GD UDF</strong> that accepts function and gradient handles as inputs, and apply it to a different 2D function. The UDF from this example is a starting point, but you will need to generalize it.
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2><span class="section-icon">📝</span> Summary</h2>
+    <table class="summary-table">
+      <thead><tr><th>Concept</th><th>Key Idea</th></tr></thead>
+      <tbody>
+        <tr><td>Gradient \(\nabla f\)</td><td>Vector of partial derivatives; points toward steepest increase; zero at a minimum.</td></tr>
+        <tr><td>Gradient Descent</td><td>\(x^{k+1} = x^k - \gamma\nabla f(x^k)\); fixed step size \(\gamma\) for all iterations.</td></tr>
+        <tr><td>Step size \(\gamma\)</td><td>Too small → slow; too large → diverges. Must be tuned per problem.</td></tr>
+        <tr><td>Steepest Descent</td><td>Same update rule, but \(\gamma^k\) is optimized at each step via 1D GSS.</td></tr>
+        <tr><td>SD trade-off</td><td>Guaranteed maximum decrease per step, but 1D optimization at each iteration is expensive.</td></tr>
+        <tr><td>Stopping criterion</td><td>\(\|x^k - x^{k-1}\|_2 \leq \epsilon\); stop when steps become negligible.</td></tr>
+        <tr><td>Local vs. global</td><td>Both GD and SD converge to a local minimum; starting point matters for non-convex \(f\).</td></tr>
+      </tbody>
+    </table>
+    <a href="hw/hw30.html" class="hw-button">📋 HW 30 — Gradient Descent UDF</a>
+  </div>
+
+  <!-- References -->
+  <div class="card references">
+    <h2><span class="section-icon">📚</span> References</h2>
+    <ol>
+      <li>Pellizzari, C.A. <em>Physics 356 — Supplement on Gradient-Based Optimization</em>, USAFA, 2021.</li>
+      <li>Bouman, C.A. <em>Model Based Image Processing</em>, Purdue University, 2013.</li>
+      <li>Chong, E.K.P. and Zak, S.H. <em>An Introduction to Optimization</em>, 4th Ed., John Wiley &amp; Sons, 2013, pp. 123–124.</li>
+      <li>Wikipedia contributors. "Gradient." <em>Wikipedia, The Free Encyclopedia</em>, 2019.</li>
+    </ol>
+  </div>
+
+  <!-- Lesson Nav -->
+  <div class="lesson-nav">
+    <a href="lesson29.html" class="prev">
+      <div>← <span class="nav-label">Previous</span><br>L29: Bracketing &amp; GSS</div>
+    </a>
+    <a href="lesson31.html" class="next">
+      <div><span class="nav-label">Next Lesson</span><br>L31: Maximum Likelihood Estimation</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

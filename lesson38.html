@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 38 — CNNs, Transformers &amp; LLMs | PHYS 356</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="lesson29.html">L29</a>
+      <a href="lesson30.html">L30</a>
+      <a href="lesson31.html">L31</a>
+      <a href="lesson32.html">L32</a>
+      <a href="lesson33.html">L33</a>
+      <a href="lesson34.html">L34</a>
+      <a href="lesson35.html">L35</a>
+      <a href="lesson36.html">L36</a>
+      <a href="lesson37.html">L37</a>
+      <a href="lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="lesson-banner">
+    <div class="lesson-meta">Lesson 38 &bull; Physics 356</div>
+    <h1>CNNs, Transformers &amp; Large Language Models</h1>
+    <span class="reading-time">⏱ ~50 min read</span>
+  </div>
+
+  <div class="objectives-box">
+    <h2>Learning Objectives</h2>
+    <ul>
+      <li>Explain how convolutional layers exploit spatial structure and compare them to fully-connected layers.</li>
+      <li>Describe max pooling and why it provides translation invariance.</li>
+      <li>Articulate the attention mechanism: what it computes and why it's powerful for sequential data.</li>
+      <li>Describe the transformer architecture at a high level (encoder, self-attention, feed-forward sublayers).</li>
+      <li>Explain what large language models (LLMs) are and how they are trained (pre-training + fine-tuning).</li>
+    </ul>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">🌍</span> Background &amp; Motivation</h2>
+    <h3>From MLPs to specialized architectures</h3>
+    <p>
+      The fully-connected networks of Lessons 36–37 treat every input feature identically — a pixel at position (0,0) in an image is treated no differently from one at position (100,100). This ignores the rich <em>structure</em> of real data: images have spatial locality (nearby pixels are correlated), and text has sequential dependency (the meaning of a word depends on context).
+    </p>
+    <p>
+      <strong>Convolutional Neural Networks (CNNs)</strong> exploit spatial structure. <strong>Transformers</strong> handle arbitrary long-range dependencies in sequences. Together, these two architectures have driven nearly every major AI breakthrough of the past decade: image recognition, protein structure prediction, language modeling, and more.
+    </p>
+    <h3>Why this matters for physicists</h3>
+    <p>
+      CNNs are now standard tools in astrophysics (galaxy morphology classification, gravitational lens detection), materials science (phase identification from diffraction patterns), and defense applications (SAR image interpretation). Transformers power the LLMs that are transforming how scientists write, code, and analyze data.
+    </p>
+  </div>
+
+  <!-- CNNs -->
+  <div class="card">
+    <h2><span class="section-icon">🔲</span> Convolutional Neural Networks (CNNs)</h2>
+
+    <h3>The key idea: parameter sharing</h3>
+    <p>
+      A fully-connected layer with \(d=1024\) inputs and 1024 outputs has \(1024^2 \approx 10^6\) weights. For a 256×256 image that's \(65536\) inputs — the weight count explodes.
+    </p>
+    <p>
+      A <strong>convolutional layer</strong> instead uses a small <em>filter</em> (e.g., \(3 \times 3\) pixels, \(K=9\) weights) that slides across the entire input, computing a dot product at each position. The same filter is applied everywhere — this is <strong>parameter sharing</strong>. The result is a <em>feature map</em> that encodes where in the image the filter "fires."
+    </p>
+    <div class="math-block">
+      \[
+        z_{ij}^{(k)} = \sum_{m=0}^{F-1}\sum_{n=0}^{F-1} W_{mn}^{(k)} \cdot a_{(i+m)(j+n)} + b^{(k)}
+      \]
+    </div>
+    <p>
+      Where \(F\) is the filter size, \((i,j)\) is the output position, and \(k\) indexes the filter (channel). A typical convolutional layer uses many filters in parallel, producing many feature maps (channels).
+    </p>
+    <div class="callout info">
+      <strong>Spatial locality:</strong> Each output neuron depends only on a small local region (the <em>receptive field</em>) of the input. This is exactly right for images — edges, corners, and textures are local features.
+    </div>
+
+    <h3>Pooling</h3>
+    <p>
+      After a convolutional layer, a <strong>pooling layer</strong> reduces the spatial dimensions. <strong>Max pooling</strong> takes the maximum value in each non-overlapping region (e.g., \(2 \times 2\)):
+    </p>
+    <div class="math-block">
+      \[
+        p_{ij} = \max_{m,n \in \text{region}} a_{(2i+m)(2j+n)}
+      \]
+    </div>
+    <p>
+      Pooling provides <strong>translation invariance</strong> — a feature detected slightly off-center still produces the same output — and reduces computation for subsequent layers.
+    </p>
+
+    <h3>Typical CNN Architecture</h3>
+    <p>A classic pattern: stack Conv → ReLU → Pool blocks, then flatten and use fully-connected layers for the final classification:</p>
+    <div class="callout info" style="font-family:monospace;font-size:0.88rem;line-height:2;">
+      Input image → [Conv3×3 + ReLU] → [MaxPool 2×2] → [Conv3×3 + ReLU] → [MaxPool 2×2] → Flatten → FC → Softmax → Class label
+    </div>
+
+    <h3>MATLAB CNN Demo (Conceptual)</h3>
+<pre><code class="language-matlab">%% Lesson 38 — Manual 2D Convolution (conceptual, no toolbox required)
+% Apply a 3×3 edge-detection filter to a grayscale image
+
+% Simple test image
+I = double(imread('cameraman.tif'));  % 256×256 grayscale
+[H, W] = size(I);
+
+% Sobel edge filter (horizontal edges)
+kernel = [-1 -2 -1;
+           0  0  0;
+           1  2  1];
+F = 3;  pad = 1;
+
+% Zero-pad the image
+I_pad = padarray(I, [pad pad], 0);
+
+% Convolve (slide kernel across image)
+feature_map = zeros(H, W);
+for i = 1:H
+    for j = 1:W
+        patch = I_pad(i:i+F-1, j:j+F-1);  % F×F patch
+        feature_map(i,j) = sum(sum(kernel .* patch));
+    end
+end
+
+figure;
+subplot(1,2,1); imagesc(I);        colormap gray; title('Original'); axis image off;
+subplot(1,2,2); imagesc(feature_map); colormap gray; title('Edge Filter Output'); axis image off;
+</code></pre>
+    <div class="callout tip">
+      <strong>MATLAB Deep Learning Toolbox:</strong> In practice, use <code>convolution2dLayer</code>, <code>maxPooling2dLayer</code>, etc. to build CNNs without manual loops. See HW 38 optional section.
+    </div>
+  </div>
+
+  <!-- Transformers -->
+  <div class="card">
+    <h2><span class="section-icon">🔄</span> Transformers &amp; the Attention Mechanism</h2>
+
+    <h3>The problem with sequences</h3>
+    <p>
+      For sequential data (text, time series, sensor streams), the key challenge is <em>long-range dependency</em>: the meaning of a word can depend on something said many sentences ago. Recurrent networks (RNNs, LSTMs) struggled with this because they process sequences step-by-step and "forget" distant context. Transformers solved this with <strong>attention</strong>.
+    </p>
+
+    <h3>Scaled Dot-Product Attention</h3>
+    <p>
+      Given a sequence of \(n\) input vectors, attention computes, for each position, a <em>weighted average</em> of all other positions — where the weights encode relevance. Each input \(\mathbf{x}_i\) is linearly projected into three roles:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;">
+      <li><strong>Query</strong> \(\mathbf{q}_i = \mathbf{W}_Q \mathbf{x}_i\): "what am I looking for?"</li>
+      <li><strong>Key</strong> \(\mathbf{k}_j = \mathbf{W}_K \mathbf{x}_j\): "what do I contain?"</li>
+      <li><strong>Value</strong> \(\mathbf{v}_j = \mathbf{W}_V \mathbf{x}_j\): "what information do I provide?"</li>
+    </ul>
+    <p>
+      The attention output for position \(i\) is:
+    </p>
+    <div class="math-block">
+      \[
+        \text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
+      \]
+    </div>
+    <p>
+      The dot product \(\mathbf{q}_i \cdot \mathbf{k}_j\) measures how relevant position \(j\) is to position \(i\). The softmax normalizes these into weights summing to 1. The output is a weighted average of the values — a context-aware representation of position \(i\).
+    </p>
+    <div class="callout info">
+      <strong>Why \(\sqrt{d_k}\)?</strong> The scaling factor prevents dot products from growing too large when \(d_k\) is large (which would push softmax into saturation, killing gradients).
+    </div>
+
+    <h3>Multi-Head Attention</h3>
+    <p>
+      Instead of one attention operation, transformers run \(h\) attention "heads" in parallel, each with different \(\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V\) projections. The outputs are concatenated and projected:
+    </p>
+    <div class="math-block">
+      \[
+        \text{MultiHead}(\mathbf{Q},\mathbf{K},\mathbf{V}) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h)\,\mathbf{W}_O
+      \]
+    </div>
+    <p>
+      Each head can attend to different relationships simultaneously — one head might track grammatical agreement, another might track coreference (who "they" refers to).
+    </p>
+
+    <h3>The Transformer Block</h3>
+    <p>
+      A single transformer block consists of:
+    </p>
+    <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li><strong>Multi-head self-attention:</strong> each token attends to all others.</li>
+      <li><strong>Add &amp; Norm:</strong> residual connection (\(\mathbf{x} + \text{attention}(\mathbf{x})\)) then layer normalization.</li>
+      <li><strong>Feed-forward network:</strong> two-layer MLP applied independently to each position.</li>
+      <li><strong>Add &amp; Norm</strong> again.</li>
+    </ol>
+    <p>
+      Stacking \(N_\ell = 12, 24, 96, \ldots\) such blocks gives the full transformer depth. Depth is what gives transformers their power.
+    </p>
+
+    <div class="callout info">
+      <strong>Self-attention vs. cross-attention:</strong> In self-attention, Q, K, V all come from the same sequence. In cross-attention (encoder-decoder), Q comes from the decoder, K and V from the encoder — enabling translation and summarization tasks.
+    </div>
+  </div>
+
+  <!-- LLMs -->
+  <div class="card">
+    <h2><span class="section-icon">🤖</span> Large Language Models (LLMs)</h2>
+
+    <h3>What is an LLM?</h3>
+    <p>
+      A <strong>Large Language Model</strong> is a transformer trained on massive text corpora (hundreds of billions of tokens) to predict the next token in a sequence. The training task is deceptively simple — predict the next word — but requires the model to develop a rich internal representation of language, facts, and reasoning.
+    </p>
+    <div class="math-block">
+      \[
+        p(\text{token}_{t+1} \mid \text{token}_1, \ldots, \text{token}_t) = \text{softmax}(\mathbf{W}_\text{out} \cdot \mathbf{h}_t)
+      \]
+    </div>
+    <p>
+      Where \(\mathbf{h}_t\) is the final transformer layer's hidden state at position \(t\). At inference time, tokens are sampled autoregressively — each predicted token is fed back as input to generate the next.
+    </p>
+
+    <h3>Training: Pre-training + Fine-tuning</h3>
+    <table class="summary-table" style="margin-top:0.75rem;">
+      <thead><tr><th>Stage</th><th>Task</th><th>Data</th><th>Outcome</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Pre-training</strong></td>
+          <td>Next token prediction (self-supervised)</td>
+          <td>Entire internet, books, code (\(\sim\)10T tokens)</td>
+          <td>General language understanding</td>
+        </tr>
+        <tr>
+          <td><strong>Supervised Fine-Tuning (SFT)</strong></td>
+          <td>Imitate expert demonstrations</td>
+          <td>Human-written instruction-response pairs</td>
+          <td>Follows instructions</td>
+        </tr>
+        <tr>
+          <td><strong>RLHF</strong></td>
+          <td>Maximize human preference reward</td>
+          <td>Human preference rankings</td>
+          <td>Aligned, helpful, safe</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Scale and Emergent Abilities</h3>
+    <p>
+      LLM capabilities improve predictably with scale (parameters × data × compute). Strikingly, certain abilities — multi-step reasoning, code generation, in-context learning — appear to <em>emerge</em> discontinuously as models scale, even though the training task never changes. This is not fully understood and is an active research area.
+    </p>
+
+    <h3>Physics Applications of LLMs/Transformers</h3>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;">
+      <li><strong>AlphaFold 2/3:</strong> transformer + equivariant layers for protein structure prediction.</li>
+      <li><strong>Plasma physics:</strong> transformers for time-series modeling of tokamak disruptions.</li>
+      <li><strong>Climate science:</strong> Pangu-Weather, GraphCast — transformer-based forecast models.</li>
+      <li><strong>Space domain awareness:</strong> sequence modeling of orbital maneuver patterns.</li>
+    </ul>
+  </div>
+
+  <!-- Video -->
+  <div class="card">
+    <h2><span class="section-icon">▶</span> Recommended Video</h2>
+    <p>Andrej Karpathy's "Let's build GPT from scratch" is the best hands-on walkthrough of transformers available. Watch at least the first 45 minutes for the core architecture:</p>
+    <div class="video-container">
+      <iframe src="https://www.youtube.com/embed/kCc8FmEb1nY"
+              title="Andrej Karpathy — Let's build GPT from scratch"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen loading="lazy"></iframe>
+    </div>
+    <p class="video-caption">Andrej Karpathy, "Let's build GPT: from scratch, in code, spelled out" (2023) — focus on 0:00–45:00 for the attention mechanism</p>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2><span class="section-icon">📝</span> Summary</h2>
+    <table class="summary-table">
+      <thead><tr><th>Architecture</th><th>Key Innovation</th><th>Best For</th></tr></thead>
+      <tbody>
+        <tr><td><strong>MLP (L36–37)</strong></td><td>Universal approximation via depth</td><td>Tabular data, general function fitting</td></tr>
+        <tr><td><strong>CNN</strong></td><td>Parameter sharing via convolution; spatial locality</td><td>Images, 2D/3D data, spectrograms</td></tr>
+        <tr><td><strong>Transformer</strong></td><td>Self-attention captures arbitrary long-range dependencies</td><td>Sequences: text, time series, molecules</td></tr>
+        <tr><td><strong>LLM</strong></td><td>Pre-trained transformer at massive scale</td><td>Language, code, reasoning, general-purpose AI</td></tr>
+      </tbody>
+    </table>
+    <a href="hw/hw38.html" class="hw-button">📋 HW 38 — CNNs &amp; Transformers (Qualitative + Optional Demo)</a>
+  </div>
+
+  <!-- References -->
+  <div class="card references">
+    <h2><span class="section-icon">📚</span> References</h2>
+    <ol>
+      <li>LeCun, Y., Bottou, L., Bengio, Y., &amp; Haffner, P. (1998). Gradient-based learning applied to document recognition. <em>Proceedings of the IEEE, 86</em>(11), 2278–2324.</li>
+      <li>Vaswani, A., et al. (2017). Attention is all you need. <em>NeurIPS 2017</em>. arXiv:1706.03762.</li>
+      <li>Karpathy, A. (2023). <em>Let's build GPT: from scratch, in code, spelled out</em> [Video]. YouTube. <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">youtube.com</a></li>
+      <li>Brown, T. B., et al. (2020). Language models are few-shot learners (GPT-3). <em>NeurIPS 2020</em>. arXiv:2005.14165.</li>
+      <li>Jumper, J., et al. (2021). Highly accurate protein structure prediction with AlphaFold. <em>Nature, 596</em>, 583–589.</li>
+    </ol>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="lesson37.html" class="prev">← L37: Backpropagation</a>
+    <a href="index.html" class="next">
+      <div><span class="nav-label">Back to</span><br>Module Home</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

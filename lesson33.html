@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 33 — What is ML &amp; AI? | PHYS 356</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <!-- highlight.js for MATLAB syntax -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="index.html">Home</a>
+      <a href="lesson29.html">L29</a>
+      <a href="lesson30.html">L30</a>
+      <a href="lesson31.html">L31</a>
+      <a href="lesson32.html">L32</a>
+      <a href="lesson33.html">L33</a>
+      <a href="lesson34.html">L34</a>
+      <a href="lesson35.html">L35</a>
+      <a href="lesson36.html">L36</a>
+      <a href="lesson37.html">L37</a>
+      <a href="lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <!-- Banner -->
+  <div class="lesson-banner">
+    <div class="lesson-meta">Lesson 33 &bull; Physics 356</div>
+    <h1>What is Machine Learning &amp; AI?</h1>
+    <span class="reading-time">⏱ ~35 min read</span>
+  </div>
+
+  <!-- Objectives -->
+  <div class="objectives-box">
+    <h2>Learning Objectives</h2>
+    <ul>
+      <li>Distinguish artificial intelligence, machine learning, and deep learning.</li>
+      <li>Classify ML problems as supervised, unsupervised, or reinforcement learning.</li>
+      <li>Describe the end-to-end ML pipeline: data → model → loss → optimization → evaluation.</li>
+      <li>Explain why ML is relevant to physics and engineering applications.</li>
+      <li>Recognize the difference between model parameters and hyperparameters.</li>
+      <li>Construct a polynomial regression model and write its loss function.</li>
+      <li>Explain overfitting, regularization, and the bias-variance tradeoff.</li>
+      <li>Use MATLAB's <code>fminsearch</code> with an anonymous loss function to train a model.</li>
+    </ul>
+  </div>
+
+  <!-- Notation Box -->
+  <div class="notation-box">
+    <h3>Notation used in this lesson</h3>
+    <div class="notation-grid">
+      <div class="notation-item"><span class="sym">\(\mathbf{x}\)</span><span class="desc">Input feature vector</span></div>
+      <div class="notation-item"><span class="sym">\(y\)</span><span class="desc">True label/output</span></div>
+      <div class="notation-item"><span class="sym">\(\hat{y}\)</span><span class="desc">Model prediction</span></div>
+      <div class="notation-item"><span class="sym">\(f(\cdot)\)</span><span class="desc">Learned function (model)</span></div>
+      <div class="notation-item"><span class="sym">\(L\)</span><span class="desc">Loss function</span></div>
+      <div class="notation-item"><span class="sym">\(N\)</span><span class="desc">Number of training samples</span></div>
+      <div class="notation-item"><span class="sym">\(\boldsymbol{\beta}\)</span><span class="desc">Model parameters (weights)</span></div>
+      <div class="notation-item"><span class="sym">\(\lambda\)</span><span class="desc">Regularization strength (hyperparameter)</span></div>
+      <div class="notation-item"><span class="sym">\(D\)</span><span class="desc">Polynomial degree</span></div>
+    </div>
+  </div>
+
+  <!-- Section 1: Background -->
+  <div class="card">
+    <h2><span class="section-icon">🌍</span> Background &amp; Motivation</h2>
+
+    <h3>The old way: explicit rules</h3>
+    <p>
+      Classical programming takes the form <em>rules + data → answers</em>. A spacecraft attitude-control algorithm, a ballistic trajectory solver, a radar signal processor — each is a set of equations a physicist or engineer derives from first principles and encodes explicitly. This works beautifully when we understand the physics completely.
+    </p>
+
+    <h3>The ML way: data → model → answers</h3>
+    <p>
+      Machine learning flips the script: <em>data + answers → rules (model)</em>. Instead of writing the decision logic yourself, you collect examples \((\mathbf{x}_i, y_i)\) and let an optimization algorithm discover a function \(f\) such that \(f(\mathbf{x}_i) \approx y_i\). The model <em>is</em> the extracted rules, encoded in its parameters.
+    </p>
+    <p>
+      This is not magic — it works because many real-world relationships are too complex to derive from first principles (e.g., classifying satellite maneuver intent from radar cross-section, or detecting anomalies in sensor streams). ML excels precisely in these high-dimensional, data-rich regimes.
+    </p>
+
+    <h3>Why physicists should care</h3>
+    <p>
+      ML is increasingly a core tool in physics: gravitational-wave signal detection (LIGO), particle identification at CERN, materials discovery, orbit determination, and more. Understanding the mathematical foundations — which are essentially applied calculus and linear algebra — puts you ahead of practitioners who treat ML as a black box.
+    </p>
+  </div>
+
+  <!-- Section 2: Key Concepts -->
+  <div class="card">
+    <h2><span class="section-icon">🧠</span> Key Concepts</h2>
+
+    <h3>The AI ⊃ ML ⊃ Deep Learning hierarchy</h3>
+    <p>
+      <strong>Artificial Intelligence (AI)</strong> is the broad goal: machines that exhibit intelligent behavior. <strong>Machine Learning (ML)</strong> is one approach to AI: systems that improve from experience without being explicitly programmed. <strong>Deep Learning (DL)</strong> is a subset of ML using multi-layer neural networks.
+    </p>
+    <div class="callout info">
+      <strong>Analogy:</strong> AI is like "transportation"; ML is "motor vehicles"; deep learning is "electric cars." All electric cars are motor vehicles, but not all motor vehicles are electric cars.
+    </div>
+
+    <h3>Three types of learning</h3>
+    <table class="summary-table" style="margin:0.75rem 0;">
+      <thead><tr><th>Type</th><th>Training Data</th><th>Goal</th><th>Physics Example</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Supervised</strong></td>
+          <td>Labeled pairs \((\mathbf{x}_i, y_i)\)</td>
+          <td>Learn \(f: \mathbf{x} \to y\)</td>
+          <td>Classify space objects by radar signature</td>
+        </tr>
+        <tr>
+          <td><strong>Unsupervised</strong></td>
+          <td>Unlabeled \(\mathbf{x}_i\)</td>
+          <td>Find structure / clusters</td>
+          <td>Grouping satellite orbits by behavior</td>
+        </tr>
+        <tr>
+          <td><strong>Reinforcement</strong></td>
+          <td>Reward signals</td>
+          <td>Learn policy via trial &amp; error</td>
+          <td>Autonomous spacecraft attitude control</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Regression vs. Classification</h3>
+    <p>
+      Within supervised learning, the output type matters:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;">
+      <li><strong>Regression:</strong> predict a continuous value. Example: predict the apogee altitude of a satellite from telemetry features. Output \(\hat{y} \in \mathbb{R}\).</li>
+      <li><strong>Classification:</strong> predict a discrete class label. Example: "is this radar return from debris or an active satellite?" Output \(\hat{y} \in \{0,1\}\) (binary) or \(\hat{y} \in \{1,\ldots,K\}\) (multi-class).</li>
+    </ul>
+
+    <h3>The ML Pipeline</h3>
+    <p>Every ML project follows the same high-level workflow:</p>
+
+    <div class="math-block">
+      \[
+        \underbrace{\text{Raw Data}}_{\text{collection}} \;\longrightarrow\;
+        \underbrace{\text{Features } \mathbf{x}}_{\text{preprocessing}} \;\longrightarrow\;
+        \underbrace{f_{\boldsymbol{\theta}}(\mathbf{x})}_{\text{model}} \;\longrightarrow\;
+        \underbrace{L(\hat{y}, y)}_{\text{loss}} \;\longrightarrow\;
+        \underbrace{\min_{\boldsymbol{\theta}} L}_{\text{optimization}}
+      \]
+    </div>
+
+    <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
+      <li><strong>Data collection:</strong> gather labeled examples. Quality matters more than quantity.</li>
+      <li><strong>Feature engineering:</strong> transform raw measurements into a numeric vector \(\mathbf{x}\).</li>
+      <li><strong>Model selection:</strong> choose the form of \(f\) (linear, neural network, etc.).</li>
+      <li><strong>Loss function:</strong> define what "wrong" means quantitatively.</li>
+      <li><strong>Optimization:</strong> update model parameters \(\boldsymbol{\theta}\) to reduce loss.</li>
+      <li><strong>Evaluation:</strong> test on held-out data; report accuracy, F1, RMSE, etc.</li>
+    </ol>
+
+    <h3>Parameters vs. Hyperparameters</h3>
+    <p>
+      <strong>Parameters</strong> (e.g., weights \(\mathbf{W}\), biases \(\mathbf{b}\)) are learned from data during training. <strong>Hyperparameters</strong> (e.g., learning rate \(\alpha\), number of layers, batch size) are set by the engineer <em>before</em> training. Confusing the two is a common beginner mistake.
+    </p>
+
+    <h3>Overfitting and Generalization</h3>
+    <p>
+      A model <em>overfits</em> when it memorizes the training data but fails on new data. We guard against this by splitting data into <strong>training</strong>, <strong>validation</strong>, and <strong>test</strong> sets, and by monitoring validation loss during training.
+    </p>
+    <div class="math-block">
+      \[
+        \underbrace{L_{\text{train}} \ll L_{\text{test}}}_{\text{overfitting sign}} \qquad\qquad
+        \underbrace{L_{\text{train}} \approx L_{\text{test}} \approx \text{small}}_{\text{good generalization}}
+      \]
+    </div>
+  </div>
+
+  <!-- Section: Regression -->
+  <div class="card">
+    <h2><span class="section-icon">📈</span> Regression: Fitting a Model to Data</h2>
+
+    <h3>What is regression?</h3>
+    <p>
+      Regression is the supervised learning task of predicting a <em>continuous</em> output \(y\) from input features \(x\). The machine learning framing is identical to curve fitting you already know — the difference is in how we think about the model, the loss, and generalization.
+    </p>
+    <p>
+      Formally, we assume the data was generated by some unknown function \(f\) plus noise:
+    </p>
+    <div class="math-block">
+      \[ y = f(x) + \varepsilon \]
+    </div>
+    <p>
+      Our goal is to learn an approximation \(\hat{y} = f_{\boldsymbol{\beta}}(x)\) whose parameters \(\boldsymbol{\beta}\) we optimize from data.
+    </p>
+
+    <h3>Polynomial regression model</h3>
+    <p>
+      A polynomial of degree \(D\) is one of the simplest parametric models. For a scalar input \(x\):
+    </p>
+    <div class="math-block">
+      \[
+        \hat{y} = \beta_0 + \beta_1 x + \beta_2 x^2 + \cdots + \beta_D x^D
+             = \sum_{k=0}^{D} \beta_k\, x^k
+      \]
+    </div>
+    <p>
+      The model is <em>linear in the parameters</em> \(\boldsymbol{\beta} = [\beta_0, \beta_1, \ldots, \beta_D]^\top\) even though it is nonlinear in \(x\). We can write this compactly using a <strong>feature vector</strong>:
+    </p>
+    <div class="math-block">
+      \[
+        \boldsymbol{\phi}(x) = \begin{bmatrix} 1 \\ x \\ x^2 \\ \vdots \\ x^D \end{bmatrix}
+        \qquad \Rightarrow \qquad
+        \hat{y} = \boldsymbol{\beta}^\top \boldsymbol{\phi}(x)
+      \]
+    </div>
+    <p>
+      For \(N\) training points we stack the feature vectors into a matrix \(\boldsymbol{\Phi}\) (the <em>design matrix</em>, size \(N \times (D+1)\)), so the predictions for all points are:
+    </p>
+    <div class="math-block">
+      \[ \hat{\mathbf{y}} = \boldsymbol{\Phi}\,\boldsymbol{\beta} \]
+    </div>
+
+    <h3>The loss function (Mean Squared Error)</h3>
+    <p>
+      To measure how well our model fits the training data we use <strong>Mean Squared Error (MSE)</strong>:
+    </p>
+    <div class="math-block">
+      \[
+        L(\boldsymbol{\beta}) = \frac{1}{N} \sum_{i=1}^{N} \bigl(\hat{y}_i - y_i\bigr)^2
+      \]
+    </div>
+    <p>
+      Squaring the errors ensures all terms are positive and penalizes large errors more than small ones. Training the model means finding the \(\boldsymbol{\beta}\) that <em>minimizes</em> \(L\).
+    </p>
+    <div class="callout info">
+      <strong>Connection to what you already know:</strong> MSE minimization is exactly least-squares curve fitting. The ML framing just makes the loss explicit and separates training data from test data.
+    </div>
+  </div>
+
+  <!-- Section: Regularization -->
+  <div class="card">
+    <h2><span class="section-icon">⚖️</span> Overfitting, Regularization &amp; the Bias-Variance Tradeoff</h2>
+
+    <h3>Overfitting</h3>
+    <p>
+      As you increase the polynomial degree \(D\), the model becomes more flexible and can fit the training data more exactly — eventually passing through every training point perfectly. But a perfectly fit training curve often performs <em>worse</em> on new test data, because it has learned the noise, not the signal. This is <strong>overfitting</strong>.
+    </p>
+    <div class="callout warning">
+      <strong>Classic example:</strong> A degree-1 polynomial (a line) may underfit a nonlinear trend. A degree-15 polynomial may overfit by wiggling through every noisy training point. The test MSE will be high in both cases — but for opposite reasons.
+    </div>
+
+    <h3>Bias-Variance Tradeoff</h3>
+    <p>
+      There are two sources of error in a model's predictions:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;">
+      <li><strong>Bias</strong> — error from a model that is too simple to capture the true relationship. A degree-1 polynomial fit to nonlinear data has high bias.</li>
+      <li><strong>Variance</strong> — error from a model that is too sensitive to the specific training data. A degree-15 polynomial has low bias but high variance.</li>
+    </ul>
+    <p>
+      Good models have <em>both</em> low bias and low variance. Increasing model complexity decreases bias but increases variance. The goal is to find the sweet spot.
+    </p>
+    <div class="math-block">
+      \[
+        \underbrace{\text{Total Error}}_{\text{test}} \;=\;
+        \underbrace{\text{Bias}^2}_{\text{too simple}} \;+\;
+        \underbrace{\text{Variance}}_{\text{too complex}} \;+\;
+        \underbrace{\sigma^2_\varepsilon}_{\text{irreducible noise}}
+      \]
+    </div>
+
+    <h3>Regularization</h3>
+    <p>
+      <strong>Regularization</strong> is a technique for controlling overfitting by adding a penalty to the loss function that discourages large parameter values. The most common form is <strong>L2 regularization</strong> (also called Ridge regression):
+    </p>
+    <div class="math-block">
+      \[
+        L_{\text{reg}}(\boldsymbol{\beta}) =
+          \underbrace{\frac{1}{N} \sum_{i=1}^{N} (\hat{y}_i - y_i)^2}_{\text{data fit (MSE)}}
+          \;+\;
+          \underbrace{\lambda \sum_{k=1}^{D} \beta_k^2}_{\text{regularization penalty}}
+      \]
+    </div>
+    <p>
+      The second term penalizes large coefficients. \(\lambda \geq 0\) is a <strong>hyperparameter</strong> you choose before training:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;">
+      <li>\(\lambda = 0\): no regularization — pure MSE, free to overfit.</li>
+      <li>Small \(\lambda\): mild penalty, allows moderate flexibility.</li>
+      <li>Large \(\lambda\): strong penalty, forces small coefficients, model behaves more like a low-degree polynomial.</li>
+    </ul>
+    <div class="callout tip">
+      <strong>Note:</strong> The bias term \(\beta_0\) is typically <em>not</em> regularized, since penalizing the intercept would shift all predictions toward zero regardless of the data.
+    </div>
+    <p>
+      With regularization there is generally no closed-form solution, so we minimize \(L_{\text{reg}}\) numerically. In MATLAB, <code>fminsearch</code> does this without requiring you to supply the gradient.
+    </p>
+  </div>
+
+  <!-- Video -->
+  <div class="card">
+    <h2><span class="section-icon">▶</span> Recommended Video</h2>
+    <p>StatQuest gives a clear, visual explanation of bias and variance — the core tradeoff behind overfitting and regularization covered in this lesson.</p>
+    <a href="https://www.youtube.com/watch?v=EuBBz3bI-aA" target="_blank" rel="noopener" class="video-link-card">
+      <div class="video-link-thumb">▶</div>
+      <div class="video-link-info">
+        <div class="video-link-title">Machine Learning Fundamentals: Bias and Variance</div>
+        <div class="video-link-channel">StatQuest with Josh Starmer &mdash; YouTube</div>
+      </div>
+    </a>
+  </div>
+
+  <!-- MATLAB Example -->
+  <div class="card">
+    <h2><span class="section-icon">💻</span> Worked Example — MATLAB</h2>
+    <p>
+      This example walks through the full ML pipeline using a quadratic polynomial model, a regularized MSE loss, and MATLAB's <code>fminsearch</code> for optimization. This is the same structure you will use in HW 33.
+    </p>
+<pre><code class="language-matlab">%% Lesson 33 — Linear Regression with fminsearch
+% Model:  y_hat = beta(1) + beta(2)*x   (line: intercept + slope)
+% Loss:   L = mean((y_hat - y).^2)
+
+rng(42);
+
+%% 1. Generate synthetic data (in HW 33 you will load physics_grades.mat)
+N = 80;
+x = linspace(0, 4, N)';
+y = 2*x + 1 + randn(N,1)*0.8;   % noisy line: true slope=2, intercept=1
+
+%% 2. Train/test split  (75 / 25)
+n_train = round(0.75 * N);
+idx = randperm(N);
+x_train = x(idx(1:n_train));     y_train = y(idx(1:n_train));
+x_test  = x(idx(n_train+1:end)); y_test  = y(idx(n_train+1:end));
+
+%% 3. Set up the linear model as an anonymous function
+% beta(1) = intercept, beta(2) = slope
+model = @(beta, x_in) beta(1) + beta(2)*x_in;
+
+%% 4. Set up the loss function (MSE on training data)
+loss_train = @(beta) mean((model(beta, x_train) - y_train).^2);
+
+%% 5. Optimize using fminsearch (no gradient required)
+beta0    = [0; 0];               % initial guess
+beta_opt = fminsearch(loss_train, beta0);
+
+fprintf('Learned parameters: intercept=%.3f, slope=%.3f\n', beta_opt);
+fprintf('Training loss: %.4f\n', loss_train(beta_opt));
+
+%% 6. Evaluate on test data
+loss_test = @(beta) mean((model(beta, x_test) - y_test).^2);
+fprintf('Test loss:     %.4f\n', loss_test(beta_opt));
+
+%% 7. Plot results
+x_fine = linspace(min(x), max(x), 200)';
+figure; hold on;
+scatter(x_train, y_train, 25, 'b', 'filled', 'DisplayName','Train');
+scatter(x_test,  y_test,  25, 'r', 'filled', 'DisplayName','Test');
+plot(x_fine, model(beta_opt, x_fine), 'k-', 'LineWidth', 2, 'DisplayName','Fitted model');
+xlabel('x'); ylabel('y');
+title('Linear Regression via fminsearch');
+legend; grid on;
+</code></pre>
+    <div class="callout info">
+      <strong>Why <code>fminsearch</code>?</strong> For a simple quadratic there is a closed-form solution, but <code>fminsearch</code> works for <em>any</em> loss function — including ones with extra terms you add yourself. In HW 33 you will extend this loss to include a regularization penalty.
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <h2><span class="section-icon">📝</span> Summary</h2>
+    <table class="summary-table">
+      <thead><tr><th>Concept</th><th>Key Idea</th></tr></thead>
+      <tbody>
+        <tr><td>ML definition</td><td>Systems that learn \(f: \mathbf{x} \to y\) from data rather than explicit rules.</td></tr>
+        <tr><td>Supervised learning</td><td>Labeled pairs \((\mathbf{x}_i, y_i)\); learn to predict \(y\) from \(\mathbf{x}\).</td></tr>
+        <tr><td>ML pipeline</td><td>Data → features → model → loss → optimization → evaluation.</td></tr>
+        <tr><td>Polynomial model</td><td>\(\hat{y} = \sum_{k=0}^{D} \beta_k x^k\); parameters \(\boldsymbol{\beta}\) learned from data.</td></tr>
+        <tr><td>MSE loss</td><td>\(L = \frac{1}{N}\sum(\hat{y}_i - y_i)^2\); measures average squared error.</td></tr>
+        <tr><td>Regularization (L2)</td><td>\(L_{\text{reg}} = \text{MSE} + \lambda\sum_{k=1}^{D}\beta_k^2\); penalizes large coefficients to prevent overfitting.</td></tr>
+        <tr><td>Bias-variance tradeoff</td><td>Simple models: high bias, low variance. Complex models: low bias, high variance.</td></tr>
+        <tr><td>Parameters vs. hyperparameters</td><td>\(\boldsymbol{\beta}\) learned during training; \(\lambda\), \(D\) set beforehand.</td></tr>
+        <tr><td>Optimization</td><td><code>fminsearch</code> minimizes any anonymous loss function numerically.</td></tr>
+      </tbody>
+    </table>
+    <a href="hw/hw33.html" class="hw-button">📋 HW 33 — Regression from an ML Perspective</a>
+  </div>
+
+  <!-- References -->
+  <div class="card references">
+    <h2><span class="section-icon">📚</span> References</h2>
+    <ol>
+      <li>Maini, V. &amp; Sabri, S. (2017). <em>Machine Learning for Humans</em>. Medium. Parts 1 &amp; 2.1 — Introduction and Supervised Learning (pp. 1–29). <a href="https://medium.com/machine-learning-for-humans/why-machine-learning-matters-6164faf1df12" target="_blank" rel="noopener">medium.com/machine-learning-for-humans</a></li>
+      <li>3Blue1Brown. (2017). <em>But what is a neural network?</em> [Video]. YouTube. <a href="https://www.youtube.com/watch?v=aircAruvnKk" target="_blank" rel="noopener">youtube.com/watch?v=aircAruvnKk</a></li>
+      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>. MIT Press. <a href="https://www.deeplearningbook.org/" target="_blank" rel="noopener">deeplearningbook.org</a></li>
+      <li>MathWorks. <em>fminsearch — Multidimensional unconstrained nonlinear minimization.</em> <a href="https://www.mathworks.com/help/matlab/ref/fminsearch.html" target="_blank" rel="noopener">mathworks.com/help/matlab/ref/fminsearch.html</a></li>
+    </ol>
+  </div>
+
+  <!-- Lesson Nav -->
+  <div class="lesson-nav">
+    <a href="index.html" class="prev">← Home</a>
+    <a href="lesson34.html" class="next">
+      <div><span class="nav-label">Next Lesson</span><br>L34: Supervised Learning</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

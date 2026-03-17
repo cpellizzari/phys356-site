@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW 29 — GSS on the Buckingham Potential | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Homework Assignment</div>
+    <h1>HW 29 — Golden Section Search on the Buckingham Potential</h1>
+    <div class="hw-meta">
+      <span>📘 Related: <a href="../lesson29.html" style="color:rgba(255,255,255,0.9)">Lesson 29</a></span>
+      <span>🛠 MATLAB required</span>
+      <span>📬 Submit: single <code>.m</code> script or Live Script (.mlx)</span>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">📖</span> Background</h2>
+    <p>
+      The <strong>Buckingham potential</strong> is an empirical model for the interaction energy between two neutral atoms or molecules. Unlike the simpler Lennard-Jones potential, it uses an exponential repulsion term. For a pair of atoms separated by distance \(r\), the potential is:
+    </p>
+    <div class="math-block">
+      \[
+        V(r) = \left(\frac{\sigma}{r}\right)^6 - \exp\!\left(-\frac{r}{\sigma}\right)
+      \]
+    </div>
+    <p>
+      where \(\sigma\) is a length scale parameter. The equilibrium separation \(r^*\) — the distance at which the atoms are in their lowest-energy configuration — is the minimum of \(V(r)\).
+    </p>
+    <p>
+      In this assignment you will write general-purpose UDFs for bracketing and GSS, then apply them to locate \(r^*\) for \(\sigma = 10^{-9}\) m (1 nm). The UDFs must accept any function handle as input — do not hard-code \(V(r)\) inside the UDF.
+    </p>
+    <div class="callout info">
+      More information about the Buckingham potential: <a href="https://en.wikipedia.org/wiki/Buckingham_potential" target="_blank" rel="noopener">wikipedia.org/wiki/Buckingham_potential</a>
+    </div>
+  </div>
+
+  <!-- Tasks -->
+  <div class="problem">
+    <h3>Tasks</h3>
+
+    <h4>Part 1 — Bracketing UDF</h4>
+    <ol>
+      <li>
+        Write a MATLAB UDF called <code>bracket_min</code> that finds a bracket \([a, b, c]\) for the minimum of a 1D function. The inputs should be a function handle, an initial guess \(x_0\), and an initial step size \(\Delta_0\). The outputs should be the three bracket points \(a &lt; b &lt; c\) satisfying \(f(b) &lt; f(a)\) and \(f(b) &lt; f(c)\).
+      </li>
+      <li>
+        Apply your UDF to the Buckingham potential \(V(r)\) with \(\sigma = 10^{-9}\) m, an initial guess of \(x_0 = 1.5 \times 10^{-9}\) m, and an initial step size of \(\Delta_0 = 10^{-10}\) m. Report the bracket you find.
+      </li>
+    </ol>
+
+    <h4>Part 2 — GSS UDF</h4>
+    <ol>
+      <li>
+        Write a MATLAB UDF called <code>gss</code> that minimizes a 1D function using the Golden Section Search algorithm. The inputs should be a function handle, bracket endpoints \([a, b]\), and a tolerance \(\epsilon\). The output should be the estimated minimum location \(x^*\).
+      </li>
+      <li>
+        Apply your <code>gss</code> UDF to the bracket from Part 1 with a tolerance of \(\epsilon = 10^{-13}\) m. Report the minimum location \(r^*\) and the potential value \(V(r^*)\).
+      </li>
+    </ol>
+
+    <h4>Part 3 — Plot</h4>
+    <ol>
+      <li>
+        Plot \(V(r)\) over a physically meaningful range of \(r\) values. On the same plot, mark the bracket endpoints found in Part 1 (use square markers) and the GSS minimum from Part 2 (use a star marker). Label axes with units and include a legend.
+      </li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2><span class="section-icon">💡</span> Hints</h2>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;font-size:0.95rem;">
+      <li>Define the Buckingham potential as an anonymous function: <code>V = @(r) (sigma./r).^6 - exp(-r/sigma);</code> where <code>sigma = 1e-9</code>.</li>
+      <li>Be careful with the range of \(r\): as \(r \to 0\), \(V(r) \to +\infty\) due to the repulsive term. Start your plot range at a value where \(V\) is finite.</li>
+      <li>The golden ratio parameter is \(\rho = (3 - \sqrt{5})/2 \approx 0.382\). In MATLAB: <code>rho = (3 - sqrt(5))/2;</code></li>
+      <li>Your UDFs should work for any function, not just \(V(r)\). You may verify them on a simpler function before applying to the Buckingham potential.</li>
+    </ul>
+  </div>
+
+  <!-- Back nav -->
+  <div class="lesson-nav">
+    <a href="../lesson29.html" class="prev">← Back to Lesson 29</a>
+    <a href="hw30.html" class="next">
+      <div><span class="nav-label">Next HW</span><br>HW 30: Gradient Descent</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW 30 — Gradient Descent UDF | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Homework Assignment</div>
+    <h1>HW 30 — Gradient Descent User-Defined Function</h1>
+    <div class="hw-meta">
+      <span>📘 Related: <a href="../lesson30.html" style="color:rgba(255,255,255,0.9)">Lesson 30</a></span>
+      <span>🛠 MATLAB required</span>
+      <span>📬 Submit: single <code>.m</code> script or Live Script (.mlx)</span>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">📖</span> Background</h2>
+    <p>
+      Gradient descent is the foundation of virtually all modern machine learning algorithms, from logistic regression to deep neural networks. Before applying it to complex models in later lessons, you will implement it as a clean, reusable MATLAB UDF.
+    </p>
+    <p>
+      The update rule at each iteration is:
+    </p>
+    <div class="math-block">
+      \[ x^{k+1} = x^k - \gamma\, \nabla f(x^k) \]
+    </div>
+    <p>
+      where \(\gamma\) is the step size and \(\nabla f(x^k)\) is the gradient evaluated at the current point. The algorithm stops when the change in position is smaller than a threshold \(\epsilon\):
+    </p>
+    <div class="math-block">
+      \[ \| x^{k+1} - x^k \|_2 \leq \epsilon \]
+    </div>
+    <p>
+      In this assignment, you will use MATLAB's symbolic toolbox to compute the gradient analytically, convert it to an anonymous function, and then pass it to your GD UDF.
+    </p>
+  </div>
+
+  <!-- Preflight task -->
+  <div class="problem">
+    <h3>Preflight (in-class)</h3>
+    <p>
+      For each of the following functions, use MATLAB's symbolic toolbox to define the variables, write an anonymous function for \(f\), compute the symbolic gradient, convert it to an anonymous function using <code>matlabFunction</code>, and evaluate both \(f\) and \(\nabla f\) at the origin. The final output values should be of type <code>double</code>, not symbolic.
+    </p>
+    <ol>
+      <li>\(f_{2D}(x_1, x_2) = 2x_1 + x_2 + 2x_1 x_2 + x_1^2 + 7\)</li>
+      <li>\(f_{3D}(x_1, x_2, x_3) = 3x_1 + 2x_2 + x_3 + 2x_1 x_2 + x_1 x_3 + 2x_2 x_3 + x_2^2/4 + x_3^2/4 - 2\)</li>
+    </ol>
+    <div class="callout info">
+      <strong>Note:</strong> The gradient is a vector, not a scalar. For the 2D function, \(\nabla f\) is a \(2 \times 1\) column vector; for the 3D function, it is \(3 \times 1\).
+    </div>
+  </div>
+
+  <!-- Main tasks -->
+  <div class="problem">
+    <h3>Main Tasks</h3>
+
+    <h4>Part 1 — Gradient Descent UDF</h4>
+    <p>Write a MATLAB UDF called <code>gradient_descent</code> with the following interface:</p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
+      <li><strong>Inputs:</strong> function handle <code>f</code>, gradient handle <code>grad_f</code>, initial guess vector <code>x0</code>, step size <code>gamma</code>, convergence threshold <code>epsilon</code></li>
+      <li><strong>Outputs:</strong> minimum location <code>xmin</code>, minimum value <code>fmin</code>, number of iterations <code>n_iter</code></li>
+    </ul>
+    <p>The UDF should use the stopping criterion \(\|x^{k+1} - x^k\|_2 \leq \epsilon\).</p>
+
+    <h4>Part 2 — Apply to a 2D Function</h4>
+    <p>Apply your <code>gradient_descent</code> UDF to minimize the following function:</p>
+    <div class="math-block">
+      \[ f(x_1, x_2) = 4x_1^2 - 16x_1 + x_2^2 - 6x_2 + 25 \]
+    </div>
+    <p>Use the following parameters:</p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li>Step size: \(\gamma = 0.02\)</li>
+      <li>Threshold: \(\epsilon = 10^{-5}\)</li>
+      <li>Initial guess: \(x^0 = [0;\; 0]\)</li>
+    </ul>
+    <p>Report the minimum location and function value. Verify your answer analytically by setting \(\nabla f = 0\) and solving by hand.</p>
+
+    <h4>Part 3 — Contour Plot</h4>
+    <p>
+      Generate a contour plot of \(f(x_1, x_2)\) over the range \(x_1, x_2 \in [-2,\; 8]\). Mark the minimum found by your GD UDF with an <strong>×</strong> symbol. Include axis labels and a title.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2><span class="section-icon">💡</span> Hints</h2>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;font-size:0.95rem;">
+      <li>Define \(f\) as an anonymous function of a 2-element column vector: <code>f = @(x) 4*x(1)^2 - 16*x(1) + x(2)^2 - 6*x(2) + 25;</code></li>
+      <li>The gradient of \(f\) is \(\nabla f(x) = [8x_1 - 16;\; 2x_2 - 6]\). Define it as an anonymous function as well.</li>
+      <li>For the contour plot, use <code>meshgrid</code> to create a grid and evaluate \(f\) at each grid point, then use <code>contourf</code> or <code>contour</code>.</li>
+      <li>In MATLAB, the L2 norm of a vector <code>v</code> is <code>norm(v)</code> (which defaults to the 2-norm).</li>
+      <li>If your algorithm does not converge, try a smaller step size. If it converges very slowly, try a slightly larger one.</li>
+    </ul>
+  </div>
+
+  <!-- Back nav -->
+  <div class="lesson-nav">
+    <a href="hw29.html" class="prev">← HW 29: GSS</a>
+    <a href="hw31.html" class="next">
+      <div><span class="nav-label">Next HW</span><br>HW 31: ML Estimation</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

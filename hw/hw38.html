@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW 38 — CNNs, Transformers &amp; LLMs | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Homework Assignment</div>
+    <h1>HW 38 — CNNs, Transformers &amp; Large Language Models</h1>
+    <div class="hw-meta">
+      <span>📘 Related: <a href="../lesson38.html" style="color:rgba(255,255,255,0.9)">Lesson 38</a></span>
+      <span>🛠 Qualitative + Optional MATLAB demo</span>
+      <span>📬 Submit: PDF writeup + (optional) <code>.m</code> script</span>
+    </div>
+  </div>
+
+  <!-- Overview -->
+  <div class="card">
+    <h2><span class="section-icon">📋</span> Overview</h2>
+    <p>
+      This final ML assignment focuses on conceptual understanding of modern architectures — CNNs, transformers, and LLMs. Rather than implementing full backpropagation (you did that in HW 35), you will reason about these architectures mathematically, trace computations by hand for small examples, and reflect on their applications to physics and space domain awareness.
+    </p>
+    <p>
+      An optional MATLAB section allows you to experiment with MATLAB's Deep Learning Toolbox for a simple CNN — this is encouraged but not required.
+    </p>
+    <div class="callout info">
+      <strong>Format:</strong> Written answers should be clear and concise — 2–5 sentences per question unless more is clearly needed. Show all math work for calculation problems.
+    </div>
+  </div>
+
+  <!-- Part A: CNNs -->
+  <div class="problem">
+    <h3>Part A — Convolutional Neural Networks (30 pts)</h3>
+
+    <h3 style="font-size:0.95rem;font-weight:600;color:var(--text-secondary);margin-top:0.75rem;">A1. Conceptual (15 pts)</h3>
+    <ol>
+      <li><strong>(5 pts)</strong> Explain in your own words: why does parameter sharing in a convolutional layer reduce the number of parameters compared to a fully-connected layer? Give a specific numerical example: compare parameters for a \(32 \times 32\) input, FC output of 32 neurons vs. one Conv layer with 32 filters of size \(3 \times 3\).</li>
+      <li><strong>(5 pts)</strong> What does max pooling do to (a) spatial dimensions and (b) the number of channels? Why does pooling help a CNN generalize to slightly shifted or scaled inputs?</li>
+      <li><strong>(5 pts)</strong> A CNN trained on radar satellite imagery achieves 95% accuracy on training data but only 72% on test data. List three possible causes and one mitigation strategy for each.</li>
+    </ol>
+
+    <h3 style="font-size:0.95rem;font-weight:600;color:var(--text-secondary);margin-top:1rem;">A2. Hand Calculation (15 pts)</h3>
+    <p>Perform the following convolution by hand. Show all work.</p>
+    <p>Input (4×4, zero-padded to 6×6 with <code>pad=1</code>):</p>
+    <div style="background:var(--usafa-light);border-radius:8px;padding:1rem;margin:0.5rem 0;font-family:monospace;font-size:0.9rem;text-align:center;">
+      \[
+        I = \begin{bmatrix}1&0&2&1\\0&3&1&0\\2&1&0&3\\1&2&1&0\end{bmatrix}
+      \]
+    </div>
+    <p>3×3 filter (stride 1):</p>
+    <div style="background:var(--usafa-light);border-radius:8px;padding:1rem;margin:0.5rem 0;font-family:monospace;font-size:0.9rem;text-align:center;">
+      \[
+        K = \begin{bmatrix}0&1&0\\1&-4&1\\0&1&0\end{bmatrix}
+        \quad \text{(Laplacian edge detector)}
+      \]
+    </div>
+    <ol start="4">
+      <li><strong>(5 pts)</strong> Compute the output feature map (4×4). What are the dimensions of the output given input \(H \times W\), filter \(F \times F\), padding \(P\), stride \(S = 1\)? Derive the formula.</li>
+      <li><strong>(5 pts)</strong> Apply a 2×2 max pool to your feature map. What is the output size?</li>
+      <li><strong>(5 pts)</strong> The Laplacian filter \(K\) above detects edges (regions of rapid intensity change). If this filter is the <em>learned</em> weight of a convolutional layer, what does it mean for the network to have "learned" this filter? In what layer (early vs. late) would you expect to find this type of filter in a deep CNN trained on images?</li>
+    </ol>
+  </div>
+
+  <!-- Part B: Attention -->
+  <div class="problem">
+    <h3>Part B — The Attention Mechanism (30 pts)</h3>
+
+    <h3 style="font-size:0.95rem;font-weight:600;color:var(--text-secondary);margin-top:0.75rem;">B1. Conceptual (15 pts)</h3>
+    <ol>
+      <li><strong>(5 pts)</strong> Explain the Query-Key-Value metaphor in your own words. What does the dot product \(\mathbf{q}_i \cdot \mathbf{k}_j\) measure? What does the softmax do to these dot products?</li>
+      <li><strong>(5 pts)</strong> Why do we divide by \(\sqrt{d_k}\) before the softmax? What would happen if \(d_k = 512\) and we didn't scale? (Hint: consider what large dot products do to softmax outputs.)</li>
+      <li><strong>(5 pts)</strong> In <em>self</em>-attention, a sequence attends to itself. For a sentence like "The satellite maneuvered and it changed altitude," describe qualitatively what a well-trained attention head might learn: which token would "it" attend to most strongly, and why?</li>
+    </ol>
+
+    <h3 style="font-size:0.95rem;font-weight:600;color:var(--text-secondary);margin-top:1rem;">B2. Small Attention Calculation (15 pts)</h3>
+    <p>Consider a sequence of 3 tokens with embedding dimension \(d_k = 2\). Given:</p>
+    <div style="background:var(--usafa-light);border-radius:8px;padding:1rem;margin:0.5rem 0;text-align:center;">
+      \[
+        \mathbf{Q} = \begin{bmatrix}1&0\\0&1\\1&1\end{bmatrix},\quad
+        \mathbf{K} = \begin{bmatrix}1&0\\0&1\\1&1\end{bmatrix},\quad
+        \mathbf{V} = \begin{bmatrix}1&0\\0&1\\1&1\end{bmatrix}
+      \]
+    </div>
+    <ol start="4">
+      <li><strong>(5 pts)</strong> Compute the scaled dot-product matrix \(\mathbf{A} = \frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\) (3×3).</li>
+      <li><strong>(5 pts)</strong> Apply softmax row-wise to \(\mathbf{A}\) to get the attention weights \(\hat{\mathbf{A}}\). (You may use the formula \(\text{softmax}(\mathbf{a})_i = e^{a_i}/\sum_j e^{a_j}\); compute numerically to 3 decimal places.)</li>
+      <li><strong>(5 pts)</strong> Compute the output \(\hat{\mathbf{A}}\mathbf{V}\) (3×2). Interpret: what is the output for token 3 (the last row)? Which input token does it most closely resemble, and why?</li>
+    </ol>
+  </div>
+
+  <!-- Part C: LLMs -->
+  <div class="problem">
+    <h3>Part C — Large Language Models (20 pts)</h3>
+    <ol>
+      <li><strong>(5 pts)</strong> Describe the pre-training task for a decoder-only LLM (like GPT). Why is this task "self-supervised"? What does "self-supervised" mean in the context of the ML pipeline from Lesson 33?</li>
+      <li><strong>(5 pts)</strong> GPT-3 has 175 billion parameters. Assuming each parameter is stored as a 16-bit float (2 bytes), how much memory is required to store the model weights alone? Express in gigabytes. (For reference: a modern GPU has ~80 GB VRAM.)</li>
+      <li><strong>(5 pts)</strong> An LLM is sometimes described as performing "in-context learning" — giving it a few examples in the prompt improves its performance on a new task. How does this differ from gradient-descent training? Which LLM parameters change during in-context learning?</li>
+      <li><strong>(5 pts)</strong> Propose a specific application of an LLM or transformer in space domain awareness or physics research. Describe: (a) what task it would perform, (b) what data it would be trained or fine-tuned on, and (c) one major challenge or limitation for this application.</li>
+    </ol>
+  </div>
+
+  <!-- Part D: Module Reflection -->
+  <div class="problem">
+    <h3>Part D — Module Reflection (20 pts)</h3>
+    <ol>
+      <li><strong>(10 pts)</strong> Trace the <em>full</em> ML pipeline (from Lesson 33) as it applies to training a CNN to classify satellite imagery. For each step — data, features, model, loss, optimization, evaluation — give a concrete description specific to this application. Which step do you think is most difficult in practice, and why?</li>
+      <li><strong>(10 pts)</strong> In this module you learned four model families: linear classifier (L34), gradient descent (L35), neural networks (L36–37), and CNNs/transformers (L38). For each of the following real-world problems, identify the most appropriate model family and justify your choice:
+        <ol type="a" style="margin-top:0.5rem;padding-left:1rem;">
+          <li>Predicting orbital period from 3 orbital parameters (regression).</li>
+          <li>Classifying a 256×256 radar image of a satellite as debris vs. active.</li>
+          <li>Modeling 10-step temporal sequences of satellite telemetry to detect anomalies.</li>
+          <li>Predicting satellite drag coefficient from 50 tabular sensor features.</li>
+        </ol>
+      </li>
+    </ol>
+  </div>
+
+  <!-- Optional: MATLAB CNN Demo -->
+  <div class="card" style="border:2px dashed var(--usafa-gold);">
+    <h2><span class="section-icon">⭐</span> Optional MATLAB CNN Demo (+10 bonus pts)</h2>
+    <p>
+      If you have the MATLAB Deep Learning Toolbox, implement a simple CNN using MATLAB's layer API and train it on the built-in <code>digitDataset</code> (handwritten digit recognition). This gives you hands-on experience with a production-grade CNN framework.
+    </p>
+<pre><code class="language-matlab">%% Optional HW38 — CNN with MATLAB Deep Learning Toolbox
+% Requires: Deep Learning Toolbox
+
+% Load built-in digit dataset
+digitDatasetPath = fullfile(matlabroot,'toolbox','nnet','nndemos', ...
+    'nndatasets','DigitDataset');
+imds = imageDatastore(digitDatasetPath, ...
+    'IncludeSubfolders',true,'LabelSource','foldernames');
+
+[imdsTrain, imdsTest] = splitEachLabel(imds, 0.8, 'randomized');
+
+% Define CNN architecture
+layers = [
+    imageInputLayer([28 28 1])
+    convolution2dLayer(3, 16, 'Padding','same')
+    batchNormalizationLayer
+    reluLayer
+    maxPooling2dLayer(2, 'Stride',2)
+    convolution2dLayer(3, 32, 'Padding','same')
+    batchNormalizationLayer
+    reluLayer
+    maxPooling2dLayer(2, 'Stride',2)
+    fullyConnectedLayer(128)
+    reluLayer
+    fullyConnectedLayer(10)
+    softmaxLayer
+    classificationLayer
+];
+
+% Training options
+opts = trainingOptions('sgdm', ...
+    'MaxEpochs', 10, ...
+    'MiniBatchSize', 128, ...
+    'InitialLearnRate', 0.01, ...
+    'Plots', 'training-progress', ...
+    'Verbose', false);
+
+% Train
+net = trainNetwork(imdsTrain, layers, opts);
+
+% Evaluate
+y_pred = classify(net, imdsTest);
+acc = mean(y_pred == imdsTest.Labels);
+fprintf('Test accuracy: %.2f%%\n', acc*100);
+</code></pre>
+    <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:0.75rem;">
+      For full bonus credit: (1) plot the test confusion matrix, (2) visualize the learned filters of the first convolutional layer, and (3) show 5 misclassified examples with their predicted vs. true labels.
+    </p>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="../lesson38.html" class="prev">← Back to Lesson 38</a>
+    <a href="../index.html" class="next">
+      <div><span class="nav-label">Back to</span><br>Module Home</div>
+      →
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
