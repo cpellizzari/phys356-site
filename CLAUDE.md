@@ -4,16 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Static HTML website for Physics 356 (ML/AI module) at USAFA. Six lesson pages (L33–L38) plus homework pages. No build step, no package manager — open files directly in a browser or serve with any static file server.
+Static HTML website for Physics 356 — **Advanced Topics in Computational Physics** at USAFA. Ten lesson pages (L29–L38) plus eight homework pages. No build step, no package manager — open files directly in a browser or serve with any static file server.
 
 ```
 AI_ML_Site/
-├── index.html          # Landing page with lesson grid and HW table
-├── lesson33.html – lesson38.html
-├── css/style.css       # Single shared stylesheet
-├── js/main.js          # Nav active-link logic + Lesson 35 Chart.js GD demo
+├── index.html              # Landing page with lesson grid and HW table (all 3 modules)
+├── lesson29.html – lesson38.html
+├── css/style.css           # Single shared stylesheet
+├── js/main.js              # Nav active-link logic + Lesson 35 Chart.js GD demo
+├── images/
+│   └── bracketing_fig1.png # Fig 1 from Bracketing.pdf (used in lesson29.html)
 └── hw/
-    ├── hw33.html – hw38.html
+    ├── hw29.html – hw32.html
+    └── hw33.html – hw38.html  (hw36.html and hw37.html not yet created)
 ```
 
 ## CDN Dependencies (no local installs)
@@ -40,6 +43,17 @@ Every lesson page follows this structure:
 
 HW pages live in `hw/` and use `../css/style.css`, `../js/main.js`, and `../index.html` for nav links.
 
+## Nav Bar (all pages)
+
+All pages share the same 11-item nav. Lesson pages use relative paths; HW pages use `../` prefix.
+
+```html
+<a href="index.html">Home</a>
+<a href="lesson29.html">L29</a> … <a href="lesson38.html">L38</a>
+```
+
+Logo text is `Advanced Topics` (badge stays `PHYS 356`).
+
 ## CSS Conventions
 
 All colors and sizing use CSS custom properties defined at the top of `style.css`:
@@ -52,20 +66,30 @@ All colors and sizing use CSS custom properties defined at the top of `style.css
 
 ## Correct Lesson → Topic → HW Mapping
 
-| Lesson | Topic | HW file | HW dataset |
-|--------|-------|---------|------------|
+| Lesson | Topic | HW file | Notes |
+|--------|-------|---------|-------|
+| 29 | 1D Optimization: Bracketing & GSS | hw29.html | Buckingham potential |
+| 30 | Gradient Descent & Steepest Descent | hw30.html | GD UDF on 2D quadratic |
+| 31 | Frequentist Estimation & ML | hw31.html | Laser speckle / exponential |
+| 32 | Bayesian Estimation: MAP & MMSE | hw32.html | Recreate MBIP Fig. 2.1 |
 | 33 | Intro to ML, regression, regularization | hw33.html | `physics_grades.mat` |
 | 34 | Supervised Learning (KNN, SVM, logistic regression) | hw34.html | `sat_data.mat` |
 | 35 | Unsupervised Learning (k-means, PCA) | hw35.html | `sat_data.mat` |
 | 36 | Linear Classification + Loss Functions + SGD | hw36.html | `sat_data.mat` |
 | 37 | Neural Networks + Backpropagation | hw37.html | `sat_data.mat` |
-| 38 | CNNs + Transformers/LLMs + Diffusion | hw38.html | — |
+| 38 | CNNs + Transformers/LLMs | hw38.html | — |
 
-**Note:** `index.html` currently shows an older incorrect topic mapping — update it when lessons are rewritten.
+## MATLAB Example Policy
+
+In-lesson MATLAB examples must be **clearly distinct** from the homework problem — use a different function/domain so students must extrapolate. Current mapping:
+- L29 example: `f(x) = (x-3)^2 + 2*sin(x)` — HW uses Buckingham potential
+- L30 example: `f = 4*x1^2 + x2^2` — HW uses `4*x1^2 - 16*x1 + x2^2 - 6*x2 + 25`
+- L31 example: Gaussian ML (sample mean) — HW uses exponential/laser-speckle
+- L32 example: scalar Bayesian (single sample) — HW uses 50-dim covariance
 
 ## Video Embedding Notes
 
-Some YouTube videos (e.g., 3B1B) return Error 153 and cannot be embedded in `<iframe>`. Use `.video-link-card` instead of `<iframe>` for those. Videos that can be embedded use a standard `<iframe>` with `allowfullscreen`.
+Some YouTube videos (e.g., 3B1B) return Error 153 and cannot be embedded in `<iframe>`. Use `.video-link-card` instead.
 
 Canonical video placements:
 - 3B1B "But what is a neural network?" (`aircAruvnKk`) → L37
@@ -75,10 +99,22 @@ Canonical video placements:
 
 ## Source Material
 
-Located at:
-`~/Library/CloudStorage/OneDrive-afacademy.af.edu/USAFA Classes/Phys 356/2026/AI_ML_Material/`
+**Optimization & Estimation (L29–L32):**
+`~/Library/CloudStorage/OneDrive-afacademy.af.edu/USAFA Classes/Phys 356/2026/Opt_Est_Material/`
+- `Bracketing.pdf` / `Bracketing.tex` — L29 bracketing algorithm
+- `Gradient_Based_Optimization.pdf` / `.tex` — L30 gradient descent
+- `Maxima Minima and GSS.pdf` — L29 GSS derivation
+- `MBIP-Edited.pdf` — L31–L32 estimation theory (Bouman, Purdue)
+- `Max_Likelihood_HW.pdf` — L31 HW source
 
+**ML & AI (L33–L38):**
+`~/Library/CloudStorage/OneDrive-afacademy.af.edu/USAFA Classes/Phys 356/2026/AI_ML_Material/`
 - Slides: `356_Lesson_33.pptx` through `356_Lesson_38.pptx`
 - HW specs: `HW_33.docx` through `HW_37.docx`
 - Reference text: `Text - machine_learning_for_humans.pdf`
 - Data: `physics_grades.mat`, `sat_data.mat`
+
+## Git / GitHub
+
+Remote: `https://github.com/cpellizzari/phys356-site` (private, branch `main`).
+Commit and push after each working session to keep GitHub in sync.
