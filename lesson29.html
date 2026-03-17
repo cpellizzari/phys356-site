@@ -139,6 +139,18 @@
       <strong>Bracket endpoint rule:</strong> Because we do not know which side of the lowest evaluated point the minimum lies on, the bracket uses the <em>second-to-last</em> and <em>last</em> points as endpoints, with the lowest point as the center. In other words, use points \(k-2\) and \(k\) as endpoints with \(k-1\) as center &mdash; not just the last two points.
     </div>
 
+    <figure style="margin:1.5rem 0;text-align:center;">
+      <img src="images/bracketing_fig1.png"
+           alt="Illustration of the bracketing technique: a convex curve with five labeled evaluation points x₀−Δ₂, x₀−Δ₁, x₀−Δ₀, x₀, x₀+Δ₀ connected by dashed vertical lines to the x-axis."
+           style="max-width:90%;height:auto;border:1px solid var(--border);border-radius:6px;background:#fff;padding:0.5rem;">
+      <figcaption style="margin-top:0.6rem;font-size:0.9rem;color:var(--text-secondary);font-style:italic;">
+        Figure 1: Illustration of bracketing technique (Pellizzari, <em>Physics 356 — Supplement on Bracketing</em>, USAFA, 2021).
+      </figcaption>
+    </figure>
+    <p>
+      Figure 1 shows an example sequence for the bracketing algorithm. Two points are evaluated at \(x_0 \pm \Delta_0\). Since \(f(x_0 - \Delta_0) &lt; f(x_0)\), the minimum is determined to be to the left of \(x_0\). On the next step, \(f(x_0 - \Delta_1) &lt; f(x_0 - \Delta_0)\) and the algorithm continues downhill. Finally, we evaluate \(f(x_0 - \Delta_2) &gt; f(x_0 - \Delta_1)\) and the algorithm stops. The results tell us that the minimum must be contained in the interval \((x_0 - \Delta_2,\; x_0 - \Delta_0)\).
+    </p>
+
     <h3>Why exponentially growing steps?</h3>
     <p>
       Doubling the step at each iteration means we cover exponentially more distance while still making progress. If the minimum is far from \(x_0\), a fixed step size would require many iterations; doubling gets there quickly. The tradeoff is a larger bracket on exit, but GSS will tighten it efficiently.
