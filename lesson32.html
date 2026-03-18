@@ -104,7 +104,7 @@
       The fundamental shift in the Bayesian approach: the unknown quantity \(X\) is modeled as a <strong>random variable</strong>, not a fixed constant. This allows us to assign a <strong>prior distribution</strong> \(p_x(x)\) that encodes our beliefs about \(X\) before seeing any data.
     </p>
     <div class="callout info">
-      <strong>Student Note:</strong> In the frequentist framework (Lesson 31), the unknown was written \(\theta\) (a fixed parameter). In the Bayesian framework, it is written \(X\) (a random variable). This is a notational convention to emphasize the philosophical difference, not a mathematical one.
+      <strong>Note:</strong> In the frequentist framework (Lesson 31), the unknown was written \(\theta\) (a fixed parameter). In the Bayesian framework, it is written \(X\) (a random variable). This is a notational convention to emphasize the philosophical difference, not a mathematical one.
     </div>
 
     <h3>The three key distributions</h3>
@@ -135,7 +135,7 @@
       \]
     </div>
     <div class="callout info">
-      <strong>Student Note:</strong> The denominator \(p_y(y) = \int p_{y|x}(y|x)\,p_x(x)\,dx\) is the <strong>normalizing constant</strong> (also called the <em>partition function</em> \(z_y\)). It does not depend on \(x\) — it just ensures the posterior integrates to 1. When maximizing over \(x\), it can be dropped.
+      <strong>Note:</strong> The denominator \(p_y(y) = \int p_{y|x}(y|x)\,p_x(x)\,dx\) is the <strong>normalizing constant</strong> (also called the <em>partition function</em> \(z_y\)). It does not depend on \(x\) — it just ensures the posterior integrates to 1. When maximizing over \(x\), it can be dropped.
     </div>
 
     <h3>MAP estimator</h3>
@@ -155,7 +155,7 @@
       \end{align}
     </div>
     <div class="callout info">
-      <strong>Student Note:</strong> The MAP estimate balances two competing objectives: (1) fit the data well (minimize negative log-likelihood) and (2) be consistent with the prior (minimize negative log-prior). This is the fundamental trade-off in Bayesian estimation.
+      <strong>Note:</strong> The MAP estimate balances two competing objectives: (1) fit the data well (minimize negative log-likelihood) and (2) be consistent with the prior (minimize negative log-prior). This is the fundamental trade-off in Bayesian estimation.
     </div>
 
     <h3>MMSE estimator</h3>
@@ -205,7 +205,7 @@
       \]
     </div>
     <div class="callout info">
-      <strong>Student Note:</strong> The posterior is still Gaussian — this is a special property of Gaussian priors with Gaussian likelihoods. For jointly Gaussian \(X\) and \(Y\), the MAP, MMSE, and conditional median estimates are all identical:
+      <strong>Note:</strong> The posterior is still Gaussian — this is a special property of Gaussian priors with Gaussian likelihoods. For jointly Gaussian \(X\) and \(Y\), the MAP, MMSE, and conditional median estimates are all identical:
       \(\hat X_{\mathrm{MAP}} = \hat X_{\mathrm{MMSE}} = \hat X_{\mathrm{median}}\).
     </div>
 
@@ -219,7 +219,7 @@
       \]
     </div>
     <div class="callout info">
-      <strong>Student Note:</strong> The MMSE estimate is \(Y\) <em>attenuated</em> by a factor between 0 and 1. The attenuation depends on the <strong>noise-to-signal ratio</strong> \(\sigma_w^2/\sigma_x^2\):
+      <strong>Note:</strong> The MMSE estimate is \(Y\) <em>attenuated</em> by a factor between 0 and 1. The attenuation depends on the <strong>noise-to-signal ratio</strong> \(\sigma_w^2/\sigma_x^2\):
       <ul style="margin-top:0.5rem;padding-left:1.2rem;">
         <li>Low noise (\(\sigma_w^2 \ll \sigma_x^2\)): attenuation ≈ 1 → \(\hat X \approx Y\) (trust the data).</li>
         <li>High noise (\(\sigma_w^2 \gg \sigma_x^2\)): attenuation ≈ 0 → \(\hat X \approx 0\) (trust the prior mean).</li>
@@ -255,7 +255,7 @@
       \[ R_{x|y} = (R_x^{-1} + R_w^{-1})^{-1} \]
     </div>
     <div class="callout info">
-      <strong>Student Note:</strong> Two important observations for jointly Gaussian variables: (1) the posterior mean is a <em>linear</em> function of the data \(Y\); (2) the posterior covariance \(R_{x|y}\) does not depend on \(Y\). These two properties are special to Gaussians and do not hold for general distributions.
+      <strong>Note:</strong> Two important observations for jointly Gaussian variables: (1) the posterior mean is a <em>linear</em> function of the data \(Y\); (2) the posterior covariance \(R_{x|y}\) does not depend on \(Y\). These two properties are special to Gaussians and do not hold for general distributions.
     </div>
     <p>
       This is the formula you will implement in HW 32 for a 50-dimensional signal reconstruction problem.
