@@ -217,21 +217,70 @@
     </p>
 
     <h3>Deriving \(\rho\): the equal-efficiency condition</h3>
+
     <p>
-      After the first step, one of the two interior points from the previous iteration is already inside the new (smaller) interval. If we place the new interior point to be symmetric as before, one evaluation is reused — only <strong>one new function evaluation</strong> is needed per step after initialization.
+      We want to choose \(\rho\) so that after discarding one sub-interval, the surviving interior point automatically sits at the correct position for the next iteration — requiring only <strong>one new function evaluation</strong> per step.
     </p>
+
     <p>
-      For the algorithm to be equally efficient regardless of which half is discarded, the ratio of interval widths must be the same both ways. This gives the constraint
+      Let \(L = b - a\) be the current interval width. The two interior points are
+      \[
+        c = a + \rho L, \qquad d = a + (1-\rho)L.
+      \]
+      Suppose \(f(c) &lt; f(d)\), so we discard \([d,\,b]\). The new interval is \([a,\,d]\) with width
+      \[
+        L' = d - a = (1 - \rho)\,L.
+      \]
+    </p>
+
+    <p>
+      Now look at what happens to the old point \(c\) inside the new interval \([a, d]\). In the next iteration we need two interior points placed at distance \(\rho L'\) from each end:
     </p>
     <div class="math-block">
-      \[ \rho^2 - 3\rho + 1 = 0. \]
+      \[
+        \underbrace{a + \rho L'}_{\text{new }c'}, \qquad
+        \underbrace{d - \rho L'}_{\text{new }d'}.
+      \]
     </div>
-    <p>Taking the root satisfying \(\rho &lt; 1/2\):</p>
+    <p>
+      The old \(c = a + \rho L\) is already inside \([a,d]\). For it to serve as <strong>new \(d'\)</strong> (saving one evaluation), we need
+      \[
+        a + \rho L \;=\; d - \rho L' \;=\; a + (1-\rho)L - \rho(1-\rho)L.
+      \]
+      Cancelling \(a\) and dividing by \(L\):
+      \[
+        \rho = (1-\rho) - \rho(1-\rho) = (1-\rho)(1 - \rho) = (1-\rho)^2.
+      \]
+    </p>
+
+    <div class="callout info">
+      <strong>The key constraint in one line:</strong>
+      \(\rho = (1-\rho)^2\).
+      The distance from \(a\) to the surviving point must equal \(\rho\) times the <em>new</em> (shorter) interval width — not the old one.
+    </div>
+
+    <p>Expanding \((1-\rho)^2 = 1 - 2\rho + \rho^2\) and rearranging:</p>
+    <div class="math-block">
+      \[
+        \rho = 1 - 2\rho + \rho^2
+        \;\;\Longrightarrow\;\;
+        \boxed{\rho^2 - 3\rho + 1 = 0.}
+      \]
+    </div>
+
+    <p>
+      By symmetry, the same equation arises in Case 2 (when \(f(d) &lt; f(c)\) and we discard \([a,c]\)) — the old \(d\) must become the new \(c'\) of the interval \([c, b]\), giving the identical constraint. So <em>one value of \(\rho\) works for both cases</em>.
+    </p>
+
+    <p>The quadratic formula gives two roots; taking the one satisfying \(\rho &lt; \tfrac{1}{2}\):</p>
     <div class="math-block">
       \[ \rho = \frac{3 - \sqrt{5}}{2} \approx 0.382. \]
     </div>
     <p>
-      Note that \(1 - \rho = (\sqrt{5} - 1)/2 \approx 0.618\), and the ratio \(\rho/(1-\rho) = (1-\rho)/1\) — this is the defining property of the <strong>golden section</strong>, familiar from architecture and art. The interval is reduced by factor \(1 - \rho \approx 0.618\) at each step:
+      Note that \(1 - \rho = \tfrac{\sqrt{5}-1}{2} \approx 0.618\).
+      Substituting back into \(\rho = (1-\rho)^2\) confirms the identity
+      \(\tfrac{\sqrt{5}-1}{2}\bigl(\tfrac{\sqrt{5}-1}{2}\bigr) = \rho\) — this ratio is the defining property of the <strong>golden section</strong>.
+      The interval shrinks by the factor \(1 - \rho \approx 0.618\) each step:
     </p>
     <div class="math-block">
       \[ \text{width after } N \text{ steps} = (0.618)^N \cdot (b_0 - a_0). \]
