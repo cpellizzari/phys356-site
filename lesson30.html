@@ -234,10 +234,8 @@
     <p>
       The script below manually steps through 5 iterations of gradient descent on
       \(f(x_1,x_2) = 4x_1^2 + x_2^2\) starting from \(x^0 = [1.5,\,1.5]^T\) with \(\gamma = 0.10\).
-      There is no loop — each step is written out explicitly so you can see exactly what the
+      Each step is written out explicitly so you can see exactly what the
       algorithm does. The true minimum is at \(x^* = [0,\,0]^T\).
-      HW 30 uses a different function (minimum away from the origin) and asks you to write a
-      general-purpose UDF.
     </p>
 <pre><code class="language-matlab">%% Lesson 30 — GD: Hard-Coded 5-Step Walkthrough
 % f(x1,x2) = 4*x1^2 + x2^2,   minimum at x* = [0; 0]
@@ -305,7 +303,7 @@ clr = [0.55 0.55 0.55;   % gray   x0
 for k = 1:6
     plot(pts(1,k), pts(2,k), 'o', 'MarkerSize', 9, ...
          'Color', clr(k,:), 'MarkerFaceColor', clr(k,:), ...
-         'DisplayName', sprintf('x_%d', k-1))
+         'DisplayName', sprintf('$x_%d$', k-1))
 end
 
 % Gradient arrows — normalized to fixed visual length (direction only)
@@ -319,24 +317,24 @@ end
 
 % Dummy quiver for legend
 hq = quiver(NaN, NaN, NaN, NaN, 'k-', 'LineWidth', 1.5);
-hq.DisplayName = '\nabla f  (unit dir.)';
+hq.DisplayName = '$\nabla f$ (unit dir.)';
 
 % True minimum
-plot(0, 0, 'kp', 'MarkerSize', 14, 'MarkerFaceColor', 'k', 'DisplayName', 'x^*')
+plot(0, 0, 'kp', 'MarkerSize', 14, 'MarkerFaceColor', 'k', 'DisplayName', '$x^*$')
 
-xlabel('x_1');   ylabel('x_2')
-title('GD path:  f = 4x_1^2 + x_2^2,  \gamma = 0.10')
-legend('Location','northeast');   grid on
+xlabel('$x_1$', 'Interpreter', 'latex');   ylabel('$x_2$', 'Interpreter', 'latex')
+title('GD path: $f = 4x_1^2 + x_2^2$,  $\gamma = 0.10$', 'Interpreter', 'latex')
+legend('Location', 'southeast', 'Interpreter', 'latex');   grid on
 
 %% Panel 2: f(x^k) vs. iteration (semilog)
 subplot(1,2,2)
 fvals = [f(x0), f(x1), f(x2), f(x3), f(x4), f(x5)];
 semilogy(0:5, fvals, 'ko-', 'LineWidth', 1.8, 'MarkerFaceColor','k')
-xlabel('Iteration');   ylabel('f(x^k)')
-title('f(x^k) vs. iteration')
+xlabel('Iteration');   ylabel('$f(x^k)$', 'Interpreter', 'latex')
+title('$f(x^k)$ vs. iteration', 'Interpreter', 'latex')
 grid on
 
-sgtitle('GD Walkthrough:  f = 4x_1^2 + x_2^2,  \gamma=0.10,  x_0=[1.5; 1.5]')
+sgtitle('GD Walkthrough: $f = 4x_1^2 + x_2^2$,  $\gamma=0.10$,  $x_0=[1.5;\,1.5]$', 'Interpreter', 'latex')
 </code></pre>
     <div class="callout info">
       <strong>What to notice:</strong> The \(x_1\) component converges in roughly 2 steps (decay factor \(1-\gamma\cdot8=0.2\) per step) while \(x_2\) decays slowly (factor \(1-\gamma\cdot2=0.8\)). This <em>ill-conditioning</em> — different curvatures in different directions — is what causes the elongated, funnel-shaped path. The gradient arrows are normalized to unit length to show direction; the actual gradient magnitude shrinks with each step.
@@ -369,7 +367,7 @@ sgtitle('GD Walkthrough:  f = 4x_1^2 + x_2^2,  \gamma=0.10,  x_0=[1.5; 1.5]')
     <h2><span class="section-icon">📚</span> References</h2>
     <ol>
       <li>Pellizzari, C.A. <em>Physics 356 — Supplement on Gradient-Based Optimization</em>, USAFA, 2021.</li>
-      <li>Bouman, C.A. <em>Model Based Image Processing</em>, Purdue University, 2013.</li>
+      <li>Bouman, C.A. <em>Foundations of Computational Imaging</em>, SIAM, 2022.</li>
       <li>Chong, E.K.P. and Zak, S.H. <em>An Introduction to Optimization</em>, 4th Ed., John Wiley &amp; Sons, 2013, pp. 123–124.</li>
       <li>Wikipedia contributors. "Gradient." <em>Wikipedia, The Free Encyclopedia</em>, 2019.</li>
     </ol>

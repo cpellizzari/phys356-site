@@ -68,11 +68,13 @@
   <div class="notation-box">
     <h3>Notation used in this lesson</h3>
     <div class="notation-grid">
+      <div class="notation-item"><span class="sym">\(X \in \mathbb{R}^p\)</span><span class="desc">\(X\) is a \(p\)-dimensional vector of real numbers</span></div>
       <div class="notation-item"><span class="sym">\(\theta\)</span><span class="desc">Unknown parameter (scalar or vector)</span></div>
       <div class="notation-item"><span class="sym">\(\hat\theta\)</span><span class="desc">Estimate of \(\theta\)</span></div>
       <div class="notation-item"><span class="sym">\(\bar\theta\)</span><span class="desc">Mean of the estimator \(\mathbb{E}[\hat\theta]\)</span></div>
       <div class="notation-item"><span class="sym">\(Y\)</span><span class="desc">Observed random vector (data)</span></div>
       <div class="notation-item"><span class="sym">\(p_\theta(y)\)</span><span class="desc">PDF of \(Y\) parameterized by \(\theta\)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbb{E}[X]\)</span><span class="desc">Expected value (mean) of random variable \(X\)</span></div>
       <div class="notation-item"><span class="sym">\(\mu,\,\sigma^2\)</span><span class="desc">Mean and variance of a Gaussian</span></div>
       <div class="notation-item"><span class="sym">\(R\)</span><span class="desc">Covariance matrix (multivariate Gaussian)</span></div>
       <div class="notation-item"><span class="sym">\(\text{MSE}_\theta\)</span><span class="desc">Mean squared error of estimate</span></div>
@@ -107,14 +109,14 @@
       \]
     </div>
     <div class="callout info">
-      <strong>Student Note:</strong> For a Gaussian random variable \(X \sim \mathcal{N}(\mu, \sigma^2)\):
+      <strong>Note:</strong> For a Gaussian random variable \(X \sim \mathcal{N}(\mu, \sigma^2)\):
       \(\mathbb{E}[X] = \mu\) and \(\mathbb{E}[(X-\mu)^2] = \sigma^2\).
-      The parameters \(\mu\) and \(\sigma^2\) are exactly the mean and variance — there is no ambiguity.
+      The parameters \(\mu\) and \(\sigma^2\) are exactly the mean and variance — they are not random variables.
     </div>
 
     <h3>The Multivariate Gaussian Distribution</h3>
     <p>
-      When \(X \in \mathbb{R}^p\) is a vector rather than a scalar, the Gaussian generalizes to:
+      When \(X \in \mathbb{R}^p\) is a vector rather than a scalar, the Gaussian distribution generalizes to:
     </p>
     <div class="math-block">
       \[
@@ -125,7 +127,7 @@
       where \(\mu \in \mathbb{R}^p\) is the <strong>mean vector</strong> and \(R \in \mathbb{R}^{p \times p}\) is the <strong>covariance matrix</strong> (symmetric positive-definite). We write \(X \sim \mathcal{N}(\mu, R)\).
     </p>
     <div class="callout info">
-      <strong>Student Note:</strong> For \(X \sim \mathcal{N}(\mu, R)\):
+      <strong>Note:</strong> For \(X \sim \mathcal{N}(\mu, R)\):
       \(\mathbb{E}[X] = \mu\) and \(\mathbb{E}[(X-\mu)(X-\mu)^T] = R\).
       The \((i,j)\) entry of \(R\) is the covariance between components \(X_i\) and \(X_j\). Diagonal entries are variances.
     </div>
@@ -151,7 +153,7 @@
       is a good estimate of the true \(\theta\). Because \(T\) is a function of the random vector \(Y\), the estimate \(\hat\theta\) is itself a random variable — it varies across repeated experiments.
     </p>
     <div class="callout info">
-      <strong>Student Note:</strong> The estimator \(\hat\theta\) is a random variable because it is a function of the random data \(Y\). The <em>mean</em> of the estimator, \(\bar\theta = \mathbb{E}[\hat\theta]\), tells us where the estimates tend to cluster on average.
+      <strong>Note:</strong> The estimate \(\hat\theta\) is a random variable because it is a function of the random data \(Y\). The <em>mean</em> of the estimate, \(\bar\theta = \mathbb{E}[\hat\theta]\), tells us where the estimates tend to cluster on average.
     </div>
 
     <h3>Bias, variance, and MSE</h3>
@@ -210,7 +212,7 @@
       \]
     </div>
     <div class="callout info">
-      <strong>Student Note:</strong> We maximize \(\log p_\theta(Y)\) (the log-likelihood) rather than \(p_\theta(Y)\) directly. Since \(\log\) is a monotonically increasing function, the maximum is at the same \(\theta\). The log turns products of probabilities into sums, which is much easier to differentiate and optimize.
+      <strong>Note:</strong> We maximize \(\log p_\theta(Y)\) (the log-likelihood) rather than \(p_\theta(Y)\) directly. Since \(\log\) is a monotonically increasing function, the maximum is at the same \(\theta\). The log turns products of probabilities into sums, which is much easier to differentiate and optimize.
     </div>
 
     <h3>Properties of the ML estimator</h3>
@@ -220,7 +222,7 @@
       <li><strong>Not necessarily unbiased</strong> for finite \(n\), but bias vanishes as \(n\) grows.</li>
     </ul>
     <div class="callout info">
-      <strong>Student Note:</strong> The Cramér-Rao bound says that the variance of any unbiased estimator is bounded below by \(1 / \mathcal{I}(\theta)\), where \(\mathcal{I}(\theta)\) is the Fisher information. The ML estimator achieves this bound asymptotically — it is as good as any unbiased estimator can be, given enough data.
+      <strong>Note:</strong> The Cramér-Rao bound says that the variance of any unbiased estimator is bounded below by \(1 / \mathcal{I}(\theta)\), where \(\mathcal{I}(\theta)\) is the Fisher information. The ML estimator achieves this bound asymptotically — it is as good as any unbiased estimator can be, given enough data.
     </div>
 
     <h3>Deriving the ML estimator: Gaussian mean (Example 2.3)</h3>
@@ -245,7 +247,7 @@
       \[ \hat\theta_{\mathrm{ML}} = \frac{1}{n}\sum_{k=1}^n Y_k \]
     </div>
     <div class="callout info">
-      <strong>Student Note:</strong> The ML estimate of the Gaussian mean is simply the <em>sample mean</em> — the average of the observations. Moreover, for this specific case, the ML estimator is also unbiased and UMVU (the best possible unbiased estimator). This is a special property of the Gaussian; most ML estimators are not unbiased for finite \(n\).
+      <strong>Note:</strong> The ML estimate of the Gaussian mean is simply the <em>sample mean</em> — the average of the observations. Moreover, for this specific case, the ML estimator is also unbiased and UMVU (the best possible unbiased estimator). This is a special property of the Gaussian; most ML estimators are not unbiased for finite \(n\).
     </div>
   </div>
 
@@ -293,16 +295,16 @@ figure;
 subplot(2,1,1);
 plot(n_vec, mean_est, 'bo-', 'LineWidth', 1.5);
 yline(theta_true, 'r--', 'LineWidth', 1.5);
-xlabel('n (samples)'); ylabel('Mean of \hat\theta');
+xlabel('n (samples)'); ylabel('Mean of $\hat{\theta}$', 'Interpreter', 'latex');
 title('ML Estimator Mean vs. Number of Samples');
-legend('Mean of estimates', 'True \theta'); grid on;
+legend({'Mean of estimates', 'True $\theta$'}, 'Interpreter', 'latex'); grid on;
 
 subplot(2,1,2);
 semilogy(n_vec, var_est, 'bs-', 'LineWidth', 1.5); hold on;
 semilogy(n_vec, sigma2 ./ n_vec, 'r--', 'LineWidth', 1.5);
-xlabel('n (samples)'); ylabel('Var(\hat\theta)  [log scale]');
-title('Variance of ML Estimator (should scale as \sigma^2/n)');
-legend('Empirical variance', '\sigma^2/n (Cramér-Rao)'); grid on;
+xlabel('n (samples)'); ylabel('$\mathrm{Var}(\hat{\theta})$ [log scale]', 'Interpreter', 'latex');
+title('Variance of ML Estimator (scales as $\sigma^2/n$)', 'Interpreter', 'latex');
+legend({'Empirical variance', '$\sigma^2/n$ (Cramer-Rao bound)'}, 'Interpreter', 'latex'); grid on;
 </code></pre>
     <div class="callout info">
       <strong>What to observe:</strong> The mean of the estimates stays near the true \(\theta = 3\) for all \(n\) (unbiasedness). The variance decreases as \(1/n\), matching the Cramér-Rao bound for this problem. This is the signature of a consistent, efficient estimator.
@@ -332,7 +334,7 @@ legend('Empirical variance', '\sigma^2/n (Cramér-Rao)'); grid on;
   <div class="card references">
     <h2><span class="section-icon">📚</span> References</h2>
     <ol>
-      <li>Bouman, C.A. <em>Model Based Image Processing</em>, Purdue University, 2013, §§2.2–2.3.1.</li>
+      <li>Bouman, C.A. <em>Foundations of Computational Imaging</em>, SIAM, 2022, §§2.2–2.3.1.</li>
       <li>Wikipedia contributors. "Estimation theory." <em>Wikipedia, The Free Encyclopedia</em>, 2019. (Read through the Maximum Likelihood section.)</li>
       <li>Scratchapixel. "Estimators." <em>Mathematics &amp; Physics for Computer Graphics</em>. (Alternative reference with less mathematical notation.)</li>
     </ol>

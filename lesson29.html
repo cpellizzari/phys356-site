@@ -492,11 +492,11 @@ yline(0, 'k-', 'LineWidth', 0.5, 'HandleVisibility', 'off')
 % True minimum: vertical dotted line + marker
 xline(sqrt(2), 'r:', 'LineWidth', 1.5, 'HandleVisibility', 'off')
 plot(sqrt(2), f(sqrt(2)), 'rp', 'MarkerSize', 16, 'MarkerFaceColor', 'r', ...
-     'DisplayName', 'True x^* = \surd2')
+     'DisplayName', 'True $x^* = \sqrt{2}$')
 
 % Initial bracket endpoints a0 = 1 and b0 = 5
 plot(a0, f(a0), 'k^', 'MarkerSize', 10, 'MarkerFaceColor', 'k', ...
-     'DisplayName', 'Bracket endpoints (a_0, b_0)')
+     'DisplayName', 'Bracket endpoints $(a_0,\,b_0)$')
 plot(b0, f(b0), 'k^', 'MarkerSize', 10, 'MarkerFaceColor', 'k', ...
      'HandleVisibility', 'off')
 
@@ -505,8 +505,8 @@ plot(b0, f(b0), 'k^', 'MarkerSize', 10, 'MarkerFaceColor', 'k', ...
 eval_x  = [c0   d0   c1   c2   c3   c4 ];
 eval_ci = [ 1    1    2    3    4    5  ];   % index into clr
 eval_mk = {'o', 'o', 's', 's', 's', 's'};
-eval_lb = {'Init (c_0,d_0)', '', 'Step 1 (c_1)', ...
-           'Step 2 (c_2)', 'Step 3 (c_3)', 'Step 4 (c_4)'};
+eval_lb = {'Init $(c_0,d_0)$', '', 'Step 1 $(c_1)$', ...
+           'Step 2 $(c_2)$', 'Step 3 $(c_3)$', 'Step 4 $(c_4)$'};
 for k = 1:6
     hv = 'on';   if k == 2, hv = 'off'; end   % d0 shares legend entry
     plot(eval_x(k), f(eval_x(k)), eval_mk{k}, 'MarkerSize', 9, ...
@@ -532,9 +532,9 @@ for k = 1:5
          'VerticalAlignment', 'middle')
 end
 
-xlabel('x');   ylabel('f(x)')
-title('f(x) = x^2 - 4\cdotln(x):  each GSS step')
-legend('Location', 'northeast')
+xlabel('x');   ylabel('$f(x)$', 'Interpreter', 'latex')
+title('$f(x) = x^2 - 4\ln(x)$:  each GSS step', 'Interpreter', 'latex')
+legend('Location', 'northeast', 'Interpreter', 'latex')
 grid on
 
 %% Panel 2: bracket width vs iteration (semilog)
@@ -544,12 +544,12 @@ iters  = 0:4;
 semilogy(iters, widths, 'ko-', 'LineWidth', 1.8, 'MarkerFaceColor', 'k')
 hold on
 semilogy(iters, widths(1)*0.618.^iters, 'r--', 'LineWidth', 1.4)
-xlabel('Iteration');   ylabel('Bracket width  (b - a)')
-title('Convergence: width \times 0.618 per step')
-legend({'Actual', '0.618^k \cdot L_0'}, 'Location', 'northeast')
+xlabel('Iteration');   ylabel('Bracket width $(b-a)$', 'Interpreter', 'latex')
+title('Convergence: width $\times\,0.618$ per step', 'Interpreter', 'latex')
+legend({'Actual', '$0.618^k \cdot L_0$'}, 'Interpreter', 'latex', 'Location', 'northeast')
 grid on
 
-sgtitle('GSS on  f(x) = x^2 - 4\cdotln(x),  bracket = [1, 5]')
+sgtitle('GSS on $f(x) = x^2 - 4\ln(x)$,  bracket $[1,\,5]$', 'Interpreter', 'latex')
 </code></pre>
     <div class="callout info">
       <strong>What to notice:</strong>
