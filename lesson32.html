@@ -127,7 +127,20 @@
 
     <h3>Bayes' rule</h3>
     <p>
-      The posterior is obtained from the prior and forward model via <strong>Bayes' rule</strong>:
+      Our goal is the <strong>posterior</strong> \(p_{x|y}(x|y)\) — the distribution of the unknown \(X\)
+      given the observed data \(Y\). In most practical problems, this distribution cannot be written
+      down directly: we simply do not have a physics-based model that tells us the probability of
+      a particular signal value given a particular measurement.
+    </p>
+    <p>
+      What we <em>can</em> usually formulate is the <strong>forward model</strong> \(p_{y|x}(y|x)\):
+      the probability of obtaining measurement \(Y = y\) if the true underlying signal is \(X = x\).
+      This is a physics model of the measurement process — noise statistics, sensor response,
+      blur kernels, etc. — and is often straightforward to write down from first principles.
+    </p>
+    <p>
+      <strong>Bayes' rule flips the conditioning</strong>, letting us obtain the posterior we want
+      from the forward model we have:
     </p>
     <div class="math-block">
       \[
