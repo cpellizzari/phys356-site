@@ -115,6 +115,18 @@ Canonical video placements:
 - Reference text: `Text - machine_learning_for_humans.pdf`
 - Data: `physics_grades.mat`, `sat_data.mat`
 
+## Page Completion Status
+
+| Page | Status | Notes |
+|------|--------|-------|
+| lesson29.html | ✅ Final | Bracketing + GSS; hard-coded 4-step MATLAB walkthrough; bracketing_fig1.png + GSS figures |
+| lesson30.html | ✅ Final | GD + SD; hard-coded 5-step MATLAB walkthrough; gd_gradient_fig1.jpg |
+| lesson31.html | 🔄 Draft | Frequentist estimation & ML — may need review |
+| lesson32.html | 🔄 Draft | Bayesian MAP & MMSE — may need review |
+| lesson33.html–38.html | 🔄 Draft | ML/AI module — nav not yet updated to L29–L38 |
+| hw29.html–hw32.html | 🔄 Draft | Created but not yet reviewed |
+| hw33.html–hw38.html | 🔄 Draft | hw36.html and hw37.html not yet created |
+
 ## Git / GitHub
 
 Remote: `https://github.com/cpellizzari/phys356-site` (private, branch `main`).
