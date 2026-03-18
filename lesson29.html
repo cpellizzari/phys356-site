@@ -441,7 +441,7 @@ for k = 1:8
         d = c;   fd = fc;              % old c becomes new d — REUSED
         c  = a + rho*(b - a);          % one new evaluation
         fc = f(c);
-        tag = 'f(c)<f(d), shrink right';
+        tag = 'f(c)&lt;f(d), shrink right';
     else
         % Minimum in [c, b]: shrink from the left
         a = c;
@@ -450,13 +450,13 @@ for k = 1:8
         fd = f(d);
         tag = 'f(c)>=f(d), shrink left';
     end
-    widths = [widths, b - a];          %#ok<AGROW>
+    widths = [widths, b - a];          %#ok&lt;AGROW&gt;
     fprintf('Step %d (%s)\n  a=%.5f  c=%.5f  d=%.5f  b=%.5f  width=%.5f\n', ...
             k, tag, a, c, d, b, b-a)
 end
 
 xstar = (a + b) / 2;
-fprintf('\nResult: x* ≈ %.8f   (true sqrt(2) = %.8f,  error = %.2e)\n', ...
+fprintf('\nResult: x* = %.8f   (true sqrt(2) = %.8f,  error = %.2e)\n', ...
         xstar, sqrt(2), abs(xstar - sqrt(2)))
 
 %% Plots
