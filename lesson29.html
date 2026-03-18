@@ -485,14 +485,20 @@ clr = [0.55 0.55 0.55;   % gray   step 0 (init)
 %% Panel 1: function + every evaluation point + shrinking bracket
 subplot(1,2,1)
 xp = linspace(0.7, 5.3, 500);
-plot(xp, f(xp), 'b-', 'LineWidth', 2);   hold on
+plot(xp, f(xp), 'b-', 'LineWidth', 2, 'HandleVisibility', 'off');   hold on
 ylim([-2.2  8.5]);   xlim([0.5  6.2])
-yline(0, 'k-', 'LineWidth', 0.5)
+yline(0, 'k-', 'LineWidth', 0.5, 'HandleVisibility', 'off')
 
 % True minimum: vertical dotted line + marker
-xline(sqrt(2), 'r:', 'LineWidth', 1.5)
+xline(sqrt(2), 'r:', 'LineWidth', 1.5, 'HandleVisibility', 'off')
 plot(sqrt(2), f(sqrt(2)), 'rp', 'MarkerSize', 16, 'MarkerFaceColor', 'r', ...
      'DisplayName', 'True x^* = \surd2')
+
+% Initial bracket endpoints a0 = 1 and b0 = 5
+plot(a0, f(a0), 'k^', 'MarkerSize', 10, 'MarkerFaceColor', 'k', ...
+     'DisplayName', 'Bracket endpoints (a_0, b_0)')
+plot(b0, f(b0), 'k^', 'MarkerSize', 10, 'MarkerFaceColor', 'k', ...
+     'HandleVisibility', 'off')
 
 % All evaluation points on the curve, color-coded by step
 % Step 0: two points (c0, d0); steps 1-4: one new point each (c1-c4)
