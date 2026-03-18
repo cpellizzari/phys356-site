@@ -203,7 +203,14 @@
 
     <h3>Posterior distribution</h3>
     <p>
-      Multiplying the prior and likelihood and completing the square, the posterior is Gaussian:
+      By Bayes' rule, the posterior is <em>proportional</em> to the product of the likelihood and the prior:
+      \[
+        p_{x|y}(x|y) \;\propto\; p_{y|x}(y|x)\, p_x(x)
+      \]
+      Multiplying the two Gaussians and completing the square in \(x\), the product takes the form of
+      an unnormalized Gaussian in \(x\). Identifying the mean and variance of that Gaussian and
+      then dividing by the normalizing constant \(p_y(y)\) (which does not depend on \(x\)),
+      the posterior is:
     </p>
     <div class="math-block">
       \[
