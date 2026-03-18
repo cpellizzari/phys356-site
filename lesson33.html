@@ -292,23 +292,47 @@
 
     <h3>Bias-Variance Tradeoff</h3>
     <p>
-      There are two sources of error in a model's predictions:
-    </p>
-    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;">
-      <li><strong>Bias</strong> — error from a model that is too simple to capture the true relationship. A degree-1 polynomial fit to nonlinear data has high bias.</li>
-      <li><strong>Variance</strong> — error from a model that is too sensitive to the specific training data. A degree-15 polynomial has low bias but high variance.</li>
-    </ul>
-    <p>
-      Good models have <em>both</em> low bias and low variance. Increasing model complexity decreases bias but increases variance. The goal is to find the sweet spot.
+      Recall from the data model that \(y = f(x) + \varepsilon\), where \(\varepsilon\) is random
+      measurement noise with variance \(\sigma^2_\varepsilon\). If we train our model on many different
+      datasets drawn from the same process, our prediction \(\hat{y}\) will vary. The expected test
+      error (expected squared difference between our prediction and the true value) decomposes into
+      exactly three terms:
     </p>
     <div class="math-block">
       \[
-        \underbrace{\text{Total Error}}_{\text{test}} \;=\;
-        \underbrace{\text{Bias}^2}_{\text{too simple}} \;+\;
-        \underbrace{\text{Variance}}_{\text{too complex}} \;+\;
+        \underbrace{\mathbb{E}\!\left[(\hat{y} - y)^2\right]}_{\text{expected test error}} \;=\;
+        \underbrace{\bigl(\mathbb{E}[\hat{y}] - f(x)\bigr)^2}_{\text{Bias}^2} \;+\;
+        \underbrace{\mathbb{E}\!\left[\bigl(\hat{y} - \mathbb{E}[\hat{y}]\bigr)^2\right]}_{\text{Variance}} \;+\;
         \underbrace{\sigma^2_\varepsilon}_{\text{irreducible noise}}
       \]
     </div>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;margin-top:0.75rem;">
+      <li>
+        <strong>Bias\(^2\)</strong> — the squared difference between the average prediction
+        \(\mathbb{E}[\hat{y}]\) and the true value \(f(x)\). Bias measures systematic error:
+        does the model consistently predict too high, too low, or miss the shape of \(f\)?
+        It is <em>squared</em> because we are measuring error in squared units (consistent with MSE),
+        and because the bias itself — \(\mathbb{E}[\hat{y}] - f(x)\) — can be positive or negative;
+        squaring makes it always non-negative.
+        A model that is too simple (e.g.\ a straight line fit to curved data) has high bias.
+      </li>
+      <li>
+        <strong>Variance</strong> — how much the prediction \(\hat{y}\) fluctuates across different
+        training sets. A model with high variance has "memorized" the training data rather than
+        learning the underlying trend, so small changes in the training set cause large swings in
+        the predictions. A high-degree polynomial typically has high variance.
+      </li>
+      <li>
+        <strong>Irreducible noise \(\sigma^2_\varepsilon\)</strong> — the variance of the observation
+        noise \(\varepsilon\) built into the data-generating process \(y = f(x) + \varepsilon\).
+        No matter how good our model is, we cannot predict the random noise on each measurement.
+        This sets a hard lower bound on the test error.
+      </li>
+    </ul>
+    <p style="margin-top:0.75rem;">
+      Good models have <em>both</em> low bias and low variance. Increasing model complexity decreases
+      bias but increases variance. The goal is to find the sweet spot between the two.
+    </p>
 
     <h3>Regularization</h3>
     <p>
