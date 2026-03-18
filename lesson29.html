@@ -176,6 +176,42 @@
       <li>If \(f(c) &lt; f(d)\): minimum is in \([a, d]\). Discard \([d, b]\).</li>
       <li>If \(f(c) \geq f(d)\): minimum is in \([c, b]\). Discard \([a, c]\).</li>
     </ul>
+
+    <figure style="margin:1.5rem 0;text-align:center;">
+      <svg viewBox="0 0 700 165" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:660px;display:block;margin:0 auto;">
+        <!-- Main interval line -->
+        <line x1="60" y1="90" x2="640" y2="90" stroke="#444" stroke-width="3"/>
+        <!-- Endpoint dots -->
+        <circle cx="60"  cy="90" r="6" fill="#444"/>
+        <circle cx="640" cy="90" r="6" fill="#444"/>
+        <!-- Interior dots: c at 60+0.382*580≈282,  d at 640−0.382*580≈418 -->
+        <circle cx="282" cy="90" r="6" fill="#003087"/>
+        <circle cx="418" cy="90" r="6" fill="#b08000"/>
+        <!-- Labels below -->
+        <text x="60"  y="116" text-anchor="middle" font-size="17" font-family="Georgia,serif" font-style="italic" fill="#333">a</text>
+        <text x="282" y="116" text-anchor="middle" font-size="17" font-family="Georgia,serif" font-style="italic" fill="#003087">c</text>
+        <text x="418" y="116" text-anchor="middle" font-size="17" font-family="Georgia,serif" font-style="italic" fill="#b08000">d</text>
+        <text x="640" y="116" text-anchor="middle" font-size="17" font-family="Georgia,serif" font-style="italic" fill="#333">b</text>
+        <!-- Compare labels above -->
+        <text x="282" y="72" text-anchor="middle" font-size="13" font-family="sans-serif" fill="#003087">f(c) ← compare</text>
+        <text x="418" y="72" text-anchor="middle" font-size="13" font-family="sans-serif" fill="#b08000">f(d) ← compare</text>
+        <!-- Distance annotation: ρ(b−a) from a to c -->
+        <line x1="60"  y1="140" x2="282" y2="140" stroke="#003087" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="171" y="158" text-anchor="middle" font-size="13" font-family="Georgia,serif" fill="#003087">ρ(b−a)</text>
+        <!-- Distance annotation: (1−2ρ)(b−a) from c to d -->
+        <line x1="282" y1="140" x2="418" y2="140" stroke="#888" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="350" y="158" text-anchor="middle" font-size="12" font-family="Georgia,serif" fill="#666">(1−2ρ)(b−a)</text>
+        <!-- Distance annotation: ρ(b−a) from d to b -->
+        <line x1="418" y1="140" x2="640" y2="140" stroke="#b08000" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="529" y="158" text-anchor="middle" font-size="13" font-family="Georgia,serif" fill="#b08000">ρ(b−a)</text>
+        <!-- Title -->
+        <text x="350" y="22" text-anchor="middle" font-size="13" font-family="sans-serif" fill="#555">Interior point placement:  c = a + ρ(b−a),   d = b − ρ(b−a)</text>
+      </svg>
+      <figcaption style="margin-top:0.6rem;font-size:0.9rem;color:var(--text-secondary);font-style:italic;">
+        Figure 2: Two interior evaluation points \(c\) and \(d\) placed symmetrically at distance \(\rho(b-a)\) from each end of the bracket.
+      </figcaption>
+    </figure>
+
     <p>
       The interval shrinks by a factor of \((1 - \rho)\) each step.
     </p>
@@ -213,6 +249,106 @@
       <li>Otherwise, go to step 2.</li>
     </ol>
 
+    <figure style="margin:1.5rem 0;text-align:center;">
+      <svg viewBox="0 0 700 295" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;display:block;margin:0 auto;">
+
+        <!-- ===== CASE 1: f(c) < f(d) ===== -->
+        <text x="187" y="24" text-anchor="middle" font-size="14" font-family="sans-serif" fill="#003087" font-weight="bold">Case 1: f(c) &lt; f(d)</text>
+        <text x="187" y="42" text-anchor="middle" font-size="12" font-family="sans-serif" fill="#555">→ discard [d, b],  new interval = [a, d]</text>
+
+        <!-- BEFORE row -->
+        <text x="28" y="75" text-anchor="start" font-size="11" font-family="sans-serif" fill="#888">Before:</text>
+        <line x1="55" y1="80" x2="320" y2="80" stroke="#444" stroke-width="2.5"/>
+        <circle cx="55"  cy="80" r="5" fill="#444"/>
+        <circle cx="156" cy="80" r="5" fill="#003087"/>
+        <circle cx="219" cy="80" r="5" fill="#b08000"/>
+        <circle cx="320" cy="80" r="5" fill="#444"/>
+        <text x="55"  y="99" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#444">a</text>
+        <text x="156" y="99" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#003087">c</text>
+        <text x="219" y="99" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#b08000">d</text>
+        <text x="320" y="99" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#444">b</text>
+        <text x="156" y="67" text-anchor="middle" font-size="11" fill="#003087">f(c) lower</text>
+        <text x="219" y="67" text-anchor="middle" font-size="11" fill="#b08000">f(d) higher</text>
+
+        <!-- Arrow -->
+        <text x="187" y="132" text-anchor="middle" font-size="22" fill="#c00">↓</text>
+        <text x="187" y="150" text-anchor="middle" font-size="11" fill="#c00">minimum must be in [a, d]</text>
+
+        <!-- AFTER row -->
+        <text x="28" y="175" text-anchor="start" font-size="11" font-family="sans-serif" fill="#888">After:</text>
+        <!-- Discarded segment [d,b] faded -->
+        <line x1="219" y1="180" x2="320" y2="180" stroke="#ddd" stroke-width="2.5"/>
+        <circle cx="320" cy="180" r="5" fill="#eee" stroke="#ccc" stroke-width="1.5"/>
+        <text x="270" y="199" text-anchor="middle" font-size="11" fill="#bbb">discarded</text>
+        <!-- New active interval [a, d_old=b'] -->
+        <line x1="55" y1="180" x2="219" y2="180" stroke="#1a7a1a" stroke-width="2.5"/>
+        <circle cx="55"  cy="180" r="5" fill="#1a7a1a"/>
+        <circle cx="219" cy="180" r="5" fill="#1a7a1a"/>
+        <!-- New c′ (new eval) at 55+0.382*164≈118 -->
+        <circle cx="118" cy="180" r="5" fill="#003087"/>
+        <!-- Old c reused as new d′ at 156 -->
+        <circle cx="156" cy="180" r="5" fill="#b08000"/>
+        <text x="55"  y="199" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#1a7a1a">a</text>
+        <text x="118" y="199" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#003087">c′</text>
+        <text x="156" y="199" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#b08000">d′</text>
+        <text x="219" y="199" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#1a7a1a">b′</text>
+        <text x="118" y="167" text-anchor="middle" font-size="10" fill="#003087">new eval</text>
+        <text x="156" y="167" text-anchor="middle" font-size="10" fill="#b08000">reused</text>
+
+        <!-- Divider -->
+        <line x1="350" y1="10" x2="350" y2="280" stroke="#ddd" stroke-width="1.5"/>
+
+        <!-- ===== CASE 2: f(d) < f(c) ===== -->
+        <text x="520" y="24" text-anchor="middle" font-size="14" font-family="sans-serif" fill="#b08000" font-weight="bold">Case 2: f(d) &lt; f(c)</text>
+        <text x="520" y="42" text-anchor="middle" font-size="12" font-family="sans-serif" fill="#555">→ discard [a, c],  new interval = [c, b]</text>
+
+        <!-- BEFORE row -->
+        <text x="365" y="75" text-anchor="start" font-size="11" font-family="sans-serif" fill="#888">Before:</text>
+        <line x1="385" y1="80" x2="650" y2="80" stroke="#444" stroke-width="2.5"/>
+        <circle cx="385" cy="80" r="5" fill="#444"/>
+        <circle cx="486" cy="80" r="5" fill="#003087"/>
+        <circle cx="549" cy="80" r="5" fill="#b08000"/>
+        <circle cx="650" cy="80" r="5" fill="#444"/>
+        <text x="385" y="99" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#444">a</text>
+        <text x="486" y="99" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#003087">c</text>
+        <text x="549" y="99" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#b08000">d</text>
+        <text x="650" y="99" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#444">b</text>
+        <text x="486" y="67" text-anchor="middle" font-size="11" fill="#003087">f(c) higher</text>
+        <text x="549" y="67" text-anchor="middle" font-size="11" fill="#b08000">f(d) lower</text>
+
+        <!-- Arrow -->
+        <text x="520" y="132" text-anchor="middle" font-size="22" fill="#c00">↓</text>
+        <text x="520" y="150" text-anchor="middle" font-size="11" fill="#c00">minimum must be in [c, b]</text>
+
+        <!-- AFTER row -->
+        <text x="365" y="175" text-anchor="start" font-size="11" font-family="sans-serif" fill="#888">After:</text>
+        <!-- Discarded segment [a,c] faded -->
+        <line x1="385" y1="180" x2="486" y2="180" stroke="#ddd" stroke-width="2.5"/>
+        <circle cx="385" cy="180" r="5" fill="#eee" stroke="#ccc" stroke-width="1.5"/>
+        <text x="435" y="199" text-anchor="middle" font-size="11" fill="#bbb">discarded</text>
+        <!-- New active interval [c_old=a′, b] -->
+        <line x1="486" y1="180" x2="650" y2="180" stroke="#1a7a1a" stroke-width="2.5"/>
+        <circle cx="486" cy="180" r="5" fill="#1a7a1a"/>
+        <circle cx="650" cy="180" r="5" fill="#1a7a1a"/>
+        <!-- Old d reused as new c′ at 549 -->
+        <circle cx="549" cy="180" r="5" fill="#003087"/>
+        <!-- New d′ (new eval) at 650−0.382*164≈587 -->
+        <circle cx="587" cy="180" r="5" fill="#b08000"/>
+        <text x="486" y="199" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#1a7a1a">a′</text>
+        <text x="549" y="199" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#003087">c′</text>
+        <text x="587" y="199" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#b08000">d′</text>
+        <text x="650" y="199" text-anchor="middle" font-size="14" font-family="Georgia,serif" font-style="italic" fill="#1a7a1a">b</text>
+        <text x="549" y="167" text-anchor="middle" font-size="10" fill="#003087">reused</text>
+        <text x="587" y="167" text-anchor="middle" font-size="10" fill="#b08000">new eval</text>
+
+        <!-- Bottom note -->
+        <text x="350" y="262" text-anchor="middle" font-size="12" font-family="sans-serif" fill="#555">In both cases, only <tspan font-weight="bold">one new function evaluation</tspan> is needed — the other interior point is reused.</text>
+      </svg>
+      <figcaption style="margin-top:0.6rem;font-size:0.9rem;color:var(--text-secondary);font-style:italic;">
+        Figure 3: GSS elimination step. After comparing \(f(c)\) and \(f(d)\), the portion that cannot contain the minimum is discarded. One interior point is reused in the next step; only one new evaluation is required.
+      </figcaption>
+    </figure>
+
     <h3>Limitation: GSS is 1D only</h3>
     <p>
       Unlike binary search for roots, there is no straightforward generalization of GSS to functions of more than one variable. For multidimensional optimization problems we need gradient-based methods, which are covered in Lesson 30.
@@ -221,92 +357,89 @@
 
   <!-- MATLAB Example -->
   <div class="card">
-    <h2><span class="section-icon">💻</span> Worked Example — MATLAB</h2>
+    <h2><span class="section-icon">💻</span> Numerical Walkthrough — MATLAB</h2>
     <p>
-      This example demonstrates bracketing and GSS on the function \(f(x) = (x-3)^2 + 2\sin(x)\).
-      This is a simple demonstration function — it is <em>not</em> the function used in HW 29. Your homework will require you to apply these same general-purpose UDFs to a different physical potential.
+      This script manually steps through each GSS iteration on \(f(x) = x^2 - 4\ln x\).
+      The minimum is at \(x^* = \sqrt{2} \approx 1.4142\) (set \(f'(x) = 2x - 4/x = 0\)).
+      The goal here is to see <em>what the algorithm does at each step</em>, not to implement a reusable function.
+      HW 29 asks you to write the general-purpose UDFs and apply them to a different physical potential.
     </p>
-<pre><code class="language-matlab">%% Lesson 29 — Bracketing + Golden Section Search (demonstration)
-% f(x) = (x-3)^2 + 2*sin(x)
-% Minimum near x ≈ 2.1 (verify analytically: f'(x) = 2(x-3)+2cos(x) = 0)
+<pre><code class="language-matlab">%% Lesson 29 — GSS Step-by-Step Walkthrough
+% f(x) = x^2 - 4*ln(x),   minimum at x* = sqrt(2) ≈ 1.4142
+% Verify: f'(x) = 2x - 4/x = 0  →  x^2 = 2  →  x* = sqrt(2)
+% Given bracket: [a, b] = [1, 5]
 
-f = @(x) (x - 3).^2 + 2*sin(x);
+f   = @(x) x.^2 - 4.*log(x);
+rho = (3 - sqrt(5)) / 2;          % golden ratio parameter ≈ 0.382
 
-%% 1. Bracket the minimum
-x0 = 4.0;   % initial guess (to the right of the minimum)
-D0 = 0.5;   % initial step size
-[a, b_ctr, c] = bracket_min(f, x0, D0);
-fprintf('Bracket: a=%.4f  b=%.4f  c=%.4f\n', a, b_ctr, c);
+a = 1;   b = 5;
 
-%% 2. Golden Section Search
-tol  = 1e-8;
-xmin = gss(f, a, c, tol);
-fprintf('Minimum at x = %.8f,  f(x) = %.8f\n', xmin, f(xmin));
+%% Step 0: initialise two interior points (2 function evaluations)
+c  = a + rho*(b - a);    % c = 1 + 0.382×4 = 2.528
+d  = b - rho*(b - a);    % d = 5 − 0.382×4 = 3.472
+fc = f(c);   fd = f(d);
 
-%% 3. Plot
-xp = linspace(0, 6, 500);
-figure;
-plot(xp, f(xp), 'b-', 'LineWidth', 1.8); hold on;
-plot([a, c], f([a, c]), 'ks', 'MarkerSize', 10, 'DisplayName', 'Bracket ends');
-plot(b_ctr,  f(b_ctr),  'kd', 'MarkerSize', 10, 'DisplayName', 'Bracket center');
-plot(xmin,   f(xmin),   'r*', 'MarkerSize', 14, 'DisplayName', 'GSS minimum');
-xlabel('x'); ylabel('f(x)');
-title('GSS on f(x) = (x\minus3)^2 + 2sin(x)');
-legend; grid on;
+fprintf('Init:  [a=%.4f  c=%.4f  d=%.4f  b=%.4f]  width=%.4f\n', a,c,d,b,b-a)
+fprintf('       f(c)=%.4f   f(d)=%.4f\n\n', fc, fd)
 
-%% ===== UDFs (place in separate files or at end of script) =====
+widths = b - a;   % record interval widths for convergence plot
 
-function [a, b, c] = bracket_min(f, x0, D0)
-% bracket_min  Find three points [a,b,c] bracketing the minimum of f.
-%   x0  - initial guess
-%   D0  - initial step size (positive scalar)
-  fL = f(x0 - D0);  f0 = f(x0);  fR = f(x0 + D0);
-
-  % Already bracketed?
-  if f0 <= fL && f0 <= fR
-    a = x0 - D0;  b = x0;  c = x0 + D0;  return;
-  end
-
-  % Identify downhill direction
-  dir = sign(fL - fR);   % +1 = go right, -1 = go left
-
-  xprev2 = x0;
-  xprev1 = x0 + dir * D0;
-  for k = 1:60
-    xnew = x0 + dir * 2^k * D0;
-    if f(xnew) > f(xprev1)
-      % We have passed the minimum: bracket is [xprev2, xnew]
-      pts = sort([xprev2, xprev1, xnew]);
-      a = pts(1);  b = pts(2);  c = pts(3);
-      return;
-    end
-    xprev2 = xprev1;
-    xprev1 = xnew;
-  end
-  error('bracket_min: did not converge in 60 iterations.');
-end
-
-function xmin = gss(f, a, b, tol)
-% gss  Golden section search for minimum of f on [a,b].
-  rho = (3 - sqrt(5)) / 2;          % ≈ 0.382
-  c  = a + rho*(b - a);
-  d  = b - rho*(b - a);
-  fc = f(c);  fd = f(d);
-
-  while (b - a) > tol
+%% Steps 1–8: one new evaluation per step
+for k = 1:8
     if fc < fd
-      b = d;  d = c;  fd = fc;
-      c = a + rho*(b - a);  fc = f(c);
+        % Minimum in [a, d]: shrink from the right
+        b = d;
+        d = c;   fd = fc;              % old c becomes new d — REUSED
+        c  = a + rho*(b - a);          % one new evaluation
+        fc = f(c);
+        tag = 'f(c)<f(d), shrink right';
     else
-      a = c;  c = d;  fc = fd;
-      d = b - rho*(b - a);  fd = f(d);
+        % Minimum in [c, b]: shrink from the left
+        a = c;
+        c = d;   fc = fd;              % old d becomes new c — REUSED
+        d  = b - rho*(b - a);          % one new evaluation
+        fd = f(d);
+        tag = 'f(c)>=f(d), shrink left';
     end
-  end
-  xmin = (a + b) / 2;
+    widths = [widths, b - a];          %#ok<AGROW>
+    fprintf('Step %d (%s)\n  a=%.5f  c=%.5f  d=%.5f  b=%.5f  width=%.5f\n', ...
+            k, tag, a, c, d, b, b-a)
 end
+
+xstar = (a + b) / 2;
+fprintf('\nResult: x* ≈ %.8f   (true sqrt(2) = %.8f,  error = %.2e)\n', ...
+        xstar, sqrt(2), abs(xstar - sqrt(2)))
+
+%% Plots
+xp = linspace(0.8, 5.2, 500);
+figure('Position', [100 100 1000 420])
+
+% Panel 1: function with initial bracket and GSS result
+subplot(1,2,1)
+plot(xp, f(xp), 'b-', 'LineWidth', 2);  hold on
+plot(1, f(1), 'ks', 'MarkerSize',10, 'MarkerFaceColor','k', 'DisplayName','Initial bracket')
+plot(5, f(5), 'ks', 'MarkerSize',10, 'MarkerFaceColor','k', 'HandleVisibility','off')
+plot(xstar, f(xstar), 'r*', 'MarkerSize',14, 'DisplayName','GSS result')
+xline(sqrt(2), 'r--', '  x^* = \surd2', 'LineWidth',1.3, ...
+      'LabelVerticalAlignment','bottom')
+xlabel('x');  ylabel('f(x)')
+title('f(x) = x^2 \minus 4\cdotln(x)')
+legend('Location','northeast');  grid on
+
+% Panel 2: interval width vs iteration (should decrease as 0.618^k)
+subplot(1,2,2)
+iters = 0:numel(widths)-1;
+semilogy(iters, widths, 'ko-', 'LineWidth',1.8, 'MarkerFaceColor','k')
+hold on
+semilogy(iters, widths(1)*0.618.^iters, 'r--', 'LineWidth',1.4)
+xlabel('Iteration');  ylabel('Interval width  (b \minus a)')
+title('Convergence: width \times 0.618 per step')
+legend({'Actual','0.618^k \cdot L_0'}, 'Location','northeast');  grid on
+
+sgtitle('GSS Walkthrough:  f(x) = x^2 \minus 4\cdotln(x),  bracket = [1, 5]')
 </code></pre>
     <div class="callout info">
-      <strong>Note on generality:</strong> Both UDFs accept an arbitrary function handle <code>f</code>. HW 29 asks you to apply them to a <em>different</em> physical function — you should not hard-code \(f\) inside the UDF.
+      <strong>What to notice:</strong> After the initial two evaluations, every subsequent step costs exactly one new call to <code>f</code>. Watch the <code>REUSED</code> comments — this is what makes GSS optimal for derivative-free 1D minimization. The convergence plot confirms the theoretical factor-of-0.618 reduction per step.
     </div>
   </div>
 
