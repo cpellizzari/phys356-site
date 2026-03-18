@@ -131,6 +131,18 @@
     <div class="callout info">
       <strong>Contour plot intuition:</strong> On a contour plot, the gradient is always <em>perpendicular to the contour lines</em> and points toward higher contour values. Moving against the gradient — inward toward the center — moves toward lower values and the minimum.
     </div>
+
+    <figure style="text-align:center; margin:1.5rem 0;">
+      <img src="images/gd_gradient_fig1.jpg"
+           alt="Contour plot showing gradient vectors at three points perpendicular to contour lines"
+           style="max-width:480px; width:100%; border:1px solid var(--border-color); border-radius:6px;">
+      <figcaption style="margin-top:0.5rem; font-size:0.88rem; color:var(--text-secondary);">
+        <strong>Figure 1.</strong> Contour plot of a 2D function. At three sample points \(x_a\), \(x_b\), and \(x_c\),
+        the gradient \(\nabla f\) is drawn as an arrow. In every case the arrow is
+        <em>perpendicular to the local contour line</em> and points toward higher function values (away from the minimum).
+        Gradient descent moves each iterate in the <em>opposite</em> direction — along \(-\nabla f\) — to descend toward the minimum.
+      </figcaption>
+    </figure>
   </div>
 
   <!-- Section 3: Gradient Descent -->
@@ -218,58 +230,119 @@
 
   <!-- MATLAB Example -->
   <div class="card">
-    <h2><span class="section-icon">💻</span> Worked Example — MATLAB</h2>
+    <h2><span class="section-icon">💻</span> Numerical Walkthrough — MATLAB</h2>
     <p>
-      This example runs gradient descent on the 2D function \(f(x) = 4x_1^2 + x_2^2\) (minimum at the origin) and plots the convergence path on a contour plot.
-      The function and initial point are chosen to be clearly distinct from HW 30 — your homework uses a different function with a minimum away from the origin.
+      The script below manually steps through 5 iterations of gradient descent on
+      \(f(x_1,x_2) = 4x_1^2 + x_2^2\) starting from \(x^0 = [1.5,\,1.5]^T\) with \(\gamma = 0.10\).
+      There is no loop — each step is written out explicitly so you can see exactly what the
+      algorithm does. The true minimum is at \(x^* = [0,\,0]^T\).
+      HW 30 uses a different function (minimum away from the origin) and asks you to write a
+      general-purpose UDF.
     </p>
-<pre><code class="language-matlab">%% Lesson 30 — Gradient Descent (demonstration)
-% f(x1, x2) = 4*x1^2 + x2^2    (minimum at origin)
-% Gradient:   [8*x1; 2*x2]
+<pre><code class="language-matlab">%% Lesson 30 — GD: Hard-Coded 5-Step Walkthrough
+% f(x1,x2) = 4*x1^2 + x2^2,   minimum at x* = [0; 0]
+% grad f  =  [8*x1; 2*x2]
+% Start: x0 = [1.5; 1.5],   gamma = 0.10
 
 f      = @(x) 4*x(1)^2 + x(2)^2;
 grad_f = @(x) [8*x(1); 2*x(2)];
+gamma  = 0.10;
 
-gamma   = 0.10;   % fixed step size
-epsilon = 1e-5;   % stopping threshold
-x       = [1.5; 1.5];  % initial guess (not at the minimum)
+%% ── Step 0: evaluate gradient at x0, take one step ───────────────────────
+x0 = [1.5; 1.5];
+g0 = grad_f(x0);          % g0 = [12.0000;  3.0000]
+x1 = x0 - gamma*g0;       % x1 = [ 0.3000;  1.2000]
+fprintf('x0=[%7.4f, %7.4f]   f=%7.4f   |g|=%7.4f\n', x0(1),x0(2),f(x0),norm(g0))
 
-% Store path for plotting
-path = x;
+%% ── Step 1 ────────────────────────────────────────────────────────────────
+g1 = grad_f(x1);          % g1 = [ 2.4000;  2.4000]
+x2 = x1 - gamma*g1;       % x2 = [ 0.0600;  0.9600]
+fprintf('x1=[%7.4f, %7.4f]   f=%7.4f   |g|=%7.4f\n', x1(1),x1(2),f(x1),norm(g1))
 
-for k = 1:500
-  x_new = x - gamma * grad_f(x);
-  path  = [path, x_new];           %#ok grow array for plotting
-  if norm(x_new - x) < epsilon
-    fprintf('Converged at k=%d,  x=[%.6f; %.6f],  f=%.2e\n', ...
-            k, x_new(1), x_new(2), f(x_new));
-    break;
-  end
-  x = x_new;
+%% ── Step 2 ────────────────────────────────────────────────────────────────
+g2 = grad_f(x2);          % g2 = [ 0.4800;  1.9200]
+x3 = x2 - gamma*g2;       % x3 = [ 0.0120;  0.7680]
+fprintf('x2=[%7.4f, %7.4f]   f=%7.4f   |g|=%7.4f\n', x2(1),x2(2),f(x2),norm(g2))
+
+%% ── Step 3 ────────────────────────────────────────────────────────────────
+g3 = grad_f(x3);          % g3 = [ 0.0960;  1.5360]
+x4 = x3 - gamma*g3;       % x4 = [ 0.0024;  0.6144]
+fprintf('x3=[%7.4f, %7.4f]   f=%7.4f   |g|=%7.4f\n', x3(1),x3(2),f(x3),norm(g3))
+
+%% ── Step 4 ────────────────────────────────────────────────────────────────
+g4 = grad_f(x4);          % g4 = [ 0.0192;  1.2288]
+x5 = x4 - gamma*g4;       % x5 = [0.00048; 0.49152]
+fprintf('x4=[%7.4f, %7.4f]   f=%7.4f   |g|=%7.4f\n', x4(1),x4(2),f(x4),norm(g4))
+fprintf('\nAfter 5 steps: x5=[%.5f; %.5f]   f=%.4f\n', x5(1),x5(2),f(x5))
+fprintf('True x* = [0; 0],  f(x*) = 0\n')
+
+%% ── Plots ─────────────────────────────────────────────────────────────────
+pts   = [x0, x1, x2, x3, x4, x5];   % 2x6 matrix of all iterates
+grads = [g0, g1, g2, g3, g4];        % 2x5 matrix of gradients at x0..x4
+
+figure('Position', [100 100 1100 440])
+
+%% Panel 1: contour + GD path + gradient arrows
+subplot(1,2,1)
+[X1,X2] = meshgrid(linspace(-0.3,1.8,200), linspace(-0.2,1.7,200));
+F = 4*X1.^2 + X2.^2;
+contourf(X1,X2,F,14,'LineColor','none');   hold on
+contour(X1,X2,F,14,'k','LineWidth',0.4)
+colorbar
+
+% White connecting path (no legend entry)
+plot(pts(1,:), pts(2,:), 'w-', 'LineWidth', 1.5, 'HandleVisibility','off')
+
+% Color palette — one color per iterate x0..x5
+clr = [0.55 0.55 0.55;   % gray   x0
+       0.00 0.45 0.74;   % blue   x1
+       0.85 0.33 0.10;   % orange x2
+       0.47 0.67 0.19;   % green  x3
+       0.49 0.18 0.56;   % purple x4
+       0.64 0.08 0.18];  % red    x5
+
+% Plot each iterate
+for k = 1:6
+    plot(pts(1,k), pts(2,k), 'o', 'MarkerSize', 9, ...
+         'Color', clr(k,:), 'MarkerFaceColor', clr(k,:), ...
+         'DisplayName', sprintf('x_%d', k-1))
 end
 
-%% Contour plot with GD path
-[X1, X2] = meshgrid(linspace(-2,2,200), linspace(-2,2,200));
-F = 4*X1.^2 + X2.^2;
+% Gradient arrows — normalized to fixed visual length (direction only)
+alen = 0.18;
+for k = 1:5
+    ghat = grads(:,k) / norm(grads(:,k));
+    quiver(pts(1,k), pts(2,k), alen*ghat(1), alen*ghat(2), 0, ...
+           'Color', clr(k,:), 'LineWidth', 1.8, 'MaxHeadSize', 0.6, ...
+           'HandleVisibility','off')
+end
 
-figure;
-contourf(X1, X2, F, 20, 'LineColor', 'none'); colorbar; hold on;
-contour(X1, X2, F, 20, 'k', 'LineWidth', 0.5);
-plot(path(1,:), path(2,:), 'w.-', 'MarkerSize', 8, 'LineWidth', 1.5, ...
-     'DisplayName', 'GD path');
-plot(path(1,1),   path(2,1),   'gs', 'MarkerSize', 10, ...
-     'LineWidth', 2, 'DisplayName', 'Start');
-plot(path(1,end), path(2,end), 'r*', 'MarkerSize', 12, ...
-     'LineWidth', 2, 'DisplayName', 'Minimum');
-xlabel('x_1'); ylabel('x_2');
-title(sprintf('Gradient Descent  \\gamma=%.2f', gamma));
-legend; axis equal; grid on;
+% Dummy quiver for legend
+hq = quiver(NaN, NaN, NaN, NaN, 'k-', 'LineWidth', 1.5);
+hq.DisplayName = '\nabla f  (unit dir.)';
+
+% True minimum
+plot(0, 0, 'kp', 'MarkerSize', 14, 'MarkerFaceColor', 'k', 'DisplayName', 'x^*')
+
+xlabel('x_1');   ylabel('x_2')
+title('GD path:  f = 4x_1^2 + x_2^2,  \gamma = 0.10')
+legend('Location','northeast');   grid on
+
+%% Panel 2: f(x^k) vs. iteration (semilog)
+subplot(1,2,2)
+fvals = [f(x0), f(x1), f(x2), f(x3), f(x4), f(x5)];
+semilogy(0:5, fvals, 'ko-', 'LineWidth', 1.8, 'MarkerFaceColor','k')
+xlabel('Iteration');   ylabel('f(x^k)')
+title('f(x^k) vs. iteration')
+grid on
+
+sgtitle('GD Walkthrough:  f = 4x_1^2 + x_2^2,  \gamma=0.10,  x_0=[1.5; 1.5]')
 </code></pre>
     <div class="callout info">
-      <strong>Try different step sizes:</strong> Set <code>gamma = 0.01</code> (slow convergence), <code>gamma = 0.24</code> (near-zigzag), and <code>gamma = 0.26</code> (diverges). This illustrates why choosing \(\gamma\) matters.
+      <strong>What to notice:</strong> The \(x_1\) component converges in roughly 2 steps (decay factor \(1-\gamma\cdot8=0.2\) per step) while \(x_2\) decays slowly (factor \(1-\gamma\cdot2=0.8\)). This <em>ill-conditioning</em> — different curvatures in different directions — is what causes the elongated, funnel-shaped path. The gradient arrows are normalized to unit length to show direction; the actual gradient magnitude shrinks with each step.
     </div>
     <div class="callout info">
-      <strong>HW 30 asks you to write a general-purpose GD UDF</strong> that accepts function and gradient handles as inputs, and apply it to a different 2D function. The UDF from this example is a starting point, but you will need to generalize it.
+      <strong>HW 30</strong> asks you to write a general-purpose GD UDF that accepts function and gradient handles, and apply it to a different 2D function with its minimum away from the origin.
     </div>
   </div>
 

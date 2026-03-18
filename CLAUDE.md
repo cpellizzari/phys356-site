@@ -13,7 +13,8 @@ AI_ML_Site/
 ├── css/style.css           # Single shared stylesheet
 ├── js/main.js              # Nav active-link logic + Lesson 35 Chart.js GD demo
 ├── images/
-│   └── bracketing_fig1.png # Fig 1 from Bracketing.pdf (used in lesson29.html)
+│   ├── bracketing_fig1.png # Fig 1 from Bracketing.pdf (used in lesson29.html)
+│   └── gd_gradient_fig1.jpg # Fig 1 from Gradient_Based_Optimization.pdf (used in lesson30.html)
 └── hw/
     ├── hw29.html – hw32.html
     └── hw33.html – hw38.html  (hw36.html and hw37.html not yet created)
@@ -83,7 +84,7 @@ All colors and sizing use CSS custom properties defined at the top of `style.css
 
 In-lesson MATLAB examples must be **clearly distinct** from the homework problem — use a different function/domain so students must extrapolate. Current mapping:
 - L29 example: `f(x) = x^2 - 4*ln(x)`, hard-coded 4-step walkthrough (no loop, no UDF) — HW uses Buckingham potential
-- L30 example: `f = 4*x1^2 + x2^2` — HW uses `4*x1^2 - 16*x1 + x2^2 - 6*x2 + 25`
+- L30 example: `f = 4*x1^2 + x2^2`, hard-coded 5-step GD walkthrough (no loop), gradient arrows normalized — HW uses `4*x1^2 - 16*x1 + x2^2 - 6*x2 + 25`
 - L31 example: Gaussian ML (sample mean) — HW uses exponential/laser-speckle
 - L32 example: scalar Bayesian (single sample) — HW uses 50-dim covariance
 
