@@ -266,8 +266,13 @@
       \]
     </div>
     <p>
-      Squaring the errors ensures all terms are positive and penalizes large errors more than small ones. Training the model means finding the \(\boldsymbol{\beta}\) that <em>minimizes</em> \(L\).
+      Squaring the errors ensures all terms are positive and penalizes large errors more than small ones. Training the model means finding the \(\boldsymbol{\beta}\) that <em>minimizes</em> \(L\):
     </p>
+    <div class="math-block">
+      \[
+        \hat{\boldsymbol{\beta}} = \underset{\boldsymbol{\beta}}{\operatorname{argmin}}\; L(\boldsymbol{\beta})
+      \]
+    </div>
     <div class="callout info">
       <strong>Connection to what you already know:</strong> MSE minimization is exactly least-squares curve fitting. The ML framing just makes the loss explicit and separates training data from test data.
     </div>
