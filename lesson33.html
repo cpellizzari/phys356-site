@@ -175,12 +175,12 @@
 
     <h3>Parameters vs. Hyperparameters</h3>
     <p>
-      <strong>Parameters</strong> (e.g., weights \(\mathbf{W}\), biases \(\mathbf{b}\)) are learned from data during training. <strong>Hyperparameters</strong> (e.g., learning rate \(\alpha\), number of layers, batch size) are set by the engineer <em>before</em> training. Confusing the two is a common beginner mistake.
+      <strong>Parameters</strong> (e.g., weights \(\mathbf{W}\), biases \(\mathbf{b}\)) are learned from data during training. <strong>Hyperparameters</strong> (e.g., learning rate \(\alpha\), number of layers, batch size) are set by the user <em>before</em> training. Confusing the two is a common beginner mistake.
     </p>
 
     <h3>Overfitting and Generalization</h3>
     <p>
-      A model <em>overfits</em> when it memorizes the training data but fails on new data. We guard against this by splitting data into <strong>training</strong>, <strong>validation</strong>, and <strong>test</strong> sets, and by monitoring validation loss during training.
+      A model <em>overfits</em> when it memorizes the training data but fails on new data. We guard against this by splitting data into <strong>training</strong>, <strong>validation</strong>, and <strong>test</strong> sets, and by monitoring validation loss during training. The validation loss is not used to update the model, but rather to indicate how well the model can generalize to new data.
     </p>
     <div class="math-block">
       \[
@@ -219,7 +219,13 @@
       \]
     </div>
     <p>
-      The model is <em>linear in the parameters</em> \(\boldsymbol{\beta} = [\beta_0, \beta_1, \ldots, \beta_D]^\top\) even though it is nonlinear in \(x\). We can write this compactly using a <strong>feature vector</strong>:
+      Here \(x\) is the <strong>input</strong> (a single observed value, e.g. a physics score) and
+      \(\boldsymbol{\beta} = [\beta_0, \beta_1, \ldots, \beta_D]^\top\) is the vector of <strong>model parameters</strong> —
+      the coefficients we will learn from training data.
+      Although the model is nonlinear in \(x\), it is <em>linear in the parameters</em> \(\boldsymbol{\beta}\),
+      which makes the math tractable.
+      We can write the prediction for a single input compactly using a <strong>feature vector</strong>
+      \(\boldsymbol{\phi}(x)\) that collects the powers of \(x\):
     </p>
     <div class="math-block">
       \[
@@ -229,7 +235,22 @@
       \]
     </div>
     <p>
-      For \(N\) training points we stack the feature vectors into a matrix \(\boldsymbol{\Phi}\) (the <em>design matrix</em>, size \(N \times (D+1)\)), so the predictions for all points are:
+      For \(N\) training points \(x_1, x_2, \ldots, x_N\), each has its own feature vector
+      \(\boldsymbol{\phi}(x_i)\). Stacking these as rows gives the <strong>design matrix</strong>
+      \(\boldsymbol{\Phi}\) (size \(N \times (D+1)\)):
+    </p>
+    <div class="math-block">
+      \[
+        \boldsymbol{\Phi} =
+        \begin{bmatrix} \boldsymbol{\phi}(x_1)^\top \\ \vdots \\ \boldsymbol{\phi}(x_N)^\top \end{bmatrix}
+        =
+        \begin{bmatrix} 1 & x_1 & x_1^2 & \cdots & x_1^D \\
+                        \vdots & & & & \vdots \\
+                        1 & x_N & x_N^2 & \cdots & x_N^D \end{bmatrix}
+      \]
+    </div>
+    <p>
+      With this notation the predictions for all \(N\) training points collapse to a single matrix–vector product:
     </p>
     <div class="math-block">
       \[ \hat{\mathbf{y}} = \boldsymbol{\Phi}\,\boldsymbol{\beta} \]
