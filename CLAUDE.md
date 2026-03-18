@@ -82,7 +82,7 @@ All colors and sizing use CSS custom properties defined at the top of `style.css
 ## MATLAB Example Policy
 
 In-lesson MATLAB examples must be **clearly distinct** from the homework problem — use a different function/domain so students must extrapolate. Current mapping:
-- L29 example: `f(x) = (x-3)^2 + 2*sin(x)` — HW uses Buckingham potential
+- L29 example: `f(x) = x^2 - 4*ln(x)`, hard-coded 4-step walkthrough (no loop, no UDF) — HW uses Buckingham potential
 - L30 example: `f = 4*x1^2 + x2^2` — HW uses `4*x1^2 - 16*x1 + x2^2 - 6*x2 + 25`
 - L31 example: Gaussian ML (sample mean) — HW uses exponential/laser-speckle
 - L32 example: scalar Bayesian (single sample) — HW uses 50-dim covariance
