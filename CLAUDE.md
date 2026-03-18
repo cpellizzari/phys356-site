@@ -84,7 +84,7 @@ All colors and sizing use CSS custom properties defined at the top of `style.css
 
 In-lesson MATLAB examples must be **clearly distinct** from the homework problem — use a different function/domain so students must extrapolate. Current mapping:
 - L29 example: `f(x) = x^2 - 4*ln(x)`, hard-coded 4-step walkthrough (no loop, no UDF) — HW uses Buckingham potential
-- L30 example: `f = 4*x1^2 + x2^2`, hard-coded 5-step GD walkthrough (no loop), gradient arrows normalized — HW uses `4*x1^2 - 16*x1 + x2^2 - 6*x2 + 25`
+- L30 example: `f = 4*x1^2 + x2^2`, hard-coded 5-step GD walkthrough (no loop), gradient arrows normalized, semilog convergence plot — HW uses `4*x1^2 - 16*x1 + x2^2 - 6*x2 + 25`
 - L31 example: Gaussian ML (sample mean) — HW uses exponential/laser-speckle
 - L32 example: scalar Bayesian (single sample) — HW uses 50-dim covariance
 
@@ -119,13 +119,14 @@ Canonical video placements:
 
 | Page | Status | Notes |
 |------|--------|-------|
-| lesson29.html | ✅ Final | Bracketing + GSS; hard-coded 4-step MATLAB walkthrough; bracketing_fig1.png + GSS figures |
-| lesson30.html | ✅ Final | GD + SD; hard-coded 5-step MATLAB walkthrough; gd_gradient_fig1.jpg |
-| lesson31.html | 🔄 Draft | Frequentist estimation & ML — may need review |
-| lesson32.html | 🔄 Draft | Bayesian MAP & MMSE — may need review |
-| lesson33.html–38.html | 🔄 Draft | ML/AI module — nav not yet updated to L29–L38 |
-| hw29.html–hw32.html | 🔄 Draft | Created but not yet reviewed |
-| hw33.html–hw38.html | 🔄 Draft | hw36.html and hw37.html not yet created |
+| lesson29.html | ✅ Final | Bracketing + GSS; hard-coded 4-step MATLAB walkthrough; bracketing_fig1.png + GSS figures; LearnChemE video |
+| lesson30.html | ✅ Final | GD + SD; hard-coded 5-step MATLAB walkthrough; gd_gradient_fig1.jpg; Trefor Bazett + Visually Explained videos |
+| lesson31.html | ✅ Final | Frequentist estimation & ML; StatQuest MLE video; "Note:" callouts; E[·] notation defined |
+| lesson32.html | ✅ Final | Bayesian MAP & MMSE; 3B1B + Veritasium videos; "Note:" callouts; proportionality fix in Gaussian example |
+| lesson33.html | ✅ Final | Regression, regularization, bias-variance; β/x clarified; design matrix expanded; argmin equation; hw33 reference updated |
+| lesson34.html–38.html | 🔄 Draft | ML/AI module — nav not yet updated to L29–L38 |
+| hw29.html–hw33.html | ✅ Final | Reviewed; submit/.mlx line removed from all |
+| hw34.html–hw38.html | 🔄 Draft | hw36.html and hw37.html not yet created |
 
 ## Git / GitHub
 
