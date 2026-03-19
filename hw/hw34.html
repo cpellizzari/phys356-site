@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HW 34 — Linear Classifier: CSpOC Space Objects | PHYS 356</title>
+  <title>HW 34 — Linear Classification of GEO Space Objects | PHYS 356</title>
   <link rel="stylesheet" href="../css/style.css">
   <script>
     MathJax = {
@@ -45,9 +45,10 @@
 
   <div class="hw-header">
     <div class="hw-label">Homework Assignment</div>
-    <h1>HW 34 — Linear Classifier: CSpOC Space Objects</h1>
+    <h1>HW 34 — Linear Classification of GEO Space Objects</h1>
     <div class="hw-meta">
-      <span>📘 Related: <a href="../lesson34.html" style="color:rgba(255,255,255,0.9)">Lesson 34</a>, <a href="../lesson35.html" style="color:rgba(255,255,255,0.9)">Lesson 35</a></span>
+      <span>📘 Related: <a href="../lesson34.html" style="color:rgba(255,255,255,0.9)">Lesson 34</a></span>
+      <span>📁 Data: <code style="background:rgba(255,255,255,0.15);padding:0.1rem 0.4rem;border-radius:4px;">sat_data.mat</code></span>
       <span>🛠 MATLAB required</span>
     </div>
   </div>
@@ -56,109 +57,169 @@
   <div class="card">
     <h2><span class="section-icon">📋</span> Overview</h2>
     <p>
-      The Combined Space Operations Center (CSpOC) tracks approximately 27,000 objects in Earth orbit. A critical operational task is classifying radar returns as <strong>active satellites</strong> (y=1) vs. <strong>debris/rocket bodies</strong> (y=0). In this assignment you will build, train with gradient descent, and evaluate a logistic regression classifier on a simulated CSpOC-style dataset.
+      The Combined Space Operations Center (CSpOC) tracks approximately 27,000 objects in Earth orbit. A key task is classifying radar and optical observations into one of four object types in geosynchronous (GEO) orbit:
     </p>
-    <div class="callout info">
-      <strong>This assignment spans Lessons 34 and 35:</strong> Problem 1–2 cover the model setup (L34), Problem 3 covers gradient descent training (L35), and Problem 4 covers evaluation and analysis.
-    </div>
+    <table class="summary-table" style="margin:0.8rem 0;">
+      <thead><tr><th>Label</th><th>Class</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Active Payload</td></tr>
+        <tr><td>2</td><td>Inactive Payload</td></tr>
+        <tr><td>3</td><td>Rocket Body</td></tr>
+        <tr><td>4</td><td>Debris</td></tr>
+      </tbody>
+    </table>
+    <p>
+      In this assignment you will build and train a <strong>multi-class linear classifier</strong> using two observational features — average visual magnitude and average rotation rate — from <code>sat_data.mat</code>. You will train the model by minimizing a <strong>softmax cross-entropy loss</strong> using MATLAB's <code>fminsearch</code>, then evaluate its performance on held-out test data.
+    </p>
   </div>
 
-  <!-- Background -->
+  <!-- Background / Figure 1 -->
   <div class="card">
-    <h2><span class="section-icon">📖</span> Background</h2>
-    <p>Features derived from radar observations include radar cross-section (RCS, a measure of reflectivity), visual magnitude, and orbital elements. Active satellites tend to have more controlled, predictable orbital behavior and different physical signatures than tumbling debris.</p>
-    <p>You will train a logistic regression model:</p>
-    <div style="background:var(--usafa-light);border-radius:8px;padding:1rem 1.5rem;margin:0.75rem 0;text-align:center;">
+    <h2><span class="section-icon">📐</span> Model Structure</h2>
+    <p>
+      The input \(\mathbf{X}\) is a \(2 \times N\) matrix (features as rows, objects as columns). Multiplying by the weight matrix \(\mathbf{W}\) and adding bias \(\mathbf{b}\) produces a \(4 \times N\) matrix of <em>logits</em> \(\mathbf{Z}\). Applying softmax column-wise converts each column to a probability distribution over the four classes. The loss \(L\) is the average cross-entropy between the predicted probabilities and the true one-hot labels.
+    </p>
+    <p>
+      The full parameter set is \(\boldsymbol{\theta} = (\mathbf{W}, \mathbf{b})\):
+    </p>
+    <div class="math-block">
       \[
-        \hat{p} = \sigma(\mathbf{w}^\top \mathbf{x} + b), \qquad \sigma(s) = \frac{1}{1+e^{-s}}
-      \]
-      \[
-        L = -\frac{1}{N}\sum_{i=1}^N \bigl[y_i \log\hat{p}_i + (1-y_i)\log(1-\hat{p}_i)\bigr]
+        \mathbf{Z} = \mathbf{W}\mathbf{X} + \mathbf{b}, \qquad
+        P_{kn} = \frac{e^{Z_{kn}}}{\sum_{j=1}^{4} e^{Z_{jn}}}, \qquad
+        L = -\frac{1}{N}\sum_{n=1}^{N}\sum_{k=1}^{4} Y_{kn}\log P_{kn}
       \]
     </div>
-    <p>And train it with gradient descent:</p>
-    <div style="background:var(--usafa-light);border-radius:8px;padding:1rem 1.5rem;margin:0.75rem 0;text-align:center;">
-      \[
-        \mathbf{w} \leftarrow \mathbf{w} - \alpha \cdot \frac{1}{N}\mathbf{X}^\top(\hat{\mathbf{p}} - \mathbf{y}), \qquad
-        b \leftarrow b - \alpha \cdot \frac{1}{N}\mathbf{1}^\top(\hat{\mathbf{p}} - \mathbf{y})
-      \]
+    <p>
+      where \(\mathbf{Y}\) is the \(4 \times N\) matrix of one-hot true labels. \(\mathbf{W}\) has \(4 \times 2 = 8\) parameters and \(\mathbf{b}\) has 4, giving <strong>12 total parameters</strong>.
+    </p>
+    <div class="callout info">
+      <strong>Why softmax cross-entropy instead of L2?</strong> An L2 loss (\(\|\mathbf{Y} - \mathbf{Z}\|^2\)) treats the problem like regression on one-hot targets. Softmax cross-entropy is the correct probabilistic loss for multi-class classification: it interprets the logits as log-probabilities, normalizes them to sum to 1, and applies a logarithmic penalty that grows without bound as confidence in the wrong class increases.
     </div>
   </div>
 
   <!-- Problem 1 -->
   <div class="problem">
-    <h3>Problem 1 — Generate and Explore the Dataset (15 pts)</h3>
+    <h3>Data Loading &amp; Exploration</h3>
     <ol>
-      <li><strong>(5 pts)</strong> Generate the dataset using the following code:
-<pre style="margin-top:0.5rem;"><code class="language-matlab">rng(356);
-N  = 600;   % total samples
-
-% Class 0: debris (low RCS, faint magnitude, high drag)
-rcs0  = 0.5 + randn(N/2,1)*0.3;
-mag0  = 5.5 + randn(N/2,1)*0.8;
-drag0 = 1.2 + randn(N/2,1)*0.4;
-X0    = [rcs0, mag0, drag0];
-
-% Class 1: active satellites (higher RCS, brighter, lower drag)
-rcs1  = 2.0 + randn(N/2,1)*0.4;
-mag1  = 3.5 + randn(N/2,1)*0.7;
-drag1 = 0.3 + randn(N/2,1)*0.2;
-X1    = [rcs1, mag1, drag1];
-
-X = [X0; X1];
-y = [zeros(N/2,1); ones(N/2,1)];
-
-% Shuffle
-idx = randperm(N);
-X   = X(idx,:);
-y   = y(idx);
-</code></pre>
+      <li>
+        Load <code>sat_data.mat</code>. It contains two variables:
+        <ul style="margin:0.4rem 0 0.4rem 1rem;">
+          <li><code>Y</code> — \(300 \times 2\) matrix: column 1 is average visual magnitude, column 2 is average rotation rate.</li>
+          <li><code>ID</code> — \(300 \times 1\) integer vector of class labels (1–4).</li>
+        </ul>
+        Display the size and class of both variables. Transpose <code>Y</code> to obtain <code>X</code> (\(2 \times 300\)), so features are in rows and objects are in columns.
       </li>
-      <li><strong>(5 pts)</strong> Plot a 2D scatter plot of RCS vs. magnitude, color-coded by class. Do the classes appear linearly separable in this feature pair?</li>
-      <li><strong>(5 pts)</strong> Normalize the features (zero mean, unit variance, using training statistics). Split: 80% train, 20% test.</li>
+      <li>
+        Plot a scatter plot of visual magnitude vs. rotation rate, color-coded by class. Label the four classes in the legend. Do the classes appear linearly separable?
+      </li>
+      <li>
+        Convert the \(300 \times 1\) integer label vector <code>ID</code> into a \(4 \times 300\) one-hot matrix <code>Y_oh</code>. Column \(n\) should have a 1 in row <code>ID(n)</code> and zeros elsewhere (Figure 2). Verify the first few columns match the first few entries of <code>ID</code>.
+        <!-- One-hot illustration -->
+        <div style="overflow-x:auto;margin:1rem 0;">
+          <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:0.4rem;">
+            Figure 2: Example one-hot encoding for 6 objects with labels [4, 1, 3, 2, 4, 1].
+          </p>
+          <table style="border-collapse:collapse;font-family:monospace;font-size:0.88rem;color:var(--text-secondary);">
+            <thead>
+              <tr>
+                <th style="padding:0.3rem 0.8rem;border-bottom:1px solid rgba(255,255,255,0.2);text-align:left;">Class</th>
+                <th style="padding:0.3rem 0.8rem;border-bottom:1px solid rgba(255,255,255,0.2);text-align:center;">obj 1<br><small>ID=4</small></th>
+                <th style="padding:0.3rem 0.8rem;border-bottom:1px solid rgba(255,255,255,0.2);text-align:center;">obj 2<br><small>ID=1</small></th>
+                <th style="padding:0.3rem 0.8rem;border-bottom:1px solid rgba(255,255,255,0.2);text-align:center;">obj 3<br><small>ID=3</small></th>
+                <th style="padding:0.3rem 0.8rem;border-bottom:1px solid rgba(255,255,255,0.2);text-align:center;">obj 4<br><small>ID=2</small></th>
+                <th style="padding:0.3rem 0.8rem;border-bottom:1px solid rgba(255,255,255,0.2);text-align:center;">obj 5<br><small>ID=4</small></th>
+                <th style="padding:0.3rem 0.8rem;border-bottom:1px solid rgba(255,255,255,0.2);text-align:center;">obj 6<br><small>ID=1</small></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="padding:0.2rem 0.8rem;">Row 1 (Active)</td>   <td style="text-align:center;">0</td><td style="text-align:center;color:var(--usafa-gold);font-weight:700;">1</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;color:var(--usafa-gold);font-weight:700;">1</td></tr>
+              <tr><td style="padding:0.2rem 0.8rem;">Row 2 (Inactive)</td> <td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;color:var(--usafa-gold);font-weight:700;">1</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td></tr>
+              <tr><td style="padding:0.2rem 0.8rem;">Row 3 (Rocket Body)</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;color:var(--usafa-gold);font-weight:700;">1</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td></tr>
+              <tr><td style="padding:0.2rem 0.8rem;">Row 4 (Debris)</td>   <td style="text-align:center;color:var(--usafa-gold);font-weight:700;">1</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;">0</td><td style="text-align:center;color:var(--usafa-gold);font-weight:700;">1</td><td style="text-align:center;">0</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </li>
+      <li>
+        Use <code>rng(356)</code> and <code>randperm</code> to randomly shuffle the 300 objects. Take the first 80% as training data and the remaining 20% as test data. Normalize each feature to zero mean and unit variance using <strong>training statistics only</strong>, then apply the same transform to the test set.  After normalizing, confirm the training set mean is 0 and standard deviation is 1 for each feature.
+      </li>
     </ol>
   </div>
 
   <!-- Problem 2 -->
   <div class="problem">
-    <h3>Problem 2 — Model Setup (Lesson 34) (20 pts)</h3>
+    <h3>Loss Function</h3>
     <ol>
-      <li><strong>(5 pts)</strong> Initialize the logistic regression model: \(\mathbf{w} = \mathbf{0}\), \(b = 0\). Implement the sigmoid function as an anonymous function.</li>
-      <li><strong>(10 pts)</strong> Compute the initial forward pass on all training examples (vectorized, using matrix operations). Compute and report the initial cross-entropy loss and initial accuracy. What do you expect them to be for a random/zero model?</li>
-      <li><strong>(5 pts)</strong> Plot the initial decision boundary (derived from \(\mathbf{w}^\top\mathbf{x}+b=0\)) on top of the 2D scatter plot. Why is the boundary at the origin?</li>
+      <li>
+        The parameter vector \(\boldsymbol{\theta} \in \mathbb{R}^{12}\) packs all model parameters as:
+        \[
+          \boldsymbol{\theta} = \begin{bmatrix} \mathbf{W}(:) \\ \mathbf{b} \end{bmatrix}
+        \]
+        where the first 8 elements are the entries of \(\mathbf{W}\) stored column-major (so <code>reshape(theta(1:8), 4, 2)</code> recovers \(\mathbf{W}\)) and the last 4 are \(\mathbf{b}\). The following local function is provided — copy it to the bottom of your script file. It accepts the \(12 \times 1\) parameter vector \(\boldsymbol{\theta}\), the \(N \times 2\) feature matrix \(\mathbf{X}\) (objects as rows), and the \(4 \times N\) one-hot label matrix \(\mathbf{Y}\), and returns a scalar loss computed according to the softmax cross-entropy loss function described in the Model Structure section above.
+        <pre><code class="language-matlab">function L = ce_loss(theta, X, Y_true)
+% theta  : 12x1 parameter vector [W(:); b]
+% X      : N x 2  (objects as rows, features as columns)
+% Y_true : 4 x N  one-hot label matrix
+
+N = size(X, 1);
+
+% Step 1: Unpack W (4x2) and b (4x1) from theta.
+% reshape() fills column-major, so the first 4 elements of theta become
+% column 1 of W (scores for feature 1), next 4 become column 2 (feature 2).
+W = reshape(theta(1:8), 4, 2);
+b = theta(9:12);
+
+% Step 2: Compute logit matrix Z (4 x N).
+% X' transposes X to 2xN so each column is one object's feature vector.
+% W*X' produces a 4xN matrix — each column holds 4 class scores for one object.
+% Adding b broadcasts the 4x1 bias across all N columns.
+Z = W * X' + b;
+
+% Step 3: Numerically stable softmax.
+% Subtracting the column maximum before exp() prevents overflow.
+% The shift cancels in the ratio (numerator and denominator both scale equally),
+% so the probabilities are unchanged. sum(E,1) sums down each column.
+E = exp(Z - max(Z, [], 1));
+P = E ./ sum(E, 1);               % 4 x N — each column sums to 1
+
+% Step 4: Average cross-entropy loss.
+% Y_true is one-hot, so Y_true.*log(P) selects only the log-probability
+% of the correct class for each object. We average over all N objects.
+% The 1e-10 prevents log(0) if any probability rounds to zero.
+L = -1/N * sum(sum(Y_true .* log(P + 1e-10)));
+end</code></pre>
+      </li>
+      <li>
+        Create a function handle <code>loss_fn</code> that calls <code>ce_loss</code> with the training data fixed, so it depends only on <code>theta</code>. Initialize all parameters to zero (<code>theta0</code>, a 12×1 zero vector) and evaluate the initial loss. What value do you expect for a model that assigns equal probability to all four classes? Does your result agree?
+      </li>
     </ol>
   </div>
 
   <!-- Problem 3 -->
   <div class="problem">
-    <h3>Problem 3 — Gradient Descent Training (Lesson 35) (35 pts)</h3>
+    <h3>Training with <code>fminsearch</code></h3>
     <ol>
-      <li><strong>(20 pts)</strong> Implement the training loop using the update equations above. Use \(\alpha = 0.5\), 1000 iterations. Store the loss at each iteration.
-        <ul style="margin-top:0.4rem;padding-left:1rem;">
-          <li>At each iteration: forward pass → compute loss → compute gradients → update \(\mathbf{w}\) and \(b\).</li>
-          <li>Use fully vectorized MATLAB (no <code>for</code> loop over samples).</li>
-        </ul>
+      <li>
+        Train the model by passing <code>loss_fn</code> and <code>theta0</code> to MATLAB's <code>fminsearch</code>. Set <code>MaxIter = 5000</code> and <code>MaxFunEvals = 20000</code>. Once <code>fminsearch</code> returns the optimal parameter vector <code>theta_opt</code>, recover \(\mathbf{W}_\text{opt}\) (4×2) and \(\mathbf{b}_\text{opt}\) (4×1) from <code>theta_opt</code> using the same unpacking scheme as the provided <code>ce_loss</code> function. Report the final training loss and compare it to the initial loss.
       </li>
-      <li><strong>(10 pts)</strong> Plot the loss curve (loss vs. iteration). Does it decrease monotonically? What is the final training loss?</li>
-      <li><strong>(5 pts)</strong> Repeat with \(\alpha = 0.01\) and \(\alpha = 2.0\). Show all three loss curves on one plot. Describe the behavior for each learning rate.</li>
+      <li>
+        Compute training set accuracy. Apply the trained model to the training features to get logit matrix \(\mathbf{Z}\), then take the <code>max</code> along the class dimension (dim 1) to find the predicted class index for each object. Do the same with the one-hot label matrix to recover the true class indices. Report training accuracy as a percentage.
+        <br><br>
+        <em>MATLAB hint:</em> The class with the highest logit score is the predicted class. MATLAB's <code>max</code> with two output arguments returns both the maximum value and its index — here you only need the index. <code>[~, y_pred] = max(Z, [], 1)</code> returns a \(1{\times}N\) row vector of predicted class indices (1–4), where <code>~</code> discards the values. To recover the true class indices from the one-hot matrix, apply the same <code>max</code> trick, or use <code>IDtrain</code> directly (the integer label vector). Once you have both index vectors with matching orientations, <code>mean(y_pred == y_true) * 100</code> gives accuracy as a percentage.
+      </li>
     </ol>
   </div>
 
   <!-- Problem 4 -->
   <div class="problem">
-    <h3>Problem 4 — Evaluation &amp; Analysis (30 pts)</h3>
+    <h3>Evaluation &amp; Analysis</h3>
     <ol>
-      <li><strong>(10 pts)</strong> Evaluate the trained model (\(\alpha=0.5\)) on the test set. Report:
-        <ul style="margin-top:0.4rem;padding-left:1rem;">
-          <li>Test accuracy (fraction of correctly classified examples)</li>
-          <li>Test cross-entropy loss</li>
-          <li>Confusion matrix (2×2 table of TP/TN/FP/FN)</li>
-          <li>Precision, Recall, and F1-score for class 1 (active satellites)</li>
-        </ul>
+      <li>
+        Now compute the test set accuracy and test cross-entropy loss. Report both values.
       </li>
-      <li><strong>(10 pts)</strong> Plot the learned decision boundary on the 2D scatter (RCS vs. magnitude) using the trained weights. Project the 3-feature boundary onto the 2D plane by setting drag to its mean value.</li>
-      <li><strong>(5 pts)</strong> Plot the distribution of predicted probabilities \(\hat{p}\) for each class (two overlapping histograms). How well-separated are the probability distributions?</li>
-      <li><strong>(5 pts)</strong> In space domain awareness, which error is more costly — a false positive (classifying debris as a satellite) or a false negative (classifying a satellite as debris)? Justify your answer. How would you adjust the classification threshold (default 0.5) to reduce your chosen error type?</li>
+      <li>
+        Based on your results, should the CSpOC rely on this linear classifier to update the US space catalogue? What are the limitations of a linear model for this problem, and what would you recommend as a next step?
+      </li>
     </ol>
   </div>
 
@@ -173,7 +234,7 @@ y   = y(idx);
 </main>
 
 <footer class="site-footer">
-  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+  <p>Physics 356 &mdash; Department of Physics &amp; Meteorology &bull; USAFA &bull; Updated Spring 2026</p>
 </footer>
 
 <script src="../js/main.js"></script>

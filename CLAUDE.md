@@ -90,11 +90,23 @@ In-lesson MATLAB examples must be **clearly distinct** from the homework problem
 
 ## Video Embedding Notes
 
-Some YouTube videos (e.g., 3B1B) return Error 153 and cannot be embedded in `<iframe>`. Use `.video-link-card` instead.
+**All videos must use `.video-link-card` — never `<iframe>`.** YouTube embeds frequently fail silently (Error 153) and show a blank box. Always use the link-card pattern instead:
+
+```html
+<a href="https://www.youtube.com/watch?v=VIDEO_ID" target="_blank" rel="noopener" class="video-link-card">
+  <div class="video-link-thumb">▶</div>
+  <div class="video-link-info">
+    <div class="video-link-title">Video Title</div>
+    <div class="video-link-channel">Channel Name &mdash; YouTube</div>
+  </div>
+</a>
+```
 
 Canonical video placements:
-- 3B1B "But what is a neural network?" (`aircAruvnKk`) → L37
-- 3B1B "Gradient descent" (`IHZwWFHWa-w`) → L36
+- StatQuest "Logistic Regression Pt 1" (`yIYKR4sgzI8`) → L34
+- CS231n Lecture 2 — Linear Classification (`OoUX-nOEjG0`) → L34
+- 3B1B "Gradient descent" (`IHZwWFHWa-w`) → L35
+- 3B1B "But what is a neural network?" (`aircAruvnKk`) → L36
 - 3B1B "Backpropagation calculus" (`tIeHLnjs5U8`) → L37
 - Karpathy "Let's build GPT" (`kCc8FmEb1nY`) → L38
 
@@ -109,11 +121,11 @@ Canonical video placements:
 - `Max_Likelihood_HW.pdf` — L31 HW source
 
 **ML & AI (L33–L38):**
-`~/Library/CloudStorage/OneDrive-afacademy.af.edu/USAFA Classes/Phys 356/2026/AI_ML_Material/`
+`/Users/caseypellizzari/Library/CloudStorage/OneDrive-afacademy.af.edu/USAFA Classes/Phys 356/2026/AI_ML_Material/`
 - Slides: `356_Lesson_33.pptx` through `356_Lesson_38.pptx`
-- HW specs: `HW_33.docx` through `HW_37.docx`
+- HW specs: `HW_33.docx` through `HW_37.docx` (note: `HW_36.docx` is the source for hw34.html)
 - Reference text: `Text - machine_learning_for_humans.pdf`
-- Data: `physics_grades.mat`, `sat_data.mat`
+- Data: `physics_grades.mat`, `sat_data.mat` (300 GEO objects: visual magnitude + rotation rate, 4 classes)
 
 ## Page Completion Status
 

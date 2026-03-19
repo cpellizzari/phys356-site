@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lesson 38 — CNNs, Transformers &amp; LLMs | PHYS 356</title>
+  <title>Lesson 38 — Transformers, LLMs &amp; Diffusion Models | PHYS 356</title>
   <link rel="stylesheet" href="css/style.css">
   <script>
     MathJax = {
@@ -45,112 +45,32 @@
 
   <div class="lesson-banner">
     <div class="lesson-meta">Lesson 38 &bull; Physics 356</div>
-    <h1>CNNs, Transformers &amp; Large Language Models</h1>
+    <h1>Transformers, LLMs &amp; Diffusion Models</h1>
     <span class="reading-time">⏱ ~50 min read</span>
   </div>
 
   <div class="objectives-box">
     <h2>Learning Objectives</h2>
     <ul>
-      <li>Explain how convolutional layers exploit spatial structure and compare them to fully-connected layers.</li>
-      <li>Describe max pooling and why it provides translation invariance.</li>
       <li>Articulate the attention mechanism: what it computes and why it's powerful for sequential data.</li>
       <li>Describe the transformer architecture at a high level (encoder, self-attention, feed-forward sublayers).</li>
       <li>Explain what large language models (LLMs) are and how they are trained (pre-training + fine-tuning).</li>
+      <li>Describe diffusion models conceptually: the forward noising process, the reverse denoising process, and how they are trained.</li>
+      <li>Identify key physics applications of transformers and diffusion models.</li>
     </ul>
   </div>
 
   <!-- Background -->
   <div class="card">
     <h2><span class="section-icon">🌍</span> Background &amp; Motivation</h2>
-    <h3>From MLPs to specialized architectures</h3>
+    <h3>From discriminative to generative models</h3>
     <p>
-      The fully-connected networks of Lessons 36–37 treat every input feature identically — a pixel at position (0,0) in an image is treated no differently from one at position (100,100). This ignores the rich <em>structure</em> of real data: images have spatial locality (nearby pixels are correlated), and text has sequential dependency (the meaning of a word depends on context).
-    </p>
-    <p>
-      <strong>Convolutional Neural Networks (CNNs)</strong> exploit spatial structure. <strong>Transformers</strong> handle arbitrary long-range dependencies in sequences. Together, these two architectures have driven nearly every major AI breakthrough of the past decade: image recognition, protein structure prediction, language modeling, and more.
+      The networks from Lessons 35–36 are discriminative models — they map inputs to class labels or probabilities. The architectures in this lesson do something more ambitious: transformers process sequences with arbitrary long-range dependencies, and diffusion models learn to generate entirely new data.
     </p>
     <h3>Why this matters for physicists</h3>
     <p>
-      CNNs are now standard tools in astrophysics (galaxy morphology classification, gravitational lens detection), materials science (phase identification from diffraction patterns), and defense applications (SAR image interpretation). Transformers power the LLMs that are transforming how scientists write, code, and analyze data.
+      Transformers power the LLMs that are transforming how scientists write, code, and analyze data. AlphaFold 2/3 uses transformers for protein structure prediction. Diffusion models are now standard tools for molecular generation, inverse problems in imaging, and probabilistic weather forecasting. Understanding these architectures at a mechanistic level is increasingly essential for physicists and engineers working at the frontier.
     </p>
-  </div>
-
-  <!-- CNNs -->
-  <div class="card">
-    <h2><span class="section-icon">🔲</span> Convolutional Neural Networks (CNNs)</h2>
-
-    <h3>The key idea: parameter sharing</h3>
-    <p>
-      A fully-connected layer with \(d=1024\) inputs and 1024 outputs has \(1024^2 \approx 10^6\) weights. For a 256×256 image that's \(65536\) inputs — the weight count explodes.
-    </p>
-    <p>
-      A <strong>convolutional layer</strong> instead uses a small <em>filter</em> (e.g., \(3 \times 3\) pixels, \(K=9\) weights) that slides across the entire input, computing a dot product at each position. The same filter is applied everywhere — this is <strong>parameter sharing</strong>. The result is a <em>feature map</em> that encodes where in the image the filter "fires."
-    </p>
-    <div class="math-block">
-      \[
-        z_{ij}^{(k)} = \sum_{m=0}^{F-1}\sum_{n=0}^{F-1} W_{mn}^{(k)} \cdot a_{(i+m)(j+n)} + b^{(k)}
-      \]
-    </div>
-    <p>
-      Where \(F\) is the filter size, \((i,j)\) is the output position, and \(k\) indexes the filter (channel). A typical convolutional layer uses many filters in parallel, producing many feature maps (channels).
-    </p>
-    <div class="callout info">
-      <strong>Spatial locality:</strong> Each output neuron depends only on a small local region (the <em>receptive field</em>) of the input. This is exactly right for images — edges, corners, and textures are local features.
-    </div>
-
-    <h3>Pooling</h3>
-    <p>
-      After a convolutional layer, a <strong>pooling layer</strong> reduces the spatial dimensions. <strong>Max pooling</strong> takes the maximum value in each non-overlapping region (e.g., \(2 \times 2\)):
-    </p>
-    <div class="math-block">
-      \[
-        p_{ij} = \max_{m,n \in \text{region}} a_{(2i+m)(2j+n)}
-      \]
-    </div>
-    <p>
-      Pooling provides <strong>translation invariance</strong> — a feature detected slightly off-center still produces the same output — and reduces computation for subsequent layers.
-    </p>
-
-    <h3>Typical CNN Architecture</h3>
-    <p>A classic pattern: stack Conv → ReLU → Pool blocks, then flatten and use fully-connected layers for the final classification:</p>
-    <div class="callout info" style="font-family:monospace;font-size:0.88rem;line-height:2;">
-      Input image → [Conv3×3 + ReLU] → [MaxPool 2×2] → [Conv3×3 + ReLU] → [MaxPool 2×2] → Flatten → FC → Softmax → Class label
-    </div>
-
-    <h3>MATLAB CNN Demo (Conceptual)</h3>
-<pre><code class="language-matlab">%% Lesson 38 — Manual 2D Convolution (conceptual, no toolbox required)
-% Apply a 3×3 edge-detection filter to a grayscale image
-
-% Simple test image
-I = double(imread('cameraman.tif'));  % 256×256 grayscale
-[H, W] = size(I);
-
-% Sobel edge filter (horizontal edges)
-kernel = [-1 -2 -1;
-           0  0  0;
-           1  2  1];
-F = 3;  pad = 1;
-
-% Zero-pad the image
-I_pad = padarray(I, [pad pad], 0);
-
-% Convolve (slide kernel across image)
-feature_map = zeros(H, W);
-for i = 1:H
-    for j = 1:W
-        patch = I_pad(i:i+F-1, j:j+F-1);  % F×F patch
-        feature_map(i,j) = sum(sum(kernel .* patch));
-    end
-end
-
-figure;
-subplot(1,2,1); imagesc(I);        colormap gray; title('Original'); axis image off;
-subplot(1,2,2); imagesc(feature_map); colormap gray; title('Edge Filter Output'); axis image off;
-</code></pre>
-    <div class="callout tip">
-      <strong>MATLAB Deep Learning Toolbox:</strong> In practice, use <code>convolution2dLayer</code>, <code>maxPooling2dLayer</code>, etc. to build CNNs without manual loops. See HW 38 optional section.
-    </div>
   </div>
 
   <!-- Transformers -->
@@ -274,17 +194,75 @@ subplot(1,2,2); imagesc(feature_map); colormap gray; title('Edge Filter Output')
     </ul>
   </div>
 
+  <!-- Diffusion Models -->
+  <div class="card">
+    <h2><span class="section-icon">🌫</span> Diffusion Models</h2>
+
+    <h3>The core idea: learn to denoise</h3>
+    <p>
+      Diffusion models are a class of generative model that learn to generate data by learning to <em>reverse a noising process</em>. The key insight is elegant: if you can learn to remove a small amount of noise from a corrupted image, you can iteratively apply that denoising to pure random noise until a coherent image emerges.
+    </p>
+
+    <h3>Forward process (noising)</h3>
+    <p>
+      Given a clean data sample \(\mathbf{x}_0\), the forward process gradually adds Gaussian noise over \(T\) steps:
+    </p>
+    <div class="math-block">
+      \[
+        q(\mathbf{x}_t \mid \mathbf{x}_{t-1}) = \mathcal{N}(\mathbf{x}_t;\, \sqrt{1-\beta_t}\,\mathbf{x}_{t-1},\, \beta_t \mathbf{I})
+      \]
+    </div>
+    <p>
+      Where \(\beta_t\) is a small noise variance schedule (e.g., linearly increasing from \(10^{-4}\) to \(0.02\)). After \(T \approx 1000\) steps, \(\mathbf{x}_T\) is approximately pure Gaussian noise. Crucially, you can sample any noisy \(\mathbf{x}_t\) directly from \(\mathbf{x}_0\) in closed form:
+    </p>
+    <div class="math-block">
+      \[
+        \mathbf{x}_t = \sqrt{\bar{\alpha}_t}\,\mathbf{x}_0 + \sqrt{1 - \bar{\alpha}_t}\,\boldsymbol{\epsilon}, \qquad \boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})
+      \]
+    </div>
+    <p>where \(\bar{\alpha}_t = \prod_{s=1}^t (1-\beta_s)\).</p>
+
+    <h3>Reverse process (denoising)</h3>
+    <p>
+      The model learns the reverse: given a noisy sample \(\mathbf{x}_t\), predict the noise \(\boldsymbol{\epsilon}\) that was added. This is a neural network \(\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)\) trained with a simple mean-squared loss:
+    </p>
+    <div class="math-block">
+      \[
+        L = \mathbb{E}_{t, \mathbf{x}_0, \boldsymbol{\epsilon}}\!\left[\left\|\boldsymbol{\epsilon} - \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)\right\|^2\right]
+      \]
+    </div>
+    <p>
+      At inference, start from \(\mathbf{x}_T \sim \mathcal{N}(\mathbf{0},\mathbf{I})\) and iteratively apply the learned denoiser to get \(\mathbf{x}_{T-1}, \ldots, \mathbf{x}_0\) — a brand-new sample.
+    </p>
+    <div class="callout info">
+      <strong>Architecture:</strong> The denoising network \(\boldsymbol{\epsilon}_\theta\) is typically a U-Net (a CNN with skip connections) or a Diffusion Transformer (DiT) — transformers applied to image patches. The same training and inference infrastructure from Lessons 35–37 (forward pass, backprop, SGD) applies directly.
+    </div>
+
+    <h3>Why diffusion models produce such high-quality outputs</h3>
+    <p>
+      Unlike GANs (which can be unstable to train) or VAEs (which can produce blurry outputs), diffusion models have a stable training objective and iteratively refine outputs over many steps. Each denoising step makes a small, learned correction — errors do not compound catastrophically.
+    </p>
+
+    <h3>Physics applications of diffusion models</h3>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;">
+      <li><strong>Molecular generation:</strong> Generating novel drug-like molecules or crystal structures (e.g., DiffSBDD, DiffCSP).</li>
+      <li><strong>Inverse problems:</strong> Reconstructing clean signals from noisy measurements — directly analogous to physics image reconstruction (MRI, CT, SAR).</li>
+      <li><strong>Weather &amp; climate:</strong> Probabilistic forecast generation (SEEDS, GenCast).</li>
+      <li><strong>Simulation acceleration:</strong> Generating synthetic training data or emulating expensive physics simulations.</li>
+    </ul>
+  </div>
+
   <!-- Video -->
   <div class="card">
     <h2><span class="section-icon">▶</span> Recommended Video</h2>
     <p>Andrej Karpathy's "Let's build GPT from scratch" is the best hands-on walkthrough of transformers available. Watch at least the first 45 minutes for the core architecture:</p>
-    <div class="video-container">
-      <iframe src="https://www.youtube.com/embed/kCc8FmEb1nY"
-              title="Andrej Karpathy — Let's build GPT from scratch"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen loading="lazy"></iframe>
-    </div>
-    <p class="video-caption">Andrej Karpathy, "Let's build GPT: from scratch, in code, spelled out" (2023) — focus on 0:00–45:00 for the attention mechanism</p>
+    <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener" class="video-link-card">
+      <div class="video-link-thumb">▶</div>
+      <div class="video-link-info">
+        <div class="video-link-title">Let's build GPT: from scratch, in code, spelled out (focus: 0:00–45:00)</div>
+        <div class="video-link-channel">Andrej Karpathy &mdash; YouTube</div>
+      </div>
+    </a>
   </div>
 
   <!-- Summary -->
@@ -293,29 +271,31 @@ subplot(1,2,2); imagesc(feature_map); colormap gray; title('Edge Filter Output')
     <table class="summary-table">
       <thead><tr><th>Architecture</th><th>Key Innovation</th><th>Best For</th></tr></thead>
       <tbody>
-        <tr><td><strong>MLP (L36–37)</strong></td><td>Universal approximation via depth</td><td>Tabular data, general function fitting</td></tr>
-        <tr><td><strong>CNN</strong></td><td>Parameter sharing via convolution; spatial locality</td><td>Images, 2D/3D data, spectrograms</td></tr>
+        <tr><td><strong>MLP (L35–36)</strong></td><td>Universal approximation via depth</td><td>Tabular data, general function fitting</td></tr>
+        <tr><td><strong>CNN (L37)</strong></td><td>Parameter sharing via convolution; spatial locality</td><td>Images, 2D/3D data, spectrograms</td></tr>
         <tr><td><strong>Transformer</strong></td><td>Self-attention captures arbitrary long-range dependencies</td><td>Sequences: text, time series, molecules</td></tr>
         <tr><td><strong>LLM</strong></td><td>Pre-trained transformer at massive scale</td><td>Language, code, reasoning, general-purpose AI</td></tr>
+        <tr><td><strong>Diffusion Model</strong></td><td>Learns to reverse a Gaussian noising process; trained with a simple MSE loss on predicted noise</td><td>Image/molecule/signal generation, inverse problems</td></tr>
       </tbody>
     </table>
-    <a href="hw/hw38.html" class="hw-button">📋 HW 38 — CNNs &amp; Transformers (Qualitative + Optional Demo)</a>
+    <a href="hw/hw38.html" class="hw-button">📋 HW 38 — Transformers &amp; Diffusion (Qualitative + Optional Demo)</a>
   </div>
 
   <!-- References -->
   <div class="card references">
     <h2><span class="section-icon">📚</span> References</h2>
     <ol>
-      <li>LeCun, Y., Bottou, L., Bengio, Y., &amp; Haffner, P. (1998). Gradient-based learning applied to document recognition. <em>Proceedings of the IEEE, 86</em>(11), 2278–2324.</li>
       <li>Vaswani, A., et al. (2017). Attention is all you need. <em>NeurIPS 2017</em>. arXiv:1706.03762.</li>
       <li>Karpathy, A. (2023). <em>Let's build GPT: from scratch, in code, spelled out</em> [Video]. YouTube. <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">youtube.com</a></li>
       <li>Brown, T. B., et al. (2020). Language models are few-shot learners (GPT-3). <em>NeurIPS 2020</em>. arXiv:2005.14165.</li>
       <li>Jumper, J., et al. (2021). Highly accurate protein structure prediction with AlphaFold. <em>Nature, 596</em>, 583–589.</li>
+      <li>Ho, J., Jain, A., &amp; Abbeel, P. (2020). Denoising diffusion probabilistic models (DDPM). <em>NeurIPS 2020</em>. arXiv:2006.11239.</li>
+      <li>Song, Y., et al. (2021). Score-based generative modeling through stochastic differential equations. <em>ICLR 2021</em>. arXiv:2011.13456.</li>
     </ol>
   </div>
 
   <div class="lesson-nav">
-    <a href="lesson37.html" class="prev">← L37: Backpropagation</a>
+    <a href="lesson37.html" class="prev">← L37: Convolutional Neural Networks</a>
     <a href="index.html" class="next">
       <div><span class="nav-label">Back to</span><br>Module Home</div>
       →
@@ -325,7 +305,7 @@ subplot(1,2,2); imagesc(feature_map); colormap gray; title('Edge Filter Output')
 </main>
 
 <footer class="site-footer">
-  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+  <p>Physics 356 &mdash; Department of Physics &amp; Meteorology &bull; USAFA &bull; Updated Spring 2026</p>
 </footer>
 
 <script src="js/main.js"></script>

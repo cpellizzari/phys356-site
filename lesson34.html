@@ -54,9 +54,10 @@
     <ul>
       <li>Write the linear score function and interpret its geometric meaning as a hyperplane.</li>
       <li>Explain what a decision boundary is and derive it for a binary linear classifier.</li>
-      <li>Compare MSE (regression) and binary cross-entropy (classification) loss functions.</li>
-      <li>Explain the sigmoid function and why it maps scores to probabilities.</li>
-      <li>Set up a classification problem in MATLAB on real space-object data.</li>
+      <li>Explain the sigmoid function and why it maps a single score to a probability.</li>
+      <li>Define the softmax function as the multi-class generalization of sigmoid.</li>
+      <li>Compare MSE, binary cross-entropy, and multi-class cross-entropy loss functions.</li>
+      <li>Set up a multi-class linear classification problem in MATLAB on real space-object data.</li>
     </ul>
   </div>
 
@@ -67,10 +68,15 @@
       <div class="notation-item"><span class="sym">\(\mathbf{w} \in \mathbb{R}^d\)</span><span class="desc">Weight vector</span></div>
       <div class="notation-item"><span class="sym">\(b \in \mathbb{R}\)</span><span class="desc">Scalar bias</span></div>
       <div class="notation-item"><span class="sym">\(s\)</span><span class="desc">Raw score (pre-activation)</span></div>
-      <div class="notation-item"><span class="sym">\(\hat{p}\)</span><span class="desc">Predicted probability</span></div>
+      <div class="notation-item"><span class="sym">\(\hat{p}\)</span><span class="desc">Predicted probability (binary)</span></div>
       <div class="notation-item"><span class="sym">\(y \in \{0,1\}\)</span><span class="desc">Binary label</span></div>
+      <div class="notation-item"><span class="sym">\(K\)</span><span class="desc">Number of classes</span></div>
+      <div class="notation-item"><span class="sym">\(s_k\)</span><span class="desc">Score for class \(k\)</span></div>
+      <div class="notation-item"><span class="sym">\(P_k\)</span><span class="desc">Predicted probability of class \(k\)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{W} \in \mathbb{R}^{K \times d}\)</span><span class="desc">Weight matrix (multi-class)</span></div>
       <div class="notation-item"><span class="sym">\(L\)</span><span class="desc">Loss (scalar, measures error)</span></div>
-      <div class="notation-item"><span class="sym">\(\sigma(s)\)</span><span class="desc">Sigmoid function</span></div>
+      <div class="notation-item"><span class="sym">\(\sigma(s)\)</span><span class="desc">Sigmoid function (binary)</span></div>
+      <div class="notation-item"><span class="sym">\(\text{softmax}(\mathbf{s})\)</span><span class="desc">Softmax function (multi-class)</span></div>
     </div>
   </div>
 
@@ -82,7 +88,7 @@
       In Lesson 33 we introduced regression — predicting a continuous output. Classification is the complementary problem: given features \(\mathbf{x}\), assign the example to one of \(K\) discrete classes. The simplest case is <strong>binary classification</strong>: debris vs. active satellite, signal vs. noise, threat vs. benign.
     </p>
     <p>
-      The CSpOC (Combined Space Operations Center) tracks thousands of objects in Earth orbit. Classifying these objects — determining whether a radar return corresponds to an active satellite, rocket body, or debris — is precisely a binary (or multi-class) classification problem where the features are derived from radar cross-section, brightness, and orbital elements.
+      The CSpOC (Combined Space Operations Center) tracks thousands of objects in Earth orbit. Classifying these objects — determining whether a radar return corresponds to an active satellite, rocket body, or debris — is precisely a binary (or multi-class) classification problem where the features are derived from <strong>radar cross-section (RCS)</strong>, brightness, and orbital elements. RCS is the effective scattering area of an object as seen by a radar: large, metallic active satellites tend to have high RCS, while small debris fragments have low RCS, making it a useful discriminating feature.
     </p>
     <h3>Why not just use regression for classification?</h3>
     <p>
@@ -124,7 +130,55 @@
       The <strong>decision boundary</strong> is the set of points where \(s = 0\), i.e., the hyperplane \(\mathbf{w}^\top \mathbf{x} + b = 0\). Learning the classifier means finding the \(\mathbf{w}\) and \(b\) that place this boundary correctly between the two classes.
     </p>
 
-    <h3>3. The Sigmoid Function</h3>
+    <h3>3. Interpreting the Linear Classifier: Template Matching</h3>
+    <p>
+      There are two complementary ways to understand what the weight vector \(\mathbf{w}\) actually learns. The first is <strong>template matching</strong> (from CS231n, Stanford).
+    </p>
+    <p>
+      Think of \(\mathbf{w}\) as a learned <em>prototype</em> or template for the positive class. The raw score is simply an inner product:
+    </p>
+    <div class="math-block">
+      \[
+        s = \mathbf{w}^\top \mathbf{x} + b
+      \]
+    </div>
+    <p>
+      A large positive \(s\) means \(\mathbf{x}\) is highly aligned with the template \(\mathbf{w}\) — the input looks like the learned prototype. A large negative \(s\) means \(\mathbf{x}\) is anti-aligned — it looks like the opposite class. This is conceptually similar to nearest-neighbor classification, but instead of comparing against every training example we compare against a single learned prototype per class.
+    </p>
+    <figure style="text-align:center;margin:1.4rem 0;">
+      <img src="https://cs231n.github.io/assets/templates.jpg"
+           alt="Learned weight templates for each class in CIFAR-10"
+           style="max-width:100%;border-radius:6px;">
+      <figcaption style="font-size:0.82rem;color:var(--text-secondary);margin-top:0.6rem;">
+        Figure from <a href="https://cs231n.github.io/linear-classify" target="_blank" rel="noopener">CS231n notes</a> (Karpathy et al., Stanford 2017): Each tile shows the row \(\mathbf{w}_k\) reshaped into image dimensions — the learned template for that class. The horse template appears two-headed because the linear classifier merges left- and right-facing examples into a single prototype. The ship template shows strong blue pixels consistent with water and sky.
+      </figcaption>
+    </figure>
+    <div class="callout info">
+      <strong>In our space-object context:</strong> The feature vector is \(\mathbf{x} = [\text{RCS},\ \text{brightness}]^\top\). After training, \(\mathbf{w}\) points roughly toward the centroid of the satellite cluster (high RCS, bright). A new object is assigned to whichever class its feature vector most resembles — the one with the higher dot-product similarity.
+    </div>
+
+    <h3>4. Interpreting the Linear Classifier: Geometric View</h3>
+    <p>
+      The second interpretation is geometric. The score \(s = \mathbf{w}^\top \mathbf{x} + b\) is a linear function over feature space, and its geometry directly reveals what the classifier is doing.
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;">
+      <li>The set of all points where \(s = 0\) is the <strong>decision boundary</strong> — a hyperplane (a line in 2D).</li>
+      <li>The weight vector \(\mathbf{w}\) is <strong>perpendicular to this hyperplane</strong> and points toward the positive class. Moving along \(\mathbf{w}\) increases the score; moving against it decreases it.</li>
+      <li>The bias \(b\) <strong>shifts the hyperplane away from the origin</strong>. Without it, every decision boundary is forced through the origin — a severe restriction that prevents the model from fitting data that is not origin-centered.</li>
+    </ul>
+    <figure style="text-align:center;margin:1.4rem 0;">
+      <img src="https://cs231n.github.io/assets/pixelspace.jpeg"
+           alt="Cartoon of feature space showing three linear classifiers as hyperplanes"
+           style="max-width:72%;border-radius:6px;">
+      <figcaption style="font-size:0.82rem;color:var(--text-secondary);margin-top:0.6rem;">
+        Figure from <a href="https://cs231n.github.io/linear-classify" target="_blank" rel="noopener">CS231n notes</a> (Karpathy et al., Stanford 2017): Feature space with each example as a point (shown in 2D for visualization). Each linear classifier cuts the space with a hyperplane; points on opposite sides receive opposite-sign scores. The arrow perpendicular to each boundary shows the direction of increasing score for that class.
+      </figcaption>
+    </figure>
+    <div class="callout info">
+      <strong>Why bias matters for space objects:</strong> Both satellite and debris clusters sit at large positive RCS and brightness values — far from the origin. A boundary forced through the origin cannot cleanly separate them. The bias \(b\) gives the model the freedom to place the boundary wherever the data requires.
+    </div>
+
+    <h3>5. The Sigmoid Function</h3>
     <p>
       Rather than a hard threshold, we often want a smooth probability estimate. The <strong>sigmoid function</strong> maps any real number to \((0,1)\):
     </p>
@@ -142,16 +196,159 @@
       <li>\(\sigma(s) \to 0\) as \(s \to -\infty\) — large negative scores → confident class 0.</li>
       <li>\(\sigma'(s) = \sigma(s)(1-\sigma(s))\) — a handy identity for backprop.</li>
     </ul>
+    <div style="text-align:center;margin:1.4rem 0 0.5rem;">
+      <canvas id="sigmoidCanvas" width="500" height="260" style="max-width:100%;border-radius:8px;background:#1e2a3a;"></canvas>
+      <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.5rem;">
+        Figure: The sigmoid function \(\sigma(s) = 1/(1+e^{-s})\). The gold dot marks \(\sigma(0) = 0.5\).
+      </p>
+    </div>
+    <script>
+    (function () {
+      const canvas = document.getElementById('sigmoidCanvas');
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width, H = canvas.height;
+      const ml = 55, mr = 20, mt = 22, mb = 45;
+      const pw = W - ml - mr, ph = H - mt - mb;
+      const xMin = -6, xMax = 6, yMin = 0, yMax = 1;
+      const toX = x => ml + (x - xMin) / (xMax - xMin) * pw;
+      const toY = y => mt + ph - (y - yMin) / (yMax - yMin) * ph;
+
+      ctx.fillStyle = '#1e2a3a';
+      ctx.fillRect(0, 0, W, H);
+
+      // Grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      for (const gy of [0, 0.25, 0.5, 0.75, 1]) {
+        ctx.beginPath(); ctx.moveTo(ml, toY(gy)); ctx.lineTo(ml + pw, toY(gy)); ctx.stroke();
+      }
+      for (const gx of [-6, -4, -2, 0, 2, 4, 6]) {
+        ctx.beginPath(); ctx.moveTo(toX(gx), mt); ctx.lineTo(toX(gx), mt + ph); ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      // Axes
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(ml, toY(0)); ctx.lineTo(ml + pw, toY(0)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(toX(0), mt); ctx.lineTo(toX(0), mt + ph); ctx.stroke();
+
+      // Sigmoid curve
+      ctx.strokeStyle = '#4a9eff';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (let i = 0; i <= 400; i++) {
+        const s = xMin + (xMax - xMin) * i / 400;
+        const sig = 1 / (1 + Math.exp(-s));
+        i === 0 ? ctx.moveTo(toX(s), toY(sig)) : ctx.lineTo(toX(s), toY(sig));
+      }
+      ctx.stroke();
+
+      // σ(0) = 0.5 dot
+      ctx.fillStyle = '#c5a900';
+      ctx.beginPath(); ctx.arc(toX(0), toY(0.5), 5.5, 0, 2 * Math.PI); ctx.fill();
+
+      // Tick labels
+      ctx.font = '13px Inter, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.textAlign = 'center';
+      for (const gx of [-6, -4, -2, 0, 2, 4, 6]) {
+        ctx.fillText(gx, toX(gx), mt + ph + 20);
+      }
+      ctx.textAlign = 'right';
+      for (const gy of [0, 0.25, 0.5, 0.75, 1]) {
+        ctx.fillText(gy.toFixed(2), ml - 8, toY(gy) + 4);
+      }
+
+      // Axis titles
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.textAlign = 'center';
+      ctx.fillText('s  (score)', ml + pw / 2, H - 4);
+      ctx.save();
+      ctx.translate(13, mt + ph / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('σ(s)', 0, 0);
+      ctx.restore();
+
+      // Annotation for σ(0)=0.5
+      ctx.fillStyle = '#c5a900';
+      ctx.font = '12px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('σ(0) = 0.5', toX(0) + 10, toY(0.5) - 8);
+
+      // Asymptote hints
+      ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.font = '11px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('→ 1', toX(4.6), toY(0.96));
+      ctx.textAlign = 'right';
+      ctx.fillText('→ 0', toX(-4.6), toY(0.07));
+    })();
+    </script>
     <p>
       We define the predicted probability as \(\hat{p} = \sigma(\mathbf{w}^\top \mathbf{x} + b)\).
     </p>
 
-    <h3>4. Loss Functions</h3>
+    <h3>6. From Binary to Multi-Class: The Softmax Function</h3>
+    <p>
+      The sigmoid function works perfectly for <em>binary</em> classification (two classes). When there are \(K > 2\) classes, we need to produce \(K\) probabilities — one per class — that are all positive and sum to 1. The <strong>softmax function</strong> does exactly this.
+    </p>
+    <p>
+      Given a vector of \(K\) raw scores \(\mathbf{s} = [s_1, s_2, \ldots, s_K]^\top\), softmax returns a probability vector:
+    </p>
+    <div class="math-block">
+      \[
+        P_k = \frac{e^{s_k}}{\displaystyle\sum_{j=1}^{K} e^{s_j}}, \qquad k = 1, \ldots, K
+      \]
+    </div>
+    <p>Key properties:</p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;">
+      <li>\(P_k > 0\) for all \(k\) — exponential is always positive.</li>
+      <li>\(\sum_{k=1}^{K} P_k = 1\) — the outputs form a valid probability distribution.</li>
+      <li>The class with the largest score receives the highest probability.</li>
+      <li>Adding a constant to all scores leaves the probabilities unchanged (only differences matter).</li>
+    </ul>
+    <div class="callout info">
+      <strong>Softmax reduces to sigmoid when \(K = 2\).</strong> With two classes, \(s_1\) and \(s_2\):
+      \[
+        P_1 = \frac{e^{s_1}}{e^{s_1} + e^{s_2}} = \frac{1}{1 + e^{-(s_1 - s_2)}} = \sigma(s_1 - s_2)
+      \]
+      The sigmoid is just a special case of softmax. This means everything you learn about logistic regression (binary) generalizes directly to multi-class softmax regression.
+    </div>
+    <p>
+      In the <strong>multi-class linear classifier</strong>, a separate weight vector is learned for each class. These are stacked into a weight matrix \(\mathbf{W} \in \mathbb{R}^{K \times d}\):
+    </p>
+    <div class="math-block">
+      \[
+        \mathbf{s} = \mathbf{W}\mathbf{x} + \mathbf{b} \in \mathbb{R}^K, \qquad
+        P_k = \text{softmax}(\mathbf{s})_k = \frac{e^{s_k}}{\sum_j e^{s_j}}
+      \]
+    </div>
+    <p>
+      For a batch of \(N\) examples packed into a matrix \(\mathbf{X} \in \mathbb{R}^{d \times N}\), the entire forward pass is:
+    </p>
+    <div class="math-block">
+      \[
+        \mathbf{Z} = \mathbf{W}\mathbf{X} + \mathbf{b} \in \mathbb{R}^{K \times N}, \qquad
+        P_{kn} = \frac{e^{Z_{kn}}}{\sum_{j=1}^{K} e^{Z_{jn}}}
+      \]
+    </div>
+    <div class="callout warning">
+      <strong>Numerical stability:</strong> Computing \(e^{s_k}\) for large \(s_k\) can overflow. In practice, subtract the maximum score before exponentiating — this leaves \(P_k\) unchanged but keeps numbers in a safe range:
+      \[
+        P_k = \frac{e^{s_k - \max_j s_j}}{\sum_{j} e^{s_j - \max_j s_j}}
+      \]
+      In MATLAB: <code>Z = Z - max(Z, [], 1);</code> before <code>exp(Z)</code>.
+    </div>
+
+    <h3>7. Loss Functions</h3>
     <p>
       A <strong>loss function</strong> \(L(\hat{y}, y)\) quantifies how wrong the model's prediction is. We want to minimize the average loss over all training examples.
     </p>
 
-    <h3>4a. Mean Squared Error (MSE) — for regression</h3>
+    <h3>7a. Mean Squared Error (MSE) — for regression</h3>
     <div class="math-block">
       \[
         L_{\text{MSE}} = \frac{1}{N} \sum_{i=1}^{N} (\hat{y}_i - y_i)^2
@@ -161,7 +358,7 @@
       MSE is the natural loss for regression. It penalizes large errors quadratically. However, for classification it has poor gradient behavior — the loss can saturate when the sigmoid output is near 0 or 1.
     </p>
 
-    <h3>4b. Binary Cross-Entropy — for classification</h3>
+    <h3>7b. Binary Cross-Entropy — for binary classification</h3>
     <div class="math-block">
       \[
         L_{\text{BCE}} = -\frac{1}{N} \sum_{i=1}^{N}
@@ -175,100 +372,149 @@
       <li><strong>Probabilistic interpretation:</strong> it is the negative log-likelihood under a Bernoulli model.</li>
       <li><strong>Better gradients:</strong> when the model is confidently wrong, cross-entropy provides a large gradient signal to correct it quickly.</li>
     </ol>
+    <div class="callout info">
+      <strong>Concrete example.</strong> Suppose we have \(N = 3\) training objects and the current model produces these predictions:
+      <table style="width:100%;border-collapse:collapse;margin:0.8rem 0;font-size:0.9rem;">
+        <thead>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.2);">
+            <th style="padding:0.4rem 0.6rem;text-align:left;">\(i\)</th>
+            <th style="padding:0.4rem 0.6rem;text-align:left;">Object</th>
+            <th style="padding:0.4rem 0.6rem;text-align:center;">\(y_i\) (true label)</th>
+            <th style="padding:0.4rem 0.6rem;text-align:center;">\(\hat{p}_i\) (predicted prob. of satellite)</th>
+            <th style="padding:0.4rem 0.6rem;text-align:center;">Loss term</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:0.4rem 0.6rem;">1</td>
+            <td style="padding:0.4rem 0.6rem;">Satellite</td>
+            <td style="padding:0.4rem 0.6rem;text-align:center;">1</td>
+            <td style="padding:0.4rem 0.6rem;text-align:center;">0.90</td>
+            <td style="padding:0.4rem 0.6rem;text-align:center;">\(-\log(0.90) \approx 0.105\) ✓ low</td>
+          </tr>
+          <tr style="background:rgba(255,255,255,0.04);">
+            <td style="padding:0.4rem 0.6rem;">2</td>
+            <td style="padding:0.4rem 0.6rem;">Debris</td>
+            <td style="padding:0.4rem 0.6rem;text-align:center;">0</td>
+            <td style="padding:0.4rem 0.6rem;text-align:center;">0.15</td>
+            <td style="padding:0.4rem 0.6rem;text-align:center;">\(-\log(1-0.15) \approx 0.163\) ✓ low</td>
+          </tr>
+          <tr>
+            <td style="padding:0.4rem 0.6rem;">3</td>
+            <td style="padding:0.4rem 0.6rem;">Satellite</td>
+            <td style="padding:0.4rem 0.6rem;text-align:center;">1</td>
+            <td style="padding:0.4rem 0.6rem;text-align:center;">0.08</td>
+            <td style="padding:0.4rem 0.6rem;text-align:center;">\(-\log(0.08) \approx 2.526\) ✗ high</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin:0.4rem 0 0;">
+        \(L_\text{BCE} = \tfrac{1}{3}(0.105 + 0.163 + 2.526) \approx 0.931\)
+      </p>
+      <p style="margin:0.5rem 0 0;">
+        Notice: when \(y_i = 1\), only the \(\log(\hat{p}_i)\) term matters (the \((1-y_i)\) factor zeros out the other term). When \(y_i = 0\), only the \(\log(1-\hat{p}_i)\) term matters. Object 3 — a satellite the model nearly called debris — dominates the loss and will receive the largest gradient correction.
+      </p>
+    </div>
     <div class="callout tip">
       <strong>Intuition for cross-entropy:</strong> If \(y_i = 1\) and \(\hat{p}_i \approx 0\), then \(\log(\hat{p}_i) \to -\infty\) — very large penalty. If \(\hat{p}_i \approx 1\), then \(\log(\hat{p}_i) \approx 0\) — small penalty. The loss rewards confidence when correct and punishes it when wrong.
     </div>
 
-    <h3>5. The Big Picture: Logistic Regression</h3>
+    <h3>7c. Multi-class Cross-Entropy — for softmax classifiers</h3>
     <p>
-      Combining the linear score function, sigmoid activation, and cross-entropy loss gives us <strong>logistic regression</strong> — one of the most important and widely used classifiers. Despite the name, it is a classification method:
+      When there are \(K\) classes, the binary cross-entropy generalizes naturally. The true label for each example is represented as a <strong>one-hot vector</strong> \(\mathbf{y} \in \{0,1\}^K\) with a 1 in the position of the correct class and 0s elsewhere. The <strong>multi-class cross-entropy loss</strong> is:
     </p>
     <div class="math-block">
       \[
-        \hat{p} = \sigma\!\bigl(\mathbf{w}^\top \mathbf{x} + b\bigr),
-        \qquad
-        L = -\frac{1}{N}\sum_{i=1}^{N}\bigl[y_i \log\hat{p}_i + (1-y_i)\log(1-\hat{p}_i)\bigr]
+        L_{\text{CE}} = -\frac{1}{N} \sum_{n=1}^{N} \sum_{k=1}^{K} y_{kn} \log P_{kn}
       \]
     </div>
     <p>
-      We then find \(\mathbf{w}\) and \(b\) that minimize \(L\). This requires a numerical optimization method — that is the subject of Lesson 35.
+      Because \(y_{kn}\) is one-hot, only one term in the inner sum is nonzero for each example — the term corresponding to the true class. So the loss simplifies to:
+    </p>
+    <div class="math-block">
+      \[
+        L_{\text{CE}} = -\frac{1}{N} \sum_{n=1}^{N} \log P_{y_n, n}
+      \]
+    </div>
+    <p>
+      i.e., the average negative log-probability assigned to the correct class. When \(K = 2\) and the labels are one-hot \([y, 1-y]^\top\), this reduces exactly to the binary cross-entropy in section 7b.
+    </p>
+    <div class="callout info">
+      <strong>Connection to HW 34:</strong> The homework uses \(K = 4\) classes (Active Payload, Inactive Payload, Rocket Body, Debris) with features packed into \(\mathbf{X} \in \mathbb{R}^{2 \times N}\) and one-hot labels \(\mathbf{Y} \in \{0,1\}^{4 \times N}\). The model is \(\mathbf{Z} = \mathbf{W}\mathbf{X} + \mathbf{b}\), \(P_{kn} = \text{softmax}(\mathbf{Z})_{kn}\), and the loss is the multi-class cross-entropy above.
+    </div>
+
+    <h3>8. The Big Picture: Logistic &amp; Softmax Regression</h3>
+    <p>
+      The components covered in this lesson combine into two closely related models:
+    </p>
+    <table class="summary-table" style="margin:0.8rem 0;">
+      <thead><tr><th></th><th>Binary (2 classes)</th><th>Multi-class (\(K\) classes)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Scores</strong></td><td>\(s = \mathbf{w}^\top\mathbf{x} + b\)</td><td>\(\mathbf{s} = \mathbf{W}\mathbf{x} + \mathbf{b}\)</td></tr>
+        <tr><td><strong>Activation</strong></td><td>Sigmoid \(\sigma(s)\)</td><td>Softmax \(P_k = e^{s_k}/\sum e^{s_j}\)</td></tr>
+        <tr><td><strong>Loss</strong></td><td>Binary cross-entropy</td><td>Multi-class cross-entropy</td></tr>
+        <tr><td><strong>Name</strong></td><td>Logistic regression</td><td>Softmax regression</td></tr>
+      </tbody>
+    </table>
+    <p>
+      In both cases we find \(\boldsymbol{\theta}\) that minimizes \(L\). This requires a numerical optimization method — that is the subject of Lesson 35.
     </p>
   </div>
 
   <!-- Video -->
   <div class="card">
     <h2><span class="section-icon">▶</span> Recommended Video</h2>
-    <p>StatQuest provides an excellent, step-by-step derivation of logistic regression, the sigmoid, and cross-entropy with clear visual examples:</p>
-    <div class="video-container">
-      <iframe src="https://www.youtube.com/embed/yIYKR4sgzI8"
-              title="StatQuest — Logistic Regression"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowfullscreen loading="lazy"></iframe>
-    </div>
-    <p class="video-caption">StatQuest with Josh Starmer, "Logistic Regression — Details Pt 1: Coefficients"</p>
+    <p>Two recommended videos — StatQuest for a step-by-step derivation of logistic regression and cross-entropy, and CS231n Lecture 2 for the broader linear classification framework covered in this lesson:</p>
+    <a href="https://www.youtube.com/watch?v=yIYKR4sgzI8" target="_blank" rel="noopener" class="video-link-card">
+      <div class="video-link-thumb">▶</div>
+      <div class="video-link-info">
+        <div class="video-link-title">Logistic Regression — Details Pt 1: Coefficients</div>
+        <div class="video-link-channel">StatQuest with Josh Starmer &mdash; YouTube</div>
+      </div>
+    </a>
+    <a href="https://www.youtube.com/watch?v=OoUX-nOEjG0" target="_blank" rel="noopener" class="video-link-card">
+      <div class="video-link-thumb">▶</div>
+      <div class="video-link-info">
+        <div class="video-link-title">CS231n Lecture 2 — Image Classification, Linear Classify, SVM, Softmax</div>
+        <div class="video-link-channel">Stanford University (Karpathy, Johnson, Li) &mdash; YouTube</div>
+      </div>
+    </a>
   </div>
 
-  <!-- Worked Example -->
+  <!-- MATLAB Tips & Tricks -->
   <div class="card">
-    <h2><span class="section-icon">💻</span> Worked Example — MATLAB</h2>
+    <h2><span class="section-icon">💻</span> MATLAB Tips &amp; Tricks</h2>
+
+    <h3 style="margin:0 0 0.5rem;">Building a One-Hot Label Matrix</h3>
     <p>
-      We implement a logistic regression classifier from scratch on a toy 2D dataset resembling a space-object classification problem (two orbital feature clusters). Gradient computation is done analytically; optimization will be covered in Lesson 35.
+      Many classifiers require labels as a <strong>one-hot matrix</strong> \(\mathbf{Y}\) rather than a vector of integers. If <code>ID</code> is an \(N \times 1\) vector of class labels (integers 1–K), you need a \(K \times N\) matrix where column \(n\) has a 1 in row <code>ID(n)</code> and zeros everywhere else.
     </p>
-<pre><code class="language-matlab">%% Lesson 34 — Logistic Regression (forward pass + loss)
-% Two classes: active satellites (y=1) vs debris (y=0)
-% Features: [radar_cross_section, brightness_magnitude]
+    <p>
+      Two common approaches in MATLAB:
+    </p>
 
-rng(1);
-N = 200;  % total samples (100 per class)
+    <p style="margin:0.8rem 0 0.3rem;"><strong>Option 1 — Using <code>ind2vec</code></strong> (requires Neural Network Toolbox)</p>
+<pre><code class="language-matlab">% ID is N×1, e.g. [1; 3; 2; 4; 1]
+% ind2vec expects a row vector, so transpose first
+Y_oh = full(ind2vec(ID'));   % K × N one-hot matrix
+% full() converts the sparse output to a regular dense matrix</code></pre>
 
-% Class 0 (debris): low RCS, faint
-X0 = [randn(N/2,1)*0.5 + 1, randn(N/2,1)*0.5 + 3];
-% Class 1 (satellite): high RCS, bright
-X1 = [randn(N/2,1)*0.5 + 3, randn(N/2,1)*0.5 + 1];
+    <p style="margin:1rem 0 0.3rem;"><strong>Option 2 — Manual construction</strong> (no toolbox required)</p>
+<pre><code class="language-matlab">K = 4;   % number of classes
+N = length(ID);
+Y_oh = zeros(K, N);
+for n = 1:N
+    Y_oh(ID(n), n) = 1;
+end</code></pre>
 
-X = [X0; X1];                    % N×2 feature matrix
-y = [zeros(N/2,1); ones(N/2,1)]; % N×1 labels
+    <p style="margin:1rem 0 0.3rem;"><strong>Option 3 — Using logical indexing with <code>eye</code></strong> (compact, no toolbox)</p>
+<pre><code class="language-matlab">% eye(K) is the K×K identity matrix — each column is already one-hot.
+% Indexing its columns by ID selects the right one-hot vector for each object.
+K = 4;
+Y_oh = eye(K)(:, ID);   % K × N one-hot matrix</code></pre>
 
-% ---- Model: logistic regression ----
-% Initialize weights randomly
-w = randn(2,1) * 0.01;   % 2×1
-b = 0;
-
-% ---- Forward pass ----
-sigmoid = @(s) 1 ./ (1 + exp(-s));
-
-s     = X * w + b;        % N×1 raw scores
-p_hat = sigmoid(s);       % N×1 predicted probabilities
-
-% ---- Binary cross-entropy loss ----
-eps = 1e-8;  % numerical stability
-L = -mean(y .* log(p_hat + eps) + (1-y) .* log(1 - p_hat + eps));
-fprintf('Initial loss: %.4f  (random chance ≈ %.4f)\n', L, log(2));
-
-% ---- Accuracy at threshold 0.5 ----
-y_pred = double(p_hat >= 0.5);
-acc = mean(y_pred == y);
-fprintf('Initial accuracy: %.2f%%\n', acc*100);
-
-% ---- Visualize decision boundary ----
-figure; hold on;
-scatter(X0(:,1), X0(:,2), 30, 'r', 'filled', 'DisplayName','Debris (y=0)');
-scatter(X1(:,1), X1(:,2), 30, 'b', 'filled', 'DisplayName','Satellite (y=1)');
-
-% Plot boundary: w(1)*x1 + w(2)*x2 + b = 0  =>  x2 = -(w(1)*x1+b)/w(2)
-x1_range = linspace(0,5,100);
-x2_boundary = -(w(1)*x1_range + b) / w(2);
-plot(x1_range, x2_boundary, 'k--', 'LineWidth',2, 'DisplayName','Decision Boundary');
-
-xlabel('Radar Cross Section (norm.)');
-ylabel('Brightness Magnitude (norm.)');
-title('Space Object Classification — Initial Boundary');
-legend; grid on; xlim([0 5]); ylim([0 5]);
-
-%% NOTE: The boundary is random — run Lesson 35 gradient descent to train it!
-</code></pre>
-    <div class="callout warning">
-      <strong>Note:</strong> This sets up the model and computes the initial (untrained) loss. In Lesson 35 you will implement gradient descent to actually train \(\mathbf{w}\) and \(b\).
+    <div class="callout info">
+      <strong>Verify your result:</strong> Each column of <code>Y_oh</code> should sum to 1, and the row index of the 1 in column <code>n</code> should equal <code>ID(n)</code>. A quick check: <code>all(sum(Y_oh,1) == 1)</code> should return true, and <code>[~, rows] = max(Y_oh)</code> should reproduce <code>ID'</code>.
     </div>
   </div>
 
@@ -280,10 +526,13 @@ legend; grid on; xlim([0 5]); ylim([0 5]);
       <tbody>
         <tr><td>Linear score</td><td>\(s = \mathbf{w}^\top \mathbf{x} + b\)</td></tr>
         <tr><td>Decision boundary</td><td>Hyperplane \(\mathbf{w}^\top \mathbf{x} + b = 0\)</td></tr>
-        <tr><td>Sigmoid</td><td>\(\sigma(s) = 1/(1+e^{-s})\), maps \(\mathbb{R} \to (0,1)\)</td></tr>
+        <tr><td>Sigmoid</td><td>\(\sigma(s) = 1/(1+e^{-s})\), maps \(\mathbb{R} \to (0,1)\) — binary</td></tr>
+        <tr><td>Softmax</td><td>\(P_k = e^{s_k}/\sum_j e^{s_j}\), maps \(\mathbb{R}^K \to \Delta^{K-1}\) — multi-class</td></tr>
         <tr><td>MSE loss</td><td>\(\frac{1}{N}\sum(\hat{y}-y)^2\) — for regression</td></tr>
-        <tr><td>Cross-entropy loss</td><td>\(-\frac{1}{N}\sum[y\log\hat{p} + (1-y)\log(1-\hat{p})]\) — for classification</td></tr>
-        <tr><td>Logistic regression</td><td>Linear score + sigmoid + cross-entropy</td></tr>
+        <tr><td>Binary cross-entropy</td><td>\(-\frac{1}{N}\sum[y\log\hat{p} + (1-y)\log(1-\hat{p})]\)</td></tr>
+        <tr><td>Multi-class cross-entropy</td><td>\(-\frac{1}{N}\sum_n\sum_k y_{kn}\log P_{kn}\)</td></tr>
+        <tr><td>Logistic regression</td><td>Linear score + sigmoid + binary CE (2 classes)</td></tr>
+        <tr><td>Softmax regression</td><td>Linear scores + softmax + multi-class CE (\(K\) classes)</td></tr>
       </tbody>
     </table>
     <a href="hw/hw34.html" class="hw-button">📋 HW 34 — Linear Classifier (Space Objects)</a>
@@ -294,6 +543,7 @@ legend; grid on; xlim([0 5]); ylim([0 5]);
     <h2><span class="section-icon">📚</span> References</h2>
     <ol>
       <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Ch. 6. MIT Press.</li>
+      <li>Karpathy, A., Johnson, J., &amp; Li, F.-F. (2017). <em>CS231n: Convolutional Neural Networks for Visual Recognition</em> — Lecture 2 notes: Linear Classification. Stanford University. <a href="https://cs231n.github.io/linear-classify" target="_blank" rel="noopener">cs231n.github.io/linear-classify</a></li>
       <li>StatQuest. (2019). <em>Logistic Regression</em> [Video series]. YouTube.</li>
       <li>Bishop, C. M. (2006). <em>Pattern Recognition and Machine Learning</em>, Ch. 4. Springer.</li>
       <li>Ng, A. (2012). <em>Machine Learning</em> (Coursera lecture notes). Stanford University.</li>
@@ -311,7 +561,7 @@ legend; grid on; xlim([0 5]); ylim([0 5]);
 </main>
 
 <footer class="site-footer">
-  <p>Physics 356 &mdash; Department of Physics &amp; Nuclear Engineering &bull; USAFA &bull; Updated Spring 2026</p>
+  <p>Physics 356 &mdash; Department of Physics &amp; Meteorology &bull; USAFA &bull; Updated Spring 2026</p>
 </footer>
 
 <script src="js/main.js"></script>
