@@ -46,7 +46,7 @@
   <div class="lesson-banner">
     <div class="lesson-meta">Lesson 35 &bull; Physics 356</div>
     <h1>Neural Networks — Architecture &amp; Forward Pass</h1>
-    <span class="reading-time">⏱ ~45 min read</span>
+    <span class="reading-time">&#x23F1; ~45 min read</span>
   </div>
 
   <div class="objectives-box">
@@ -63,20 +63,23 @@
   <div class="notation-box">
     <h3>Notation used in this lesson</h3>
     <div class="notation-grid">
-      <div class="notation-item"><span class="sym">\(L\)</span><span class="desc">Number of layers (not loss here)</span></div>
-      <div class="notation-item"><span class="sym">\(\mathbf{W}^{[\ell]}\)</span><span class="desc">Weight matrix, layer \(\ell\)</span></div>
-      <div class="notation-item"><span class="sym">\(\mathbf{b}^{[\ell]}\)</span><span class="desc">Bias vector, layer \(\ell\)</span></div>
-      <div class="notation-item"><span class="sym">\(\mathbf{z}^{[\ell]}\)</span><span class="desc">Pre-activation (linear combination)</span></div>
-      <div class="notation-item"><span class="sym">\(\mathbf{a}^{[\ell]}\)</span><span class="desc">Activation (post-activation)</span></div>
-      <div class="notation-item"><span class="sym">\(n^{[\ell]}\)</span><span class="desc">Number of neurons in layer \(\ell\)</span></div>
+      <div class="notation-item"><span class="sym">\(L\)</span><span class="desc">Number of layers (subscripts 1&hellip;L index each layer)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{W}_\ell\)</span><span class="desc">Weight matrix, layer \(\ell\)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{b}_\ell\)</span><span class="desc">Bias vector, layer \(\ell\)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{z}_\ell\)</span><span class="desc">Pre-activation (linear combination)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{a}_\ell\)</span><span class="desc">Activation (post-activation)</span></div>
+      <div class="notation-item"><span class="sym">\(n_\ell\)</span><span class="desc">Number of neurons in layer \(\ell\)</span></div>
       <div class="notation-item"><span class="sym">\(\phi(\cdot)\)</span><span class="desc">Activation function</span></div>
       <div class="notation-item"><span class="sym">\(\hat{\mathbf{y}}\)</span><span class="desc">Network output (predictions)</span></div>
     </div>
+    <p style="margin-top:0.75rem;font-size:0.88rem;color:var(--text-secondary);">
+      <strong>Subscript convention:</strong> Subscript \(\ell\) denotes the layer index (e.g. \(\mathbf{W}_1\) is the first layer's weight matrix, \(\mathbf{W}_2\) the second, etc.). This avoids superscript clutter when equations also involve powers or transposes.
+    </p>
   </div>
 
   <!-- Background -->
   <div class="card">
-    <h2><span class="section-icon">🌍</span> Background &amp; Motivation</h2>
+    <h2><span class="section-icon">&#x1F30D;</span> Background &amp; Motivation</h2>
     <h3>The limitation of linear models</h3>
     <p>
       The linear classifier from Lesson 34 is powerful but fundamentally limited: it can only learn linear decision boundaries. Real data is rarely linearly separable. Satellite orbit families, material phases, particle signatures — these require curved, complex boundaries.
@@ -92,7 +95,7 @@
 
   <!-- Key Concepts -->
   <div class="card">
-    <h2><span class="section-icon">🧠</span> Key Concepts</h2>
+    <h2><span class="section-icon">&#x1F9E0;</span> Key Concepts</h2>
 
     <h3>1. Network Architecture</h3>
     <p>
@@ -104,7 +107,34 @@
       <li><strong>Output layer:</strong> produces the prediction \(\hat{\mathbf{y}}\). For regression: linear output. For classification: sigmoid (binary) or softmax (multi-class).</li>
     </ul>
     <p>
-      We describe the architecture by listing the number of neurons per layer. Example: a network with input \(d=10\), one hidden layer of 64 neurons, and output of 1 is written as <code>[10 → 64 → 1]</code>.
+      We describe the architecture by listing the number of neurons per layer. Example: a network with input \(d=10\), one hidden layer of 64 neurons, and output of 1 is written as <code>[10 &rarr; 64 &rarr; 1]</code>.
+    </p>
+
+    <!-- Figure 1: Single Neuron (CS231n) -->
+    <figure style="text-align:center;margin:1.5rem 0;">
+      <img src="images/cs231n_neuron_model.jpeg" alt="Mathematical model of a single neuron: weighted inputs summed with bias, then passed through activation function" style="max-width:480px;width:100%;border-radius:8px;background:#fff;padding:0.5rem;">
+      <figcaption style="font-size:0.82rem;color:var(--text-secondary);margin-top:0.6rem;">
+        Figure 1: A single artificial neuron. Inputs x<sub>i</sub> are multiplied by learned weights w<sub>i</sub>, summed with bias b to form the pre-activation z, then passed through a nonlinear activation function f to produce output a. (Source: CS231n Lecture 4.)
+      </figcaption>
+    </figure>
+
+    <!-- Figure 2: Network Topology (CS231n) -->
+    <div style="display:flex;flex-wrap:wrap;gap:1.5rem;justify-content:center;margin:1.5rem 0;">
+      <figure style="text-align:center;margin:0;">
+        <img src="images/cs231n_neural_net.jpeg" alt="2-layer neural network with 3 inputs, 4 hidden neurons, and 2 outputs" style="max-width:360px;width:100%;border-radius:8px;background:#fff;padding:0.5rem;">
+        <figcaption style="font-size:0.82rem;color:var(--text-secondary);margin-top:0.5rem;">
+          Figure 2a: A 2-layer network [3 &rarr; 4 &rarr; 2].
+        </figcaption>
+      </figure>
+      <figure style="text-align:center;margin:0;">
+        <img src="images/cs231n_neural_net2.jpeg" alt="3-layer neural network with 3 inputs, two hidden layers of 4 neurons each, and 1 output" style="max-width:360px;width:100%;border-radius:8px;background:#fff;padding:0.5rem;">
+        <figcaption style="font-size:0.82rem;color:var(--text-secondary);margin-top:0.5rem;">
+          Figure 2b: A 3-layer network [3 &rarr; 4 &rarr; 4 &rarr; 1].
+        </figcaption>
+      </figure>
+    </div>
+    <p style="font-size:0.82rem;color:var(--text-secondary);text-align:center;margin-top:0.25rem;">
+      Every neuron in one layer connects to every neuron in the next (&ldquo;fully connected&rdquo;). CS231n counts layers by the number of weight matrices, so these are called 2-layer and 3-layer networks respectively (the input layer is not counted). (Source: CS231n Lecture 4.)
     </p>
 
     <h3>2. The Forward Pass (Single Layer)</h3>
@@ -113,15 +143,15 @@
     </p>
     <div class="math-block">
       \[
-        \underbrace{\mathbf{z}^{[\ell]}}_{\text{pre-activation}}
-        = \mathbf{W}^{[\ell]} \mathbf{a}^{[\ell-1]} + \mathbf{b}^{[\ell]}
+        \underbrace{\mathbf{z}_\ell}_{\text{pre-activation}}
+        = \mathbf{W}_\ell \mathbf{a}_{\ell-1} + \mathbf{b}_\ell
         \qquad \longrightarrow \qquad
-        \underbrace{\mathbf{a}^{[\ell]}}_{\text{activation}}
-        = \phi\!\left(\mathbf{z}^{[\ell]}\right)
+        \underbrace{\mathbf{a}_\ell}_{\text{activation}}
+        = \phi\!\left(\mathbf{z}_\ell\right)
       \]
     </div>
     <p>
-      Where \(\mathbf{W}^{[\ell]} \in \mathbb{R}^{n^{[\ell]} \times n^{[\ell-1]}}\) is the weight matrix, \(\mathbf{b}^{[\ell]} \in \mathbb{R}^{n^{[\ell]}}\) is the bias vector, and \(\phi\) is applied element-wise.
+      Where \(\mathbf{W}_\ell \in \mathbb{R}^{n_\ell \times n_{\ell-1}}\) is the weight matrix, \(\mathbf{b}_\ell \in \mathbb{R}^{n_\ell}\) is the bias vector, and \(\phi\) is applied element-wise.
     </p>
 
     <h3>3. Full Forward Pass (Two-Layer Network)</h3>
@@ -130,17 +160,17 @@
     </p>
     <div class="math-block">
       \[
-        \mathbf{a}^{[0]} = \mathbf{x} \quad \text{(input)}
+        \mathbf{a}_0 = \mathbf{x} \quad \text{(input)}
       \]
       \[
-        \mathbf{z}^{[1]} = \mathbf{W}^{[1]} \mathbf{x} + \mathbf{b}^{[1]}, \qquad \mathbf{a}^{[1]} = \text{ReLU}(\mathbf{z}^{[1]})
+        \mathbf{z}_1 = \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1, \qquad \mathbf{a}_1 = \text{ReLU}(\mathbf{z}_1)
       \]
       \[
-        z^{[2]} = \mathbf{W}^{[2]} \mathbf{a}^{[1]} + b^{[2]}, \qquad \hat{y} = \sigma(z^{[2]})
+        z_2 = \mathbf{W}_2 \mathbf{a}_1 + b_2, \qquad \hat{y} = \sigma(z_2)
       \]
     </div>
     <p>
-      The network applies a learned <em>nonlinear</em> transformation from \(\mathbf{x}\) to \(\hat{y}\) in three matrix operations. The power comes from learning \(\mathbf{W}^{[1]}, \mathbf{b}^{[1]}, \mathbf{W}^{[2]}, b^{[2]}\) jointly.
+      The network applies a learned <em>nonlinear</em> transformation from \(\mathbf{x}\) to \(\hat{y}\) in three matrix operations. The power comes from learning \(\mathbf{W}_1, \mathbf{b}_1, \mathbf{W}_2, b_2\) jointly.
     </p>
 
     <h3>4. Activation Functions</h3>
@@ -176,8 +206,28 @@
         </tr>
       </tbody>
     </table>
+
+    <!-- Figure 3: Activation Functions (CS231n) -->
+    <div style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;margin:1.2rem 0;">
+      <figure style="text-align:center;margin:0;">
+        <img src="images/cs231n_sigmoid.jpeg" alt="Sigmoid activation function" style="max-width:220px;width:100%;border-radius:6px;background:#fff;padding:0.4rem;">
+        <figcaption style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.4rem;">Sigmoid &mdash; squashes to (0, 1)</figcaption>
+      </figure>
+      <figure style="text-align:center;margin:0;">
+        <img src="images/cs231n_tanh.jpeg" alt="Tanh activation function" style="max-width:220px;width:100%;border-radius:6px;background:#fff;padding:0.4rem;">
+        <figcaption style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.4rem;">Tanh &mdash; squashes to (&minus;1, 1)</figcaption>
+      </figure>
+      <figure style="text-align:center;margin:0;">
+        <img src="images/cs231n_relu.jpeg" alt="ReLU activation function" style="max-width:220px;width:100%;border-radius:6px;background:#fff;padding:0.4rem;">
+        <figcaption style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.4rem;">ReLU &mdash; max(0, z)</figcaption>
+      </figure>
+    </div>
+    <p style="font-size:0.82rem;color:var(--text-secondary);text-align:center;margin-top:0.25rem;">
+      Figure 3: Common activation functions. Sigmoid and tanh saturate (flat slope) for large |z|, causing vanishing gradients. ReLU has slope exactly 1 for z &gt; 0, making it the modern default for hidden layers. (Source: CS231n.)
+    </p>
+
     <div class="callout info">
-      <strong>Why ReLU?</strong> Sigmoid and tanh saturate (gradient ≈ 0) for large inputs — the "vanishing gradient" problem that makes deep networks hard to train. ReLU has gradient exactly 1 for positive inputs, enabling training of much deeper networks.
+      <strong>Why ReLU?</strong> Sigmoid and tanh saturate (gradient &asymp; 0) for large inputs &mdash; the &ldquo;vanishing gradient&rdquo; problem that makes deep networks hard to train. ReLU has gradient exactly 1 for positive inputs, enabling training of much deeper networks.
     </div>
 
     <h3>5. Parameter Count</h3>
@@ -186,7 +236,7 @@
     </p>
     <div class="math-block">
       \[
-        \text{Total params} = \underbrace{d \cdot n_1 + n_1}_{\mathbf{W}^{[1]},\mathbf{b}^{[1]}} + \underbrace{n_1 \cdot n_2 + n_2}_{\mathbf{W}^{[2]},\mathbf{b}^{[2]}} + \underbrace{n_2 \cdot n_\text{out} + n_\text{out}}_{\mathbf{W}^{[3]},\mathbf{b}^{[3]}}
+        \text{Total params} = \underbrace{d \cdot n_1 + n_1}_{\mathbf{W}_1,\mathbf{b}_1} + \underbrace{n_1 \cdot n_2 + n_2}_{\mathbf{W}_2,\mathbf{b}_2} + \underbrace{n_2 \cdot n_\text{out} + n_\text{out}}_{\mathbf{W}_3,\mathbf{b}_3}
       \]
     </div>
     <p>
@@ -202,12 +252,20 @@
     </div>
   </div>
 
-  <!-- Video -->
+  <!-- Videos -->
   <div class="card">
-    <h2><span class="section-icon">▶</span> Recommended Video</h2>
-    <p>The 3Blue1Brown neural network series is the gold standard visual introduction. Watch episodes 1 and 2:</p>
+    <h2><span class="section-icon">&#x1F3AC;</span> Recommended Videos</h2>
+    <p>CS231n Lecture 4 covers neural network forward passes, activation functions, and the biological motivation:</p>
+    <a href="https://www.youtube.com/watch?v=d14TUNcbn1k&list=PL3FW7Lu3i5JvHM8ljYj-zLfQRF3EO8sYv" target="_blank" rel="noopener" class="video-link-card">
+      <div class="video-link-thumb">&#x25B6;</div>
+      <div class="video-link-info">
+        <div class="video-link-title">Lecture 4 &mdash; Introduction to Neural Networks</div>
+        <div class="video-link-channel">CS231n Stanford &mdash; YouTube</div>
+      </div>
+    </a>
+    <p style="margin-top:1rem;">The 3Blue1Brown series gives the best visual intuition for what the network is doing:</p>
     <a href="https://www.youtube.com/watch?v=aircAruvnKk" target="_blank" rel="noopener" class="video-link-card">
-      <div class="video-link-thumb">▶</div>
+      <div class="video-link-thumb">&#x25B6;</div>
       <div class="video-link-info">
         <div class="video-link-title">But what is a neural network? (Chapter 1)</div>
         <div class="video-link-channel">3Blue1Brown &mdash; YouTube</div>
@@ -217,7 +275,7 @@
 
   <!-- Worked Example -->
   <div class="card">
-    <h2><span class="section-icon">💻</span> Worked Example — MATLAB Forward Pass</h2>
+    <h2><span class="section-icon">&#x1F4BB;</span> Worked Example &mdash; MATLAB Forward Pass</h2>
     <p>
       We implement the forward pass of a 2-layer network on the <code>sat_data.mat</code> satellite dataset. This is the setup you will use in HW 35 to build a full training loop.
     </p>
@@ -295,36 +353,37 @@ fprintf('Initial loss: %.4f,  Accuracy: %.2f%%\n', L, acc_init*100);
 
   <!-- Summary -->
   <div class="card">
-    <h2><span class="section-icon">📝</span> Summary</h2>
+    <h2><span class="section-icon">&#x1F4DD;</span> Summary</h2>
     <table class="summary-table">
       <thead><tr><th>Concept</th><th>Key Idea</th></tr></thead>
       <tbody>
-        <tr><td>Layer computation</td><td>\(\mathbf{z}^{[\ell]} = \mathbf{W}^{[\ell]}\mathbf{a}^{[\ell-1]}+\mathbf{b}^{[\ell]}\), \(\mathbf{a}^{[\ell]}=\phi(\mathbf{z}^{[\ell]})\)</td></tr>
-        <tr><td>ReLU</td><td>\(\max(0,z)\) — default hidden layer activation; avoids vanishing gradients</td></tr>
-        <tr><td>Parameters</td><td>Each layer \(\ell\) has \(n^{[\ell]} \times n^{[\ell-1]}\) weights + \(n^{[\ell]}\) biases</td></tr>
+        <tr><td>Layer computation</td><td>\(\mathbf{z}_\ell = \mathbf{W}_\ell\mathbf{a}_{\ell-1}+\mathbf{b}_\ell\), \(\mathbf{a}_\ell=\phi(\mathbf{z}_\ell)\)</td></tr>
+        <tr><td>ReLU</td><td>\(\max(0,z)\) &mdash; default hidden layer activation; avoids vanishing gradients</td></tr>
+        <tr><td>Parameters</td><td>Each layer \(\ell\) has \(n_\ell \times n_{\ell-1}\) weights + \(n_\ell\) biases</td></tr>
         <tr><td>Forward pass</td><td>Chain of matrix-vector products + pointwise nonlinearities</td></tr>
         <tr><td>Universal approximation</td><td>One hidden layer + nonlinearity can approximate any continuous function</td></tr>
       </tbody>
     </table>
-    <a href="hw/hw35.html" class="hw-button">📋 HW 35 — Shallow Neural Network (sat_data.mat)</a>
+    <a href="hw/hw35.html" class="hw-button">&#x1F4CB; HW 35 &mdash; Shallow Neural Network (sat_data.mat)</a>
   </div>
 
   <!-- References -->
   <div class="card references">
-    <h2><span class="section-icon">📚</span> References</h2>
+    <h2><span class="section-icon">&#x1F4DA;</span> References</h2>
     <ol>
-      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Chs. 6–7. MIT Press.</li>
+      <li>Karpathy, A. et al. (2017). CS231n: Convolutional Neural Networks for Visual Recognition &mdash; Neural Networks Part 1 notes. Stanford University. <a href="http://cs231n.github.io/neural-networks-1/" target="_blank" rel="noopener">http://cs231n.github.io/neural-networks-1/</a></li>
+      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Chs. 6&ndash;7. MIT Press.</li>
       <li>3Blue1Brown. (2017). <em>But what is a neural network?</em> [Video]. YouTube.</li>
-      <li>Cybenko, G. (1989). Approximation by superpositions of a sigmoidal function. <em>Mathematics of Control, Signals and Systems, 2</em>(4), 303–314.</li>
+      <li>Cybenko, G. (1989). Approximation by superpositions of a sigmoidal function. <em>Mathematics of Control, Signals and Systems, 2</em>(4), 303&ndash;314.</li>
       <li>He, K. et al. (2015). Delving deep into rectifiers: Surpassing human-level performance on ImageNet. <em>ICCV 2015</em>.</li>
     </ol>
   </div>
 
   <div class="lesson-nav">
-    <a href="lesson34.html" class="prev">← L34: Linear Classification</a>
+    <a href="lesson34.html" class="prev">&larr; L34: Linear Classification</a>
     <a href="lesson36.html" class="next">
       <div><span class="nav-label">Next Lesson</span><br>L36: Backprop &amp; Training NNs</div>
-      →
+      &rarr;
     </a>
   </div>
 

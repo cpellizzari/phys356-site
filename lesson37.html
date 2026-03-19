@@ -63,11 +63,12 @@
   <div class="notation-box">
     <h3>Notation used in this lesson</h3>
     <div class="notation-grid">
-      <div class="notation-item"><span class="sym">\(F\)</span><span class="desc">Filter (kernel) size</span></div>
-      <div class="notation-item"><span class="sym">\(K\)</span><span class="desc">Number of filters (channels out)</span></div>
-      <div class="notation-item"><span class="sym">\(z_{ij}^{(k)}\)</span><span class="desc">Feature map value at position \((i,j)\), filter \(k\)</span></div>
-      <div class="notation-item"><span class="sym">\(W_{mn}^{(k)}\)</span><span class="desc">Filter \(k\) weight at position \((m,n)\)</span></div>
-      <div class="notation-item"><span class="sym">\(p_{ij}\)</span><span class="desc">Pooled output at position \((i,j)\)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{X}\)</span><span class="desc">Input volume, size \(H \times W \times C\) (height × width × channels)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{A}[i,j,k]\)</span><span class="desc">Output activation at spatial position \((i,j)\), filter \(k\)</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{W}_k\)</span><span class="desc">Weight tensor of filter \(k\), size \(F \times F \times C\)</span></div>
+      <div class="notation-item"><span class="sym">\(b_k\)</span><span class="desc">Bias scalar for filter \(k\)</span></div>
+      <div class="notation-item"><span class="sym">\(F,\,S,\,P\)</span><span class="desc">Filter size, stride, padding</span></div>
+      <div class="notation-item"><span class="sym">\(K\)</span><span class="desc">Number of filters (= output depth / channels)</span></div>
     </div>
   </div>
 
@@ -96,18 +97,24 @@
 
     <h3>1. The Convolution Operation</h3>
     <p>
-      A <strong>convolutional layer</strong> uses a small <em>filter</em> (kernel) of size \(F \times F\) (e.g., \(3 \times 3\), \(K = 9\) weights) that slides across the input, computing a dot product at each position. The same filter is applied everywhere — this is <strong>parameter sharing</strong>. The result is a <em>feature map</em> encoding where the filter pattern appears in the input.
+      A <strong>convolutional layer</strong> uses a small <em>filter</em> (kernel) \(\mathbf{W}_k\) of size \(F \times F \times C\) that slides across the input volume, computing a dot product at each spatial position. The same filter is applied at every location — this is <strong>parameter sharing</strong>. Running \(K\) filters in parallel produces an output volume of depth \(K\), where each depth slice is the <em>feature map</em> for one filter.
     </p>
+    <p>The output activation at position \((i, j)\) for filter \(k\) is:</p>
     <div class="math-block">
       \[
-        z_{ij}^{(k)} = \sum_{m=0}^{F-1}\sum_{n=0}^{F-1} W_{mn}^{(k)} \cdot a_{(i+m)(j+n)} + b^{(k)}
+        \mathbf{A}[i,\,j,\,k] \;=\; \text{ReLU}\!\left(
+          \sum_{di=0}^{F-1}\sum_{dj=0}^{F-1}\sum_{dc=0}^{C-1}
+          \mathbf{X}[\,i{\cdot}S+di,\;\;j{\cdot}S+dj,\;\;dc\,]
+          \cdot \mathbf{W}_k[\,di,\;dj,\;dc\,]
+          \;+\; b_k
+        \right)
       \]
     </div>
     <p>
-      Where \(F\) is the filter size, \((i,j)\) is the output position, and \(k\) indexes the filter. A typical convolutional layer uses \(K\) filters in parallel, producing \(K\) feature maps (output channels).
+      The three nested sums simply compute a dot product between a local \(F \times F \times C\) patch of the input and the filter weights — then shift by bias \(b_k\) and pass through ReLU. The bracket notation \(\mathbf{A}[i,j,k]\) makes the three output dimensions explicit: row \(i\), column \(j\), filter \(k\). There are no layer-index superscripts here; the indices only identify <em>position</em> and <em>which filter</em>.
     </p>
     <div class="callout info">
-      <strong>Spatial locality:</strong> Each output neuron depends only on a small local region (the <em>receptive field</em>) of the input — exactly right for learning local features like edges and corners.
+      <strong>Depth column:</strong> At every spatial position \((i, j)\) in the output, there are \(K\) values — one per filter — stacked along the depth axis. CS231n calls this a <em>depth column</em> (or fibre): \(\mathbf{A}[i, j, :]\). All \(K\) neurons in a depth column look at exactly the same \(F \times F\) patch of the input but apply different filters, each detecting a different feature.
     </div>
 
     <h3>2. Key Hyperparameters</h3>
@@ -144,7 +151,36 @@
       Early layers learn low-level features (edges, corners). Deeper layers combine these into higher-level features (shapes, objects). The fully-connected layers at the end perform classification using the learned feature representation.
     </p>
 
-    <h3>5. Parameter Count: CNN vs. Fully-Connected</h3>
+    <h3>5. Forward Pass — Volume Dimensions at Each Stage</h3>
+    <p>
+      The cleanest way to think about a CNN is to track the <strong>volume shape</strong> \([H \times W \times D]\) as data flows through each layer. Consider a small network classifying 32×32 RGB images into 10 classes:
+    </p>
+    <table class="summary-table" style="margin-top:0.75rem;">
+      <thead>
+        <tr><th>Layer</th><th>Output volume \([H \times W \times D]\)</th><th>Parameters</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Input image</td><td>\([32 \times 32 \times 3]\)</td><td>—</td></tr>
+        <tr><td>Conv: \(K{=}32\), \(F{=}3\), \(P{=}1\), \(S{=}1\)</td><td>\([32 \times 32 \times 32]\)</td><td>\(3{\times}3{\times}3{\times}32 + 32 = 896\)</td></tr>
+        <tr><td>ReLU</td><td>\([32 \times 32 \times 32]\)</td><td>0</td></tr>
+        <tr><td>MaxPool \(2{\times}2\), \(S{=}2\)</td><td>\([16 \times 16 \times 32]\)</td><td>0</td></tr>
+        <tr><td>Conv: \(K{=}64\), \(F{=}3\), \(P{=}1\), \(S{=}1\)</td><td>\([16 \times 16 \times 64]\)</td><td>\(3{\times}3{\times}32{\times}64 + 64 = 18{,}496\)</td></tr>
+        <tr><td>ReLU</td><td>\([16 \times 16 \times 64]\)</td><td>0</td></tr>
+        <tr><td>MaxPool \(2{\times}2\), \(S{=}2\)</td><td>\([8 \times 8 \times 64]\)</td><td>0</td></tr>
+        <tr><td>Flatten</td><td>\([4096]\)</td><td>0</td></tr>
+        <tr><td>FC → 10</td><td>\([10]\)</td><td>\(4096{\times}10 + 10 = 40{,}970\)</td></tr>
+        <tr><td>Softmax</td><td>\([10]\) class probabilities</td><td>0</td></tr>
+        <tr style="font-weight:700;"><td>Total</td><td></td><td>60,362</td></tr>
+      </tbody>
+    </table>
+    <div class="callout info">
+      <strong>Reading the parameter formula:</strong> For a Conv layer, the count is \(F \times F \times C_\text{in} \times K + K\). Each of the \(K\) filters has \(F \times F \times C_\text{in}\) weights plus one bias. Note how the depth \(C_\text{in}\) of the <em>input</em> volume feeds into the filter size — a filter must span the full input depth to compute a proper dot product.
+    </div>
+    <p>
+      Reading the table top to bottom, spatial dimensions \(H\) and \(W\) shrink at every pooling layer while depth \(D\) grows at every conv layer. The network progressively trades spatial resolution for richer feature representations, then collapses everything into a vector with Flatten before the final classifier.
+    </p>
+
+    <h3>6. Parameter Count: CNN vs. Fully-Connected</h3>
     <p>Consider classifying 32×32 grayscale images into 10 classes:</p>
     <table class="summary-table" style="margin-top:0.75rem;">
       <thead><tr><th>Layer Type</th><th>Parameters</th></tr></thead>
@@ -156,6 +192,19 @@
     <div class="callout tip">
       <strong>Key insight:</strong> A convolutional layer with 32 filters of size 3×3 uses only 320 parameters to process an entire image of any size — compared to millions for a fully-connected layer. This is the power of parameter sharing.
     </div>
+  </div>
+
+  <!-- CS231n Video -->
+  <div class="card">
+    <h2><span class="section-icon">🎬</span> Lecture Video</h2>
+    <p>CS231n Lecture 5 covers convolution, pooling, and CNN architectures in depth, with excellent visualizations of how filters slide across input volumes.</p>
+    <a href="https://www.youtube.com/watch?v=bNb2fEVKeEo&list=PL3FW7Lu3i5JvHM8ljYj-zLfQRF3EO8sYv" target="_blank" rel="noopener" class="video-link-card">
+      <div class="video-link-thumb">▶</div>
+      <div class="video-link-info">
+        <div class="video-link-title">Lecture 5 — Convolutional Neural Networks</div>
+        <div class="video-link-channel">CS231n Stanford &mdash; YouTube</div>
+      </div>
+    </a>
   </div>
 
   <!-- MATLAB Demo -->
@@ -218,6 +267,8 @@ subplot(1,2,2); imagesc(feature_map); colormap gray; title('Edge Filter'); axis 
         <tr><td>Feature map</td><td>Output of one filter applied to the full input; encodes "where" a pattern appears</td></tr>
         <tr><td>Max pooling</td><td>Downsample by taking regional maxima; provides translation invariance</td></tr>
         <tr><td>CNN architecture</td><td>[Conv + ReLU + Pool] blocks → Flatten → FC → Softmax</td></tr>
+        <tr><td>Volume notation</td><td>Track \([H \times W \times D]\) at each stage; no layer-index superscripts needed</td></tr>
+        <tr><td>Depth column \(\mathbf{A}[i,j,:]\)</td><td>\(K\) neurons at each spatial position, one per filter, all looking at the same input patch</td></tr>
         <tr><td>Parameter efficiency</td><td>320 params for a 3×3 conv layer vs. millions for an equivalent FC layer</td></tr>
       </tbody>
     </table>
@@ -227,9 +278,10 @@ subplot(1,2,2); imagesc(feature_map); colormap gray; title('Edge Filter'); axis 
   <div class="card references">
     <h2><span class="section-icon">📚</span> References</h2>
     <ol>
+      <li>Karpathy, A. et al. (2017). CS231n: Convolutional Neural Networks for Visual Recognition — Lecture 5 notes. Stanford University. <a href="http://cs231n.github.io/convolutional-networks/" target="_blank" rel="noopener">cs231n.github.io/convolutional-networks/</a></li>
       <li>LeCun, Y., Bottou, L., Bengio, Y., &amp; Haffner, P. (1998). Gradient-based learning applied to document recognition. <em>Proceedings of the IEEE, 86</em>(11), 2278–2324.</li>
-      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Ch. 9 (Convolutional Networks). MIT Press.</li>
       <li>Krizhevsky, A., Sutskever, I., &amp; Hinton, G. E. (2012). ImageNet classification with deep convolutional neural networks (AlexNet). <em>NeurIPS 2012</em>.</li>
+      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Ch. 9 (Convolutional Networks). MIT Press.</li>
     </ol>
   </div>
 
