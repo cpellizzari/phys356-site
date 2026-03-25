@@ -729,20 +729,26 @@
       We train a shallow network on MATLAB's built-in <strong>DigitDataset</strong> (10,000 handwritten digit images, classes 0&ndash;9, 28&times;28 pixels). Rather than <code>patternnet</code>, we use the Deep Learning Toolbox layer API directly &mdash; the same approach you will use in HW&nbsp;36 and beyond, giving you full control over architecture, activation functions, and optimizer settings.
     </p>
     <p>
-      This example uses 128 hidden neurons, dropout regularization, and early stopping. The Training Progress plot should show the <strong>good generalization</strong> pattern from Figure&nbsp;2 — both curves declining together. HW&nbsp;36 asks you to explore how architecture and training parameters affect this pattern.
+      Two parameters at the top of the script control the experiment: <code>n_per_class</code> (how much data to load) and <code>n_hidden</code> (network capacity). The defaults are chosen to produce the <strong>good generalization</strong> pattern from Figure&nbsp;2. Try changing them to deliberately push the network into underfitting or overfitting before HW&nbsp;36.
     </p>
 <pre><code class="language-matlab">%% Lesson 36 — Handwritten Digit Classification (Deep Learning Toolbox)
 % Dataset: MATLAB's built-in DigitDataset (10,000 images, 10 classes, 28x28)
-% Network: 784 → 128 (ReLU + Dropout) → 10 (softmax)
-% HW 36: explore how architecture and training params affect these curves.
+% Network: 784 → n_hidden (ReLU + Dropout) → 10 (softmax)
+% HW 36: change n_per_class and n_hidden to explore underfitting/overfitting.
 
-%% 1. Load dataset — 300 images per class (3,000 total)
+%% ── Parameters to experiment with ──────────────────────────────────────────
+n_per_class = 300;   % images loaded per digit class  (max 1000; try 50–500)
+n_hidden    = 128;   % neurons in the hidden layer     (try 10, 64, 256, 512)
+%% ─────────────────────────────────────────────────────────────────────────
+
+%% 1. Load dataset
 digitPath = fullfile(matlabroot,'toolbox','nnet','nndemos', ...
                      'nndatasets','DigitDataset');
 imds = imageDatastore(digitPath, ...
     'IncludeSubfolders', true, 'LabelSource', 'foldernames');
 rng(356);
-imds_sub = splitEachLabel(imds, 300, 'randomize');
+imds_sub = splitEachLabel(imds, n_per_class, 'randomize');
+fprintf('Loaded %d images (%d per class)\n', numel(imds_sub.Files), n_per_class);
 
 %% 2. Split into training (80%) and test (20%)
 [imds_train, imds_test] = splitEachLabel(imds_sub, 0.8, 'randomize');
@@ -751,24 +757,24 @@ imds_sub = splitEachLabel(imds, 300, 'randomize');
 %  featureInputLayer expects N×features (rows = observations)
 imgs_train = readall(imds_train);
 v_train    = cellfun(@(I) double(I(:))/255, imgs_train, 'UniformOutput', false);
-X_train    = [v_train{:}]';          % 2400 × 784
+X_train    = [v_train{:}]';          % (0.8*n_per_class*10) × 784
 
 imgs_test  = readall(imds_test);
 v_test     = cellfun(@(I) double(I(:))/255, imgs_test,  'UniformOutput', false);
-X_test     = [v_test{:}]';           % 600 × 784
+X_test     = [v_test{:}]';           % (0.2*n_per_class*10) × 784
 
-Y_train = imds_train.Labels;         % categorical, 2400×1
-Y_test  = imds_test.Labels;          % categorical, 600×1
+Y_train = imds_train.Labels;         % categorical
+Y_test  = imds_test.Labels;          % categorical
 
 %% 4. Define the network architecture (layer-by-layer)
 layers = [
-    featureInputLayer(784,   'Name', 'input')
-    fullyConnectedLayer(128, 'Name', 'fc1')       % ← change this size in HW 36
-    reluLayer(               'Name', 'relu1')
-    dropoutLayer(0.3,        'Name', 'drop1')     % regularization
-    fullyConnectedLayer(10,  'Name', 'fc2')       % output neurons = # of classes
-    softmaxLayer(            'Name', 'softmax')
-    classificationLayer(     'Name', 'output')
+    featureInputLayer(784,        'Name', 'input')
+    fullyConnectedLayer(n_hidden, 'Name', 'fc1')
+    reluLayer(                    'Name', 'relu1')
+    dropoutLayer(0.3,             'Name', 'drop1')   % randomly zero 30% of
+    fullyConnectedLayer(10,       'Name', 'fc2')     %   activations each batch
+    softmaxLayer(                 'Name', 'softmax')
+    classificationLayer(          'Name', 'output')
 ];
 
 %% 5. Set training options
@@ -784,13 +790,15 @@ opts = trainingOptions('adam', ...           % adaptive learning rate
 %% 6. Train
 net = trainNetwork(X_train, Y_train, layers, opts);
 % → Watch the Training Progress window.
-% → With 128 hidden neurons and 2,400 training samples, accuracy should
-%   rise steadily on both curves — good generalization pattern.
+% → With n_hidden=128 and n_per_class=300, accuracy should rise on both
+%   curves — good generalization.  Try smaller/larger values to shift
+%   between the underfitting and overfitting patterns from Figure 2.
 
 %% 7. Evaluate on test set
 Y_pred = classify(net, X_test);
 acc    = 100 * mean(Y_pred == Y_test);
-fprintf('Test accuracy: %.1f%%\n', acc);
+fprintf('n_per_class=%d  n_hidden=%d  Test acc: %.1f%%\n', ...
+    n_per_class, n_hidden, acc);
 
 %% 8. Visualize 25 random test examples in a 5×5 grid
 %  Note: test images are stored in class order, so taking the first 25
@@ -812,7 +820,10 @@ end
 sgtitle('25 Random Test Predictions  (green = correct  |  red = wrong)');
 </code></pre>
     <div class="callout info">
-      <strong>What to notice in the Training Progress plot:</strong> With 128 hidden neurons and 2,400 training samples both curves should rise and converge &mdash; the good generalization pattern. Early stopping (<code>ValidationPatience, 10</code>) automatically halts training if the validation accuracy stops improving, preventing the curves from diverging into overfitting. In HW&nbsp;36 you will deliberately change these parameters to produce underfitting and overfitting patterns.
+      <strong>What to notice in the Training Progress plot:</strong> With the default parameters (<code>n_hidden=128</code>, <code>n_per_class=300</code>) both curves should rise and converge &mdash; the good generalization pattern. Early stopping (<code>ValidationPatience=10</code>) automatically halts training and restores the best weights if validation accuracy stops improving. Try reducing <code>n_per_class</code> to 50 to induce underfitting, or increasing <code>n_hidden</code> to 512 with a small <code>n_per_class</code> to induce overfitting.
+    </div>
+    <div class="callout info">
+      <strong>What does <code>dropoutLayer(0.3)</code> do?</strong> During each training mini-batch, dropout randomly sets 30% of the activations in that layer to zero &mdash; a different random subset each time. This forces the network to learn redundant, distributed representations rather than relying on a small number of neurons, which reduces overfitting. At test time dropout is automatically disabled and all activations are used (scaled to account for the dropped fraction during training). Dropout is one of the most widely used regularization techniques in deep learning.
     </div>
     <div class="callout info">
       <strong>Why flatten instead of using raw images?</strong> A fully-connected layer treats each pixel as an independent feature &mdash; it does not exploit the spatial structure of the image. Convolutional Neural Networks (Lesson&nbsp;37) solve this by applying shared filters that detect local patterns regardless of position.
