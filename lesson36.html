@@ -726,57 +726,93 @@
   <div class="card">
     <h2><span class="section-icon">&#x1F4BB;</span> Worked Example &mdash; Handwritten Digit Recognition</h2>
     <p>
-      We train a shallow network on MATLAB's built-in <strong>DigitDataset</strong> (10,000 handwritten digit images, classes 0&ndash;9, 28&times;28 pixels). For a shallow network, we flatten each image into a 784-element feature vector. HW&nbsp;36 uses the same dataset &mdash; your job is to tune the parameters to improve performance.
+      We train a shallow network on MATLAB's built-in <strong>DigitDataset</strong> (10,000 handwritten digit images, classes 0&ndash;9, 28&times;28 pixels). Rather than <code>patternnet</code>, we use the Deep Learning Toolbox layer API directly &mdash; the same approach you will use in HW&nbsp;36 and beyond, giving you full control over architecture, activation functions, and optimizer settings.
     </p>
     <p>
-      This example deliberately uses a <em>small</em> network (<code>patternnet(10)</code>) so the Performance plot shows the <strong>underfitting</strong> pattern from Figure&nbsp;2. Recognizing this pattern &mdash; and knowing how to fix it &mdash; is the goal of HW&nbsp;36.
+      This example deliberately uses a <em>small</em> hidden layer (10 neurons) so the Training Progress plot shows the <strong>underfitting</strong> pattern from Figure&nbsp;2. Recognizing this pattern &mdash; and knowing how to fix it &mdash; is the goal of HW&nbsp;36.
     </p>
-<pre><code class="language-matlab">%% Lesson 36 — Handwritten Digit Classification with patternnet
+<pre><code class="language-matlab">%% Lesson 36 — Handwritten Digit Classification (Deep Learning Toolbox)
 % Dataset: MATLAB's built-in DigitDataset (10,000 images, 10 classes, 28x28)
-% Network: 784 → 10 → 10  (deliberately small — shows underfitting)
+% Network: 784 → 10 (ReLU) → 10 (softmax)  — deliberately small (underfitting)
 % HW 36 uses the same dataset; your task is to improve this baseline.
 
-%% 1. Load dataset and take a subset
+%% 1. Load dataset — 100 images per class (1,000 total)
 digitPath = fullfile(matlabroot,'toolbox','nnet','nndemos', ...
                      'nndatasets','DigitDataset');
 imds = imageDatastore(digitPath, ...
     'IncludeSubfolders', true, 'LabelSource', 'foldernames');
-
-% Use 100 images per digit class (1000 total, ~10% of full dataset)
 rng(356);
 imds_sub = splitEachLabel(imds, 100, 'randomize');
 
-%% 2. Flatten images: each 28x28 → 784-element column vector
-%  Each image becomes one column → X is 784 × 1000 (features × samples)
-imgs    = readall(imds_sub);
-vectors = cellfun(@(I) double(I(:))/255, imgs, 'UniformOutput', false);
-X       = [vectors{:}];               % 784 × 1000
+%% 2. Split into training (80%) and test (20%)
+[imds_train, imds_test] = splitEachLabel(imds_sub, 0.8, 'randomize');
 
-% Integer class labels 1–10 ('0'→1, '1'→2, ..., '9'→10)
-classNums = grp2idx(imds_sub.Labels); % 1000×1
-T         = full(ind2vec(classNums')); % 10 × 1000 one-hot
+%% 3. Flatten images: each 28x28 → 784-element row vector
+%  featureInputLayer expects N×features (rows = observations)
+imgs_train = readall(imds_train);
+v_train    = cellfun(@(I) double(I(:))/255, imgs_train, 'UniformOutput', false);
+X_train    = [v_train{:}]';          % 800 × 784
 
-fprintf('Data: %d samples, %d features, %d classes\n', ...
-    size(X,2), size(X,1), size(T,1));
+imgs_test  = readall(imds_test);
+v_test     = cellfun(@(I) double(I(:))/255, imgs_test,  'UniformOutput', false);
+X_test     = [v_test{:}]';           % 200 × 784
 
-%% 3. Define and train a SMALL network (1 hidden layer, 10 neurons)
-net = patternnet(10);               % 784 → 10 → 10
-net = train(net, X, T);
-% → Click "Performance" in the training GUI.
-% → Observe: both training and validation losses remain relatively high.
-%   This is UNDERFITTING — 10 neurons cannot represent 10 digit classes
-%   from 784 features. In HW 36 you will explore larger architectures.
+Y_train = imds_train.Labels;         % categorical, 800×1
+Y_test  = imds_test.Labels;          % categorical, 200×1
 
-%% 4. Compute training accuracy
-pred = vec2ind(net(X));
-acc  = 100 * mean(pred == classNums');
-fprintf('Training accuracy: %.1f%%\n', acc);
+%% 4. Define the network architecture (layer-by-layer)
+layers = [
+    featureInputLayer(784,  'Name', 'input')
+    fullyConnectedLayer(10, 'Name', 'fc1')       % ← change this size in HW 36
+    reluLayer(              'Name', 'relu1')
+    fullyConnectedLayer(10, 'Name', 'fc2')       % output neurons = # of classes
+    softmaxLayer(           'Name', 'softmax')
+    classificationLayer(    'Name', 'output')
+];
+
+%% 5. Set training options
+opts = trainingOptions('sgdm', ...           % SGD with momentum
+    'MaxEpochs',           30, ...
+    'MiniBatchSize',       64, ...
+    'InitialLearnRate',    0.01, ...
+    'Momentum',            0.9, ...
+    'ValidationData',      {X_test, Y_test}, ...
+    'ValidationFrequency', 5, ...
+    'Plots',               'training-progress', ...
+    'Verbose',             false);
+
+%% 6. Train
+net = trainNetwork(X_train, Y_train, layers, opts);
+% → Watch the Training Progress window.
+% → Both accuracy curves remain low — classic underfitting.
+%   10 hidden neurons cannot capture 10 digit classes from 784 features.
+
+%% 7. Evaluate on test set
+Y_pred = classify(net, X_test);
+acc    = 100 * mean(Y_pred == Y_test);
+fprintf('Test accuracy: %.1f%%\n', acc);
+
+%% 8. Visualize 25 test examples in a 5×5 grid
+figure('Name', 'Test Set Predictions', 'NumberTitle', 'off');
+for k = 1:25
+    subplot(5,5,k);
+    imshow(imgs_test{k});
+    pred_str = char(Y_pred(k));
+    true_str = char(Y_test(k));
+    if strcmp(pred_str, true_str)
+        title(sprintf('Pred: %s', pred_str), 'Color', 'g', 'FontSize', 7);
+    else
+        title(sprintf('Pred: %s (T:%s)', pred_str, true_str), ...
+              'Color', 'r', 'FontSize', 7);
+    end
+end
+sgtitle('Test Predictions  (green = correct  |  red = wrong)');
 </code></pre>
     <div class="callout info">
-      <strong>What to notice in the Performance plot:</strong> With only 10 hidden neurons both the training and validation loss curves should be high (above 0.1 cross-entropy) and the curves may not decrease much — a classic underfitting signature. Increasing the number of neurons is the most direct fix, which you will explore in HW&nbsp;36.
+      <strong>What to notice in the Training Progress plot:</strong> With only 10 hidden neurons both the training and validation accuracy curves should plateau at a low value (often below 50%) &mdash; a classic underfitting signature. Increasing the number of neurons in <code>fc1</code> is the most direct fix, which you will explore in HW&nbsp;36.
     </div>
     <div class="callout info">
-      <strong>Why flatten instead of using raw images?</strong> A standard fully-connected layer (like <code>patternnet</code>) treats each pixel as an independent feature — it does not exploit the spatial structure of the image. Convolutional Neural Networks (Lesson&nbsp;37) solve this by applying shared filters that detect local patterns regardless of position.
+      <strong>Why flatten instead of using raw images?</strong> A fully-connected layer treats each pixel as an independent feature &mdash; it does not exploit the spatial structure of the image. Convolutional Neural Networks (Lesson&nbsp;37) solve this by applying shared filters that detect local patterns regardless of position.
     </div>
   </div>
 
