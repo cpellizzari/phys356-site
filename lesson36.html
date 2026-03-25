@@ -80,13 +80,13 @@
     <h2><span class="section-icon">&#x1F30D;</span> Background &amp; Motivation</h2>
     <h3>Closing the loop</h3>
     <p>
-      In Lesson 30 we introduced gradient descent: given the gradient of a loss function, we update parameters by stepping opposite the gradient. In Lesson 35 we built neural networks with multiple layers, each with its own weights \(\mathbf{W}^{[\ell]}\) and biases \(\mathbf{b}^{[\ell]}\). The missing piece is: <strong>how do we efficiently compute \(\partial L / \partial \mathbf{W}^{[\ell]}\) for every layer?</strong>
+      In Lesson 30 we introduced gradient descent: given the gradient of a loss function, we update parameters by stepping opposite the gradient. In Lesson 35 we built neural networks with multiple layers, each with its own weights \(\mathbf{W}^{[\ell]}\) and biases \(\mathbf{b}^{[\ell]}\). When we initialize a network, we often assign random weights and biases to each layer, which produce a poor output according to our loss function. The missing piece that we will address in this lesson is: <strong>how do we efficiently compute the gradient of the loss function with respect to every weight and bias in every layer, and how do we update those parameters to obtain better values that produce a lower loss?</strong>
     </p>
     <p>
       <strong>Backpropagation</strong> is the answer. It is an efficient application of the chain rule from calculus, applied layer-by-layer from the output back to the input. Backpropagation is not a learning algorithm itself — it is a gradient <em>computation</em> algorithm. Gradient descent then uses those gradients to update parameters.
     </p>
     <div class="callout info">
-      <strong>The full neural network training loop:</strong>
+      <strong>The full training loop for a neural network:</strong>
       (1)&nbsp;Forward pass &rarr;
       (2)&nbsp;Compute loss &rarr;
       (3)&nbsp;Backward pass (backpropagation) &rarr;
@@ -146,7 +146,7 @@
       x&#x2082;&thinsp;&middot;&thinsp;w&#x2082; &rarr; a&#x2082; &#x2571;
     </div>
     <p>
-      The <strong>forward pass</strong> evaluates left-to-right, computing and storing every intermediate value. The <strong>backward pass</strong> propagates \(\partial L / \partial(\text{each node})\) right-to-left using the chain rule — this <em>is</em> backpropagation. It tells us exactly how much each weight contributed to the loss.
+      The <strong>forward pass</strong> evaluates the loss for a given input by evaluating the network left-to-right, computing and storing all intermediate values. The <strong>backward pass</strong> propagates the derivatives of the loss with respect to each node \(\frac{\partial L}{\partial \text{each node}}\) right-to-left using the chain rule. This is the backpropagation algorithm. It provides the gradients of each parameter in the network with respect to the loss function. In other words, it tells us how much each parameter contributed to the loss, and we can use this to update the parameters to minimize the loss.
     </p>
 
     <h3>Simple numerical walkthrough</h3>
