@@ -729,7 +729,7 @@
       We train a shallow network on MATLAB's built-in <strong>DigitDataset</strong> (10,000 handwritten digit images, classes 0&ndash;9, 28&times;28 pixels). Rather than <code>patternnet</code>, we use the Deep Learning Toolbox layer API directly &mdash; the same approach you will use in HW&nbsp;36 and beyond, giving you full control over architecture, activation functions, and optimizer settings.
     </p>
     <p>
-      Two parameters at the top of the script control the experiment: <code>n_per_class</code> (how much data to load) and <code>n_hidden</code> (network capacity). The defaults are deliberately small to produce the <strong>underfitting</strong> pattern from Figure&nbsp;2. Try increasing them to see how performance improves before tackling HW&nbsp;36.
+      Three parameters at the top of the script control the experiment: <code>n_per_class</code> (dataset size), <code>n_hidden</code> (network capacity), and <code>learn_rate</code> (optimizer step size). The defaults are chosen to produce the <strong>overfitting</strong> pattern from Figure&nbsp;2. Try adjusting them to see how each one affects the Training Progress curves before tackling HW&nbsp;36.
     </p>
 <pre><code class="language-matlab">%% Lesson 36 — Handwritten Digit Classification (Deep Learning Toolbox)
 % Dataset: MATLAB's built-in DigitDataset (10,000 images, 10 classes, 28x28)
@@ -737,8 +737,9 @@
 % HW 36: change n_per_class and n_hidden to explore underfitting/overfitting.
 
 %% ── Parameters to experiment with ──────────────────────────────────────────
-n_per_class = 100;   % images loaded per digit class  (max 1000; try 50–500)
-n_hidden    = 10;    % neurons in the hidden layer     (try 10, 64, 256, 512)
+n_per_class = 100;    % images loaded per digit class  (max 1000; try 50–500)
+n_hidden    = 10;     % neurons in the hidden layer     (try 10, 64, 256, 512)
+learn_rate  = 0.05;   % Adam learning rate (default 0.001; high → overfits)
 %% ─────────────────────────────────────────────────────────────────────────
 
 %% 1. Load dataset
@@ -781,6 +782,7 @@ layers = [
 opts = trainingOptions('adam', ...           % adaptive learning rate
     'MaxEpochs',           50, ...
     'MiniBatchSize',       64, ...
+    'InitialLearnRate',    learn_rate, ...
     'ValidationData',      {X_test, Y_test}, ...
     'ValidationFrequency', 5, ...
     'ValidationPatience',  10, ...           % early stopping
@@ -790,15 +792,15 @@ opts = trainingOptions('adam', ...           % adaptive learning rate
 %% 6. Train
 net = trainNetwork(X_train, Y_train, layers, opts);
 % → Watch the Training Progress window.
-% → With n_hidden=10 and n_per_class=100 you should see underfitting:
-%   both accuracy curves plateau at a low value.  Increase n_hidden and
-%   n_per_class to shift toward the good generalization pattern.
+% → With these defaults (lr=0.05, n_hidden=10, n_per_class=100) you should
+%   see overfitting: training accuracy climbs while validation lags or drops.
+%   Lower learn_rate to 0.001 and raise n_per_class / n_hidden to improve.
 
 %% 7. Evaluate on test set
 Y_pred = classify(net, X_test);
 acc    = 100 * mean(Y_pred == Y_test);
-fprintf('n_per_class=%d  n_hidden=%d  Test acc: %.1f%%\n', ...
-    n_per_class, n_hidden, acc);
+fprintf('n_per_class=%d  n_hidden=%d  lr=%.4f  Test acc: %.1f%%\n', ...
+    n_per_class, n_hidden, learn_rate, acc);
 
 %% 8. Visualize 25 random test examples in a 5×5 grid
 %  Note: test images are stored in class order, so taking the first 25
@@ -820,7 +822,7 @@ end
 sgtitle('25 Random Test Predictions  (green = correct  |  red = wrong)');
 </code></pre>
     <div class="callout info">
-      <strong>What to notice in the Training Progress plot:</strong> With the default parameters (<code>n_hidden=10</code>, <code>n_per_class=100</code>) both curves should plateau at a low accuracy value &mdash; the classic underfitting pattern. Try increasing <code>n_hidden</code> to 128 and <code>n_per_class</code> to 300 to move toward good generalization, or set a large <code>n_hidden</code> with a small <code>n_per_class</code> to induce overfitting.
+      <strong>What to notice in the Training Progress plot:</strong> With the default parameters (<code>learn_rate=0.05</code>, <code>n_hidden=10</code>, <code>n_per_class=100</code>) the high learning rate causes aggressive weight updates on a small dataset, so training accuracy climbs while validation accuracy lags or drops &mdash; the overfitting pattern. Try lowering <code>learn_rate</code> to <code>0.001</code> and increasing <code>n_per_class</code> to 300 and <code>n_hidden</code> to 128 to see good generalization instead.
     </div>
     <div class="callout info">
       <strong>What does <code>dropoutLayer(0.3)</code> do?</strong> During each training mini-batch, dropout randomly sets 30% of the activations in that layer to zero &mdash; a different random subset each time. This forces the network to learn redundant, distributed representations rather than relying on a small number of neurons, which reduces overfitting. At test time dropout is automatically disabled and all activations are used (scaled to account for the dropped fraction during training). Dropout is one of the most widely used regularization techniques in deep learning.
