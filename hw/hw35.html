@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HW 35 — Shallow Neural Network (sat_data.mat) | PHYS 356</title>
+  <title>HW 35 — Neural Network Classification (sat_data.mat) | PHYS 356</title>
   <link rel="stylesheet" href="../css/style.css">
   <script>
     MathJax = {
@@ -45,141 +45,105 @@
 
   <div class="hw-header">
     <div class="hw-label">Homework Assignment</div>
-    <h1>HW 35 — Shallow Neural Network</h1>
+    <h1>HW 35 &mdash; Neural Network Classification</h1>
     <div class="hw-meta">
-      <span>📘 Related: <a href="../lesson35.html" style="color:rgba(255,255,255,0.9)">Lesson 35</a>, <a href="../lesson36.html" style="color:rgba(255,255,255,0.9)">Lesson 36</a></span>
-      <span>🛠 MATLAB required</span>
-      <span>📁 Dataset: <code>sat_data.mat</code></span>
+      <span>&#x1F4D8; Related: <a href="../lesson35.html" style="color:rgba(255,255,255,0.9)">Lesson 35</a></span>
+      <span>&#x1F6E0; MATLAB + Deep Learning Toolbox required</span>
+      <span>&#x1F4C1; Dataset: <code>sat_data.mat</code></span>
     </div>
   </div>
 
-  <!-- Overview -->
+  <!-- Background -->
   <div class="card">
-    <h2><span class="section-icon">📋</span> Overview</h2>
+    <h2><span class="section-icon">&#x1F30D;</span> Background</h2>
     <p>
-      In this assignment you will implement a complete shallow (one hidden layer) neural network from scratch in MATLAB — including Xavier initialization, the forward pass, backpropagation, and mini-batch SGD training. You will apply it to the <code>sat_data.mat</code> satellite maneuver classification dataset.
+      Your supervisor at the Combined Space Operations Center (CSpOC) has been following developments in neural networks and asks you to evaluate their use for the GEO object identification problem. You remember from Lesson 35 that MATLAB's Deep Learning Toolbox provides straightforward interfaces for designing and training neural networks. For this task you will design, train, and evaluate a shallow neural network classifier using the same satellite dataset from HW&nbsp;34.
     </p>
-    <div class="callout info">
-      <strong>No toolboxes:</strong> You may <em>not</em> use MATLAB's Deep Learning Toolbox for this assignment. Implement every layer, activation, and gradient computation yourself. This builds the deep understanding that makes using toolboxes meaningful later.
-    </div>
   </div>
 
   <!-- Dataset -->
   <div class="card">
-    <h2><span class="section-icon">📁</span> Dataset: sat_data.mat</h2>
+    <h2><span class="section-icon">&#x1F4C1;</span> Dataset: sat_data.mat</h2>
     <p>
-      The <code>sat_data.mat</code> file contains satellite sensor data. Load it with:
+      The file <code>sat_data.mat</code> contains observations of 300 known objects in geosynchronous orbit. Load it with:
     </p>
 <pre><code class="language-matlab">load('sat_data.mat');
-% Variables provided:
-%   X_train  —  N_train × d  feature matrix (already normalized)
-%   y_train  —  N_train × 1  binary labels (0 = nominal, 1 = maneuvering)
-%   X_test   —  N_test  × d  feature matrix
-%   y_test   —  N_test  × 1  binary labels
+% Variables:
+%   Y   — 300 × 2  feature matrix: [avg visual magnitude, avg rotation rate]
+%   ID  — 300 × 1  class labels (integers 1–4)
 </code></pre>
-    <p>
-      Features include radar cross-section over time, Doppler shift measurements, and derived orbital element residuals. Labels indicate whether the satellite performed an unscheduled maneuver in the observation window.
-    </p>
-    <div class="callout warning">
-      <strong>If sat_data.mat is not available:</strong> Generate a stand-in dataset using the code below. Your instructor will confirm which to use.
-    </div>
-<pre><code class="language-matlab">% Synthetic stand-in (use only if sat_data.mat unavailable)
-rng(356);
-d = 12;  N_train = 800;  N_test = 200;
-X_train = randn(N_train, d);
-y_train = double(sum(X_train(:,1:3), 2) + randn(N_train,1) > 0);
-X_test  = randn(N_test,  d);
-y_test  = double(sum(X_test(:,1:3),  2) + randn(N_test,1)  > 0);
-</code></pre>
+    <p>The four object classes are:</p>
+    <table class="summary-table" style="margin-top:0.5rem;">
+      <thead><tr><th>Label</th><th>Object Type</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Active Payload</td></tr>
+        <tr><td>2</td><td>Inactive Payload</td></tr>
+        <tr><td>3</td><td>Rocket Body</td></tr>
+        <tr><td>4</td><td>Debris</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- Problem 1 -->
   <div class="problem">
-    <h3>Problem 1 — Network Initialization</h3>
+    <h3>Problem 1 &mdash; Prepare Data and Define the Network</h3>
     <ol>
-      <li><strong>(5 pts)</strong> Determine \(d\) from the loaded data. Choose an architecture: \(d \to n_1 \to 1\) with \(n_1 = 32\) hidden neurons. Report the total number of trainable parameters.</li>
-      <li><strong>(10 pts)</strong> Initialize parameters using Xavier initialization:
-        \[\mathbf{W}^{[1]} \sim \mathcal{N}\!\left(0, \sqrt{\tfrac{2}{d}}\right), \quad
-          \mathbf{W}^{[2]} \sim \mathcal{N}\!\left(0, \sqrt{\tfrac{2}{n_1}}\right)\]
-        Initialize biases \(\mathbf{b}^{[1]} = \mathbf{0}\), \(b^{[2]} = 0\). Verify that the initial output of <code>W2 * relu(W1 * X_train(1,:)' + b1) + b2</code> is in a reasonable range (i.e., not exploding). Report the mean and std of all initial pre-activations \(\mathbf{z}^{[1]}\) over the training set.
+      <li>
+        Split the data into a training set (first 240 samples) and test set (remaining 60):
+<pre><code class="language-matlab">N_train = 240;
+Y_train = Y(1:N_train, :);       ID_train = ID(1:N_train);
+Y_test  = Y(N_train+1:end, :);   ID_test  = ID(N_train+1:end);
+</code></pre>
+      </li>
+      <li>
+        Convert the training labels into the one-hot format that <code>patternnet</code> expects, and define a shallow network with a single hidden layer. You may choose the number of hidden neurons. See the Lesson&nbsp;35 worked example for the relevant functions and data layout.
       </li>
     </ol>
   </div>
 
   <!-- Problem 2 -->
   <div class="problem">
-    <h3>Problem 2 — Forward Pass</h3>
+    <h3>Problem 2 &mdash; Train the Network</h3>
     <ol>
-      <li><strong>(10 pts)</strong> Implement the vectorized forward pass for the full training set. Your implementation must use matrix operations (no loops over samples). Store \(\mathbf{Z}^{[1]}\), \(\mathbf{A}^{[1]}\), \(\mathbf{Z}^{[2]}\), \(\hat{\mathbf{p}}\) — you will need them in backprop.
-        \[
-          \mathbf{Z}^{[1]} = \mathbf{W}^{[1]}\mathbf{X}^\top + \mathbf{b}^{[1]}, \quad
-          \mathbf{A}^{[1]} = \text{ReLU}(\mathbf{Z}^{[1]}), \quad
-          \mathbf{Z}^{[2]} = \mathbf{W}^{[2]}\mathbf{A}^{[1]} + b^{[2]}, \quad
-          \hat{\mathbf{p}} = \sigma(\mathbf{Z}^{[2]})^\top
-        \]
+      <li>
+        Train your network on the training data using the approach from the Lesson&nbsp;35 example. Remember that <code>patternnet</code> expects features as a \(d \times N\) matrix (columns&nbsp;=&nbsp;samples).
       </li>
-      <li><strong>(5 pts)</strong> Compute and report the initial cross-entropy loss on the training set.</li>
-      <li><strong>(5 pts)</strong> Compute and report the initial accuracy on the training set. Is it close to 50%? Should it be?</li>
+      <li>From the training visualization window that opens, click the <strong>Performance</strong> button. Include this plot in your submission. What does it tell you about the training process? What does it say about this specific scenario?</li>
     </ol>
   </div>
 
   <!-- Problem 3 -->
   <div class="problem">
-    <h3>Problem 3 — Backpropagation</h3>
+    <h3>Problem 3 &mdash; Classify and Evaluate</h3>
     <ol>
-      <li><strong>(20 pts)</strong> Implement the backward pass. For each mini-batch, compute all gradients using the equations from Lesson 37:
-        \[
-          \boldsymbol{\delta}^{[2]} = \hat{\mathbf{p}} - \mathbf{y}, \quad
-          \frac{\partial L}{\partial \mathbf{W}^{[2]}} = \frac{1}{B}\boldsymbol{\delta}^{[2]\top} \mathbf{A}^{[1]\top}, \quad
-          \frac{\partial L}{\partial b^{[2]}} = \frac{1}{B}\sum \delta^{[2]}
-        \]
-        \[
-          \boldsymbol{\delta}^{[1]} = (\mathbf{W}^{[2]})^\top \boldsymbol{\delta}^{[2]\top} \odot \mathbf{1}[\mathbf{Z}^{[1]} > 0], \quad
-          \frac{\partial L}{\partial \mathbf{W}^{[1]}} = \frac{1}{B}\boldsymbol{\delta}^{[1]} \mathbf{X}_B^\top, \quad
-          \frac{\partial L}{\partial \mathbf{b}^{[1]}} = \frac{1}{B}\boldsymbol{\delta}^{[1]}\mathbf{1}
-        \]
+      <li>
+        Apply the trained network to the test data. Convert the network output back to integer class labels and compute the test accuracy. How does it compare to the KNN and SVM results from HW&nbsp;34?
       </li>
-      <li><strong>(10 pts)</strong> Verify your gradients with a numerical gradient check. For one scalar parameter \(w_{11}^{[1]}\), compute:
-        \[\frac{\partial L}{\partial w_{11}^{[1]}} \approx \frac{L(w_{11}^{[1]}+\epsilon) - L(w_{11}^{[1]}-\epsilon)}{2\epsilon}, \quad \epsilon = 10^{-5}\]
-        Report the analytic gradient, numerical approximation, and their relative error. Acceptable: relative error \(< 10^{-4}\).
+      <li>
+        Generate a confusion matrix using <code>confusionchart(ID_test, predicted)</code>. Include the chart in your submission. Which classes are most often confused with each other? Does this make physical sense given what the features measure?
       </li>
     </ol>
   </div>
 
   <!-- Problem 4 -->
   <div class="problem">
-    <h3>Problem 4 — Mini-Batch SGD Training</h3>
+    <h3>Problem 4 &mdash; Reproducibility and Architecture Exploration</h3>
     <ol>
-      <li><strong>(15 pts)</strong> Implement a training loop with:
-        <ul style="margin-top:0.4rem;padding-left:1rem;">
-          <li>Mini-batch size \(B = 64\)</li>
-          <li>Learning rate \(\alpha = 0.01\)</li>
-          <li>50 epochs</li>
-          <li>At each epoch: shuffle training data, iterate over mini-batches, compute loss and gradients, update all parameters</li>
-          <li>Record training loss per epoch</li>
-        </ul>
+      <li>Run your training script 3&ndash;5 times without fixing the random seed. Does the test accuracy change between runs? Why?</li>
+      <li>
+        Add <code>rng('default')</code> at the top of your script and rerun several times. Do results stabilize? Explain why fixing the random seed is useful when comparing architectures.
       </li>
-      <li><strong>(5 pts)</strong> Plot training loss vs. epoch. Is convergence smooth? Would you expect smoother convergence with larger or smaller batch size?</li>
-      <li><strong>(5 pts)</strong> Evaluate on the test set. Report test accuracy, test loss, precision, recall, and F1-score. Compare to the logistic regression results from HW 34 — did the neural network improve performance?</li>
-    </ol>
-  </div>
-
-  <!-- Problem 5 -->
-  <div class="problem">
-    <h3>Problem 5 — Architecture Exploration (choose one)</h3>
-    <p style="color:var(--text-secondary);">Select <strong>one</strong> of the following extensions to explore:</p>
-    <ol type="A">
-      <li><strong>(10 pts) Hidden layer width:</strong> Train networks with \(n_1 \in \{4, 8, 16, 32, 64\}\). Plot test accuracy vs. \(n_1\). Is bigger always better?</li>
-      <li><strong>(10 pts) Learning rate schedule:</strong> Implement a simple cosine annealing schedule where \(\alpha(t) = \alpha_{\max}\cdot\frac{1+\cos(\pi t/T)}{2}\). Compare convergence to constant \(\alpha = 0.01\).</li>
-      <li><strong>(10 pts) Second hidden layer:</strong> Extend the network to \(d \to 32 \to 16 \to 1\). Implement the additional backprop equations and verify with a gradient check. Report test accuracy.</li>
+      <li>
+        With <code>rng('default')</code> set once at the top of your script, train networks with at least three different hidden layer sizes (e.g., 5, 10, 25 neurons) in sequence. Record the test accuracy for each. Summarize your results in a table and recommend an architecture. Is bigger always better?
+      </li>
     </ol>
   </div>
 
   <div class="lesson-nav">
-    <a href="../lesson36.html" class="prev">← Back to Lesson 36</a>
-    <a href="hw38.html" class="next">
-      <div><span class="nav-label">Next HW</span><br>HW 38: Transformers &amp; Diffusion</div>
-      →
+    <a href="../lesson35.html" class="prev">&larr; Back to Lesson 35</a>
+    <a href="hw36.html" class="next">
+      <div><span class="nav-label">Next HW</span><br>HW 36: Backprop &amp; Training</div>
+      &rarr;
     </a>
   </div>
 

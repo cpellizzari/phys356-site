@@ -75,10 +75,12 @@ All colors and sizing use CSS custom properties defined at the top of `style.css
 | 32 | Bayesian Estimation: MAP & MMSE | hw32.html | Recreate MBIP Fig. 2.1 |
 | 33 | Intro to ML, regression, regularization | hw33.html | `physics_grades.mat` |
 | 34 | Supervised Learning (KNN, SVM, logistic regression) | hw34.html | `sat_data.mat` |
-| 35 | Unsupervised Learning (k-means, PCA) | hw35.html | `sat_data.mat` |
-| 36 | Linear Classification + Loss Functions + SGD | hw36.html | `sat_data.mat` |
-| 37 | Neural Networks + Backpropagation | hw37.html | `sat_data.mat` |
-| 38 | CNNs + Transformers/LLMs | hw38.html | — |
+| 35 | Neural Networks — Architecture & Forward Pass | hw35.html | `sat_data.mat` |
+| 36 | Neural Networks — Backpropagation & Training | hw36.html | `sat_data.mat` |
+| 37 | CNNs | hw37.html | `sat_data.mat` |
+| 38 | Transformers & LLMs | hw38.html | — |
+
+**Note:** After the L35–L38 restructure, the source slide decks (`356_Lesson_35.pptx` etc.) no longer align with lesson topics. Slide decks will be updated separately; use slide content as a resource but do not assume slide number = lesson number.
 
 ## MATLAB Example Policy
 
@@ -87,6 +89,7 @@ In-lesson MATLAB examples must be **clearly distinct** from the homework problem
 - L30 example: `f = 4*x1^2 + x2^2`, hard-coded 5-step GD walkthrough (no loop), gradient arrows normalized, semilog convergence plot — HW uses `4*x1^2 - 16*x1 + x2^2 - 6*x2 + 25`
 - L31 example: Gaussian ML (sample mean) — HW uses exponential/laser-speckle
 - L32 example: scalar Bayesian (single sample) — HW uses 50-dim covariance
+- L35 example: synthetic spectral data with `patternnet` (3 features, 2 classes) — HW uses `sat_data.mat` (2 features, 4 classes) with `patternnet`
 
 ## Video Embedding Notes
 
@@ -136,9 +139,13 @@ Canonical video placements:
 | lesson31.html | ✅ Final | Frequentist estimation & ML; StatQuest MLE video; "Note:" callouts; E[·] notation defined |
 | lesson32.html | ✅ Final | Bayesian MAP & MMSE; 3B1B + Veritasium videos; "Note:" callouts; proportionality fix in Gaussian example |
 | lesson33.html | ✅ Final | Regression, regularization, bias-variance; β/x clarified; design matrix expanded; argmin equation; hw33 reference updated |
-| lesson34.html–38.html | 🔄 Draft | ML/AI module — nav not yet updated to L29–L38 |
+| lesson34.html | ✅ Final | Supervised Learning: KNN, SVM, logistic regression; sat_data.mat |
+| lesson35.html | ✅ Final | Neural Networks: architecture, forward pass, activations; patternnet worked example; CS231n video (55:11–104:00); 3B1B gradient descent video |
+| lesson36.html–38.html | 🔄 Draft | Backprop, CNNs, Transformers |
 | hw29.html–hw33.html | ✅ Final | Reviewed; submit/.mlx line removed from all |
-| hw34.html–hw38.html | 🔄 Draft | hw36.html and hw37.html not yet created |
+| hw34.html | ✅ Final | KNN, SVM, logistic regression on sat_data.mat |
+| hw35.html | ✅ Final | patternnet on sat_data.mat (4-class GEO identification); modeled on old HW_37.docx |
+| hw36.html–hw38.html | 🔄 Draft | hw36.html and hw37.html not yet created |
 
 ## Git / GitHub
 

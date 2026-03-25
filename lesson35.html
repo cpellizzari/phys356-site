@@ -63,6 +63,7 @@
   <div class="notation-box">
     <h3>Notation used in this lesson</h3>
     <div class="notation-grid">
+      <div class="notation-item"><span class="sym">\(\mathbf{x}\)</span><span class="desc">Input feature vector, \(\mathbf{x} \in \mathbb{R}^d\) where \(d\) is the number of features</span></div>
       <div class="notation-item"><span class="sym">\(L\)</span><span class="desc">Number of layers (subscripts 1&hellip;L index each layer)</span></div>
       <div class="notation-item"><span class="sym">\(\mathbf{W}_\ell\)</span><span class="desc">Weight matrix, layer \(\ell\)</span></div>
       <div class="notation-item"><span class="sym">\(\mathbf{b}_\ell\)</span><span class="desc">Bias vector, layer \(\ell\)</span></div>
@@ -85,7 +86,13 @@
       The linear classifier from Lesson 34 is powerful but fundamentally limited: it can only learn linear decision boundaries. Real data is rarely linearly separable. Satellite orbit families, material phases, particle signatures — these require curved, complex boundaries.
     </p>
     <p>
-      <strong>Neural networks</strong> overcome this by stacking multiple layers of linear transformations, each followed by a nonlinear <em>activation function</em>. The composition of these layers can represent arbitrarily complex functions — a result formalized by the Universal Approximation Theorem.
+      A naive fix might be to simply stack multiple linear layers. But this does not help: the composition of linear transformations is itself a linear transformation. No matter how many layers you add, the model collapses to a single matrix multiply — equivalent to one linear layer with different weights. Stacking linear layers buys you nothing.
+    </p>
+    <div class="callout info">
+      <strong>Why nonlinearity is essential:</strong> A neural network interleaves linear transformations with a nonlinear <em>activation function</em> \(\phi\). Because \(\phi\) is nonlinear, the composition \(\phi(\mathbf{W}_2 \phi(\mathbf{W}_1\mathbf{x} + \mathbf{b}_1) + \mathbf{b}_2)\) cannot collapse to a single linear layer — it genuinely increases the model's expressive power with each added layer.
+    </div>
+    <p>
+      <strong>Neural networks</strong> exploit this by stacking many such layers. The composition of these layers can represent arbitrarily complex functions — a result formalized by the Universal Approximation Theorem.
     </p>
     <h3>Biological inspiration (and where it ends)</h3>
     <p>
@@ -146,12 +153,12 @@
         \underbrace{\mathbf{z}_\ell}_{\text{pre-activation}}
         = \mathbf{W}_\ell \mathbf{a}_{\ell-1} + \mathbf{b}_\ell
         \qquad \longrightarrow \qquad
-        \underbrace{\mathbf{a}_\ell}_{\text{activation}}
-        = \phi\!\left(\mathbf{z}_\ell\right)
+        \underbrace{\mathbf{a}_{\ell-1}}_{\text{activation}}
+        = \phi\!\left(\mathbf{z}_{\ell-1}\right)
       \]
     </div>
     <p>
-      Where \(\mathbf{W}_\ell \in \mathbb{R}^{n_\ell \times n_{\ell-1}}\) is the weight matrix, \(\mathbf{b}_\ell \in \mathbb{R}^{n_\ell}\) is the bias vector, and \(\phi\) is applied element-wise.
+      Here, \(\mathbf{a}_{\ell-1}\) is the activation output from the previous layer (for the first hidden layer, \(\mathbf{a}_0 = \mathbf{x}\)), \(\mathbf{W}_\ell \in \mathbb{R}^{n_\ell \times n_{\ell-1}}\) is the weight matrix, \(\mathbf{b}_\ell \in \mathbb{R}^{n_\ell}\) is the bias vector, and \(\phi\) is the nonlinear activation function applied element-wise.
     </p>
 
     <h3>3. Full Forward Pass (Two-Layer Network)</h3>
@@ -163,10 +170,16 @@
         \mathbf{a}_0 = \mathbf{x} \quad \text{(input)}
       \]
       \[
-        \mathbf{z}_1 = \mathbf{W}_1 \mathbf{x} + \mathbf{b}_1, \qquad \mathbf{a}_1 = \text{ReLU}(\mathbf{z}_1)
+        \mathbf{z}_1 = \mathbf{W}_1 \mathbf{a}_0 + \mathbf{b}_1
       \]
       \[
-        z_2 = \mathbf{W}_2 \mathbf{a}_1 + b_2, \qquad \hat{y} = \sigma(z_2)
+        \mathbf{a}_1 = \text{ReLU}(\mathbf{z}_1)
+      \]
+      \[
+        \mathbf{z}_2 = \mathbf{W}_2 \mathbf{a}_1 + \mathbf{b}_2
+      \]
+      \[
+        \hat{y} = \phi(\mathbf{z}_2)
       \]
     </div>
     <p>
@@ -175,23 +188,11 @@
 
     <h3>4. Activation Functions</h3>
     <p>
-      Without activations, stacking linear layers is useless — you just get another linear layer. Nonlinearity is essential.
+      Many different nonlinear functions can serve as \(\phi\). The choice affects training stability, gradient flow, and model performance. Some of the most commonly used activation functions are shown below, ordered by prevalence in modern practice.
     </p>
     <table class="summary-table" style="margin-top:0.75rem;">
       <thead><tr><th>Function</th><th>Formula</th><th>Range</th><th>Common Use</th></tr></thead>
       <tbody>
-        <tr>
-          <td><strong>Sigmoid</strong></td>
-          <td>\(\sigma(z) = \frac{1}{1+e^{-z}}\)</td>
-          <td>\((0,1)\)</td>
-          <td>Binary output layer</td>
-        </tr>
-        <tr>
-          <td><strong>Tanh</strong></td>
-          <td>\(\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}\)</td>
-          <td>\((-1,1)\)</td>
-          <td>Hidden layers (older)</td>
-        </tr>
         <tr>
           <td><strong>ReLU</strong></td>
           <td>\(\max(0, z)\)</td>
@@ -199,10 +200,22 @@
           <td>Hidden layers (modern default)</td>
         </tr>
         <tr>
+          <td><strong>Sigmoid</strong></td>
+          <td>\(\sigma(z) = \frac{1}{1+e^{-z}}\)</td>
+          <td>\((0,1)\)</td>
+          <td>Binary output layer</td>
+        </tr>
+        <tr>
           <td><strong>Softmax</strong></td>
           <td>\(\frac{e^{z_k}}{\sum_j e^{z_j}}\)</td>
           <td>\((0,1)\), sums to 1</td>
           <td>Multi-class output layer</td>
+        </tr>
+        <tr>
+          <td><strong>Tanh</strong></td>
+          <td>\(\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}\)</td>
+          <td>\((-1,1)\)</td>
+          <td>Hidden layers (older architectures)</td>
         </tr>
       </tbody>
     </table>
@@ -210,16 +223,16 @@
     <!-- Figure 3: Activation Functions (CS231n) -->
     <div style="display:flex;flex-wrap:wrap;gap:1rem;justify-content:center;margin:1.2rem 0;">
       <figure style="text-align:center;margin:0;">
+        <img src="images/cs231n_relu.jpeg" alt="ReLU activation function" style="max-width:220px;width:100%;border-radius:6px;background:#fff;padding:0.4rem;">
+        <figcaption style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.4rem;">ReLU &mdash; max(0, z)</figcaption>
+      </figure>
+      <figure style="text-align:center;margin:0;">
         <img src="images/cs231n_sigmoid.jpeg" alt="Sigmoid activation function" style="max-width:220px;width:100%;border-radius:6px;background:#fff;padding:0.4rem;">
         <figcaption style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.4rem;">Sigmoid &mdash; squashes to (0, 1)</figcaption>
       </figure>
       <figure style="text-align:center;margin:0;">
         <img src="images/cs231n_tanh.jpeg" alt="Tanh activation function" style="max-width:220px;width:100%;border-radius:6px;background:#fff;padding:0.4rem;">
         <figcaption style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.4rem;">Tanh &mdash; squashes to (&minus;1, 1)</figcaption>
-      </figure>
-      <figure style="text-align:center;margin:0;">
-        <img src="images/cs231n_relu.jpeg" alt="ReLU activation function" style="max-width:220px;width:100%;border-radius:6px;background:#fff;padding:0.4rem;">
-        <figcaption style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.4rem;">ReLU &mdash; max(0, z)</figcaption>
       </figure>
     </div>
     <p style="font-size:0.82rem;color:var(--text-secondary);text-align:center;margin-top:0.25rem;">
@@ -232,7 +245,7 @@
 
     <h3>5. Parameter Count</h3>
     <p>
-      For a network \(d \to n_1 \to n_2 \to n_\text{out}\), the total parameters are:
+      Every weight matrix and bias vector in the network contains learnable parameters — values adjusted during training. For each layer \(\ell\), the weight matrix \(\mathbf{W}_\ell \in \mathbb{R}^{n_\ell \times n_{\ell-1}}\) contributes \(n_\ell \cdot n_{\ell-1}\) parameters, and the bias vector \(\mathbf{b}_\ell \in \mathbb{R}^{n_\ell}\) contributes \(n_\ell\) more. For a three-layer network \(d \to n_1 \to n_2 \to n_\text{out}\), the total is:
     </p>
     <div class="math-block">
       \[
@@ -240,8 +253,19 @@
       \]
     </div>
     <p>
-      Modern networks have millions to billions of parameters. Understanding the count helps you reason about model capacity and overfitting risk.
+      Understanding the parameter count helps you reason about model capacity and overfitting risk — more parameters means more expressive power, but also a greater demand for training data. To put this in perspective, some well-known models:
     </p>
+    <table class="summary-table" style="margin-top:0.75rem;">
+      <thead><tr><th>Model</th><th>Year</th><th>Parameters</th><th>Task</th></tr></thead>
+      <tbody>
+        <tr><td>LeNet-5</td><td>1998</td><td>~60 K</td><td>Handwritten digit recognition</td></tr>
+        <tr><td>AlexNet</td><td>2012</td><td>~61 M</td><td>ImageNet classification</td></tr>
+        <tr><td>ResNet-50</td><td>2015</td><td>~25 M</td><td>ImageNet classification</td></tr>
+        <tr><td>GPT-2</td><td>2019</td><td>~1.5 B</td><td>Text generation</td></tr>
+        <tr><td>GPT-3</td><td>2020</td><td>~175 B</td><td>General language tasks</td></tr>
+        <tr><td>GPT-4 (est.)</td><td>2023</td><td>~1.8 T</td><td>General language &amp; reasoning</td></tr>
+      </tbody>
+    </table>
 
     <h3>6. Universal Approximation Theorem</h3>
     <p>
@@ -256,11 +280,12 @@
   <div class="card">
     <h2><span class="section-icon">&#x1F3AC;</span> Recommended Videos</h2>
     <p>CS231n Lecture 4 covers neural network forward passes, activation functions, and the biological motivation:</p>
-    <a href="https://www.youtube.com/watch?v=d14TUNcbn1k&list=PL3FW7Lu3i5JvHM8ljYj-zLfQRF3EO8sYv" target="_blank" rel="noopener" class="video-link-card">
+    <a href="https://www.youtube.com/watch?v=d14TUNcbn1k&list=PL3FW7Lu3i5JvHM8ljYj-zLfQRF3EO8sYv&t=3311s" target="_blank" rel="noopener" class="video-link-card">
       <div class="video-link-thumb">&#x25B6;</div>
       <div class="video-link-info">
         <div class="video-link-title">Lecture 4 &mdash; Introduction to Neural Networks</div>
         <div class="video-link-channel">CS231n Stanford &mdash; YouTube</div>
+        <div style="margin-top:0.3rem;"><strong>Watch 55:11 &ndash; 1:44:00 only.</strong></div>
       </div>
     </a>
     <p style="margin-top:1rem;">The 3Blue1Brown series gives the best visual intuition for what the network is doing:</p>
@@ -275,79 +300,64 @@
 
   <!-- Worked Example -->
   <div class="card">
-    <h2><span class="section-icon">&#x1F4BB;</span> Worked Example &mdash; MATLAB Forward Pass</h2>
+    <h2><span class="section-icon">&#x1F4BB;</span> Worked Example &mdash; MATLAB Forward Pass with <code>patternnet</code></h2>
     <p>
-      We implement the forward pass of a 2-layer network on the <code>sat_data.mat</code> satellite dataset. This is the setup you will use in HW 35 to build a full training loop.
+      We use MATLAB's <code>patternnet</code> (Deep Learning Toolbox) to build a shallow network, run a forward pass before and after training, and classify all samples. This example uses a synthetic spectral dataset &mdash; <strong>not</strong> <code>sat_data.mat</code>, which you will work with in HW&nbsp;35.
     </p>
-<pre><code class="language-matlab">%% Lesson 35 — Neural Network Forward Pass
-% Dataset: sat_data.mat
-% Features: orbital parameters of satellites
-% Labels: maneuver type classification
+<pre><code class="language-matlab">%% Lesson 35 — Neural Network Forward Pass with patternnet
+% Domain: synthetic spectral classification (3 features, 2 classes)
+% HW 35 uses sat_data.mat — this example uses a different dataset.
 
-% Load data (assumes sat_data.mat is in the working directory)
-load('sat_data.mat');   % provides: X_train, y_train, X_test, y_test
-% X_train: N_train × d  (normalized features)
-% y_train: N_train × 1  (binary labels: 0 or 1)
+rng(356);
+d = 3;   K = 2;   N_per = 60;   N = 2 * N_per;
 
-[N, d] = size(X_train);
-fprintf('Training samples: %d,  Features: %d\n', N, d);
+%% --- Generate synthetic spectral data ---
+% Two emission source types measured at three spectral bands
+X = [randn(N_per, d)*0.5 + [0.2  0.8  0.3];     % Class 1
+     randn(N_per, d)*0.5 + [0.8  0.2  0.7]]';   % Class 2
+% X is d × N  (patternnet expects each column = one sample)
 
-%% --- Network architecture: d → 32 → 16 → 1 ---
-n1 = 32;   % hidden layer 1 size
-n2 = 16;   % hidden layer 2 size
+labels = [ones(1, N_per), 2*ones(1, N_per)];     % 1 × N
 
-% Initialize weights (Xavier initialization)
-W1 = randn(n1, d)  * sqrt(2/d);     % n1 × d
-b1 = zeros(n1, 1);                   % n1 × 1
-W2 = randn(n2, n1) * sqrt(2/n1);    % n2 × n1
-b2 = zeros(n2, 1);                   % n2 × 1
-W3 = randn(1,  n2) * sqrt(2/n2);    % 1  × n2
-b3 = 0;                              % scalar
+% Convert integer labels to one-hot encoding (K × N)
+T = full(ind2vec(labels));    % e.g. label 1 → [1;0], label 2 → [0;1]
 
-%% --- Activation functions ---
-relu    = @(z) max(0, z);
-sigmoid = @(z) 1 ./ (1 + exp(-z));
+fprintf('Dataset: %d samples, %d features, %d classes\n', N, d, K);
 
-%% --- Forward pass (single sample) ---
-x = X_train(1,:)';   % d × 1 — first training example
+%% --- 1. Define network: 3 → 10 → 2 ---
+net = patternnet(10);         % one hidden layer, 10 neurons
+net = configure(net, X, T);  % set input/output sizes (random weights assigned)
+view(net);                    % opens network architecture diagram
 
-z1 = W1 * x  + b1;   % n1 × 1
-a1 = relu(z1);        % n1 × 1
+%% --- 2. Forward pass BEFORE training (random initial weights) ---
+x1 = X(:, 1);                % d × 1 column (first sample)
+p1 = net(x1);                % K × 1 softmax probabilities
 
-z2 = W2 * a1 + b2;   % n2 × 1
-a2 = relu(z2);        % n2 × 1
+fprintf('\n--- Forward Pass (BEFORE training) ---\n');
+fprintf('Input:     [%.3f  %.3f  %.3f]\n', x1);
+fprintf('Output:    [%.4f  %.4f]\n', p1);
+fprintf('Predicted: Class %d  |  True: Class %d\n', vec2ind(p1), labels(1));
+fprintf('(Random weights — prediction is not yet meaningful)\n');
 
-z3 = W3 * a2 + b3;   % scalar
-y_hat = sigmoid(z3); % predicted probability ∈ (0,1)
+%% --- 3. Train the network ---
+net = train(net, X, T);
 
-fprintf('True label: %d,  Predicted probability: %.4f\n', y_train(1), y_hat);
+%% --- 4. Forward pass AFTER training ---
+p1_trained = net(x1);
 
-%% --- Vectorized forward pass (all N training samples) ---
-% Transpose X_train to d × N for matrix ops
-Xt = X_train';        % d × N
+fprintf('\n--- Forward Pass (AFTER training) ---\n');
+fprintf('Output:    [%.4f  %.4f]\n', p1_trained);
+fprintf('Predicted: Class %d  |  True: Class %d\n', ...
+    vec2ind(p1_trained), labels(1));
 
-Z1 = W1 * Xt + b1;   % n1 × N
-A1 = relu(Z1);        % n1 × N
-
-Z2 = W2 * A1 + b2;   % n2 × N
-A2 = relu(Z2);        % n2 × N
-
-Z3 = W3 * A2 + b3;   % 1 × N
-P_hat = sigmoid(Z3)'; % N × 1 — predicted probabilities
-
-%% --- Initial loss (before training) ---
-eps = 1e-8;
-y = y_train;
-L = -mean(y .* log(P_hat+eps) + (1-y) .* log(1-P_hat+eps));
-acc_init = mean(double(P_hat >= 0.5) == y);
-fprintf('Initial loss: %.4f,  Accuracy: %.2f%%\n', L, acc_init*100);
-
-%% NOTE: This is only the forward pass.
-%% In HW35 you will implement backpropagation to compute
-%% gradients and train the network with SGD.
+%% --- Classify all samples and compute accuracy ---
+P_all = net(X);                        % K × N output probabilities
+pred  = vec2ind(P_all);                % 1 × N predicted class labels
+acc   = mean(pred == labels) * 100;
+fprintf('\nOverall accuracy: %.1f%%\n', acc);
 </code></pre>
-    <div class="callout tip">
-      <strong>Xavier initialization:</strong> Initializing weights with \(\mathcal{N}(0, \sqrt{2/n_\text{in}})\) keeps activations from exploding or vanishing at initialization. This is a standard best practice.
+    <div class="callout info">
+      <strong>Why <code>patternnet</code>?</strong> For small datasets (hundreds of samples, few features), <code>patternnet</code> uses a second-order optimizer (scaled conjugate gradient) that processes all data each iteration. This converges far faster and more reliably than mini-batch SGD, which was designed for large-scale deep learning.
     </div>
   </div>
 
