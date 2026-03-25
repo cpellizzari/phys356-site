@@ -77,8 +77,8 @@ imds = imageDatastore(digitPath, ...
 rng(356);
 imds_sub  = splitEachLabel(imds, 200, 'randomize');
 imgs      = readall(imds_sub);
-X         = cell2mat(cellfun(@(I) double(I(:))/255, imgs, ...
-                    'UniformOutput', false)')';   % 784 x 2000
+vectors   = cellfun(@(I) double(I(:))/255, imgs, 'UniformOutput', false);
+X         = [vectors{:}];                         % 784 x 2000
 classNums = grp2idx(imds_sub.Labels);             % 2000x1
 T         = full(ind2vec(classNums'));             % 10 x 2000
 </code></pre>

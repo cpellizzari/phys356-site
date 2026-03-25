@@ -742,18 +742,19 @@ digitPath = fullfile(matlabroot,'toolbox','nnet','nndemos', ...
 imds = imageDatastore(digitPath, ...
     'IncludeSubfolders', true, 'LabelSource', 'foldernames');
 
-% Use 200 images per digit class (2000 total) — fast enough without GPU
+% Use 100 images per digit class (1000 total, ~10% of full dataset)
 rng(356);
-imds_sub = splitEachLabel(imds, 200, 'randomize');
+imds_sub = splitEachLabel(imds, 100, 'randomize');
 
 %% 2. Flatten images: each 28x28 → 784-element column vector
-imgs = readall(imds_sub);
-X    = cell2mat(cellfun(@(I) double(I(:))/255, imgs, ...
-               'UniformOutput', false)')';    % 784 x 2000
+%  Each image becomes one column → X is 784 × 1000 (features × samples)
+imgs    = readall(imds_sub);
+vectors = cellfun(@(I) double(I(:))/255, imgs, 'UniformOutput', false);
+X       = [vectors{:}];               % 784 × 1000
 
 % Integer class labels 1–10 ('0'→1, '1'→2, ..., '9'→10)
-classNums = grp2idx(imds_sub.Labels);         % 2000x1
-T         = full(ind2vec(classNums'));         % 10 x 2000 one-hot
+classNums = grp2idx(imds_sub.Labels); % 1000×1
+T         = full(ind2vec(classNums')); % 10 × 1000 one-hot
 
 fprintf('Data: %d samples, %d features, %d classes\n', ...
     size(X,2), size(X,1), size(T,1));
