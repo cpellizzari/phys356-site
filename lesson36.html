@@ -729,20 +729,20 @@
       We train a shallow network on MATLAB's built-in <strong>DigitDataset</strong> (10,000 handwritten digit images, classes 0&ndash;9, 28&times;28 pixels). Rather than <code>patternnet</code>, we use the Deep Learning Toolbox layer API directly &mdash; the same approach you will use in HW&nbsp;36 and beyond, giving you full control over architecture, activation functions, and optimizer settings.
     </p>
     <p>
-      This example deliberately uses a <em>small</em> hidden layer (10 neurons) so the Training Progress plot shows the <strong>underfitting</strong> pattern from Figure&nbsp;2. Recognizing this pattern &mdash; and knowing how to fix it &mdash; is the goal of HW&nbsp;36.
+      This example uses 128 hidden neurons, dropout regularization, and early stopping. The Training Progress plot should show the <strong>good generalization</strong> pattern from Figure&nbsp;2 — both curves declining together. HW&nbsp;36 asks you to explore how architecture and training parameters affect this pattern.
     </p>
 <pre><code class="language-matlab">%% Lesson 36 — Handwritten Digit Classification (Deep Learning Toolbox)
 % Dataset: MATLAB's built-in DigitDataset (10,000 images, 10 classes, 28x28)
-% Network: 784 → 10 (ReLU) → 10 (softmax)  — deliberately small (underfitting)
-% HW 36 uses the same dataset; your task is to improve this baseline.
+% Network: 784 → 128 (ReLU + Dropout) → 10 (softmax)
+% HW 36: explore how architecture and training params affect these curves.
 
-%% 1. Load dataset — 100 images per class (1,000 total)
+%% 1. Load dataset — 300 images per class (3,000 total)
 digitPath = fullfile(matlabroot,'toolbox','nnet','nndemos', ...
                      'nndatasets','DigitDataset');
 imds = imageDatastore(digitPath, ...
     'IncludeSubfolders', true, 'LabelSource', 'foldernames');
 rng(356);
-imds_sub = splitEachLabel(imds, 100, 'randomize');
+imds_sub = splitEachLabel(imds, 300, 'randomize');
 
 %% 2. Split into training (80%) and test (20%)
 [imds_train, imds_test] = splitEachLabel(imds_sub, 0.8, 'randomize');
@@ -751,54 +751,57 @@ imds_sub = splitEachLabel(imds, 100, 'randomize');
 %  featureInputLayer expects N×features (rows = observations)
 imgs_train = readall(imds_train);
 v_train    = cellfun(@(I) double(I(:))/255, imgs_train, 'UniformOutput', false);
-X_train    = [v_train{:}]';          % 800 × 784
+X_train    = [v_train{:}]';          % 2400 × 784
 
 imgs_test  = readall(imds_test);
 v_test     = cellfun(@(I) double(I(:))/255, imgs_test,  'UniformOutput', false);
-X_test     = [v_test{:}]';           % 200 × 784
+X_test     = [v_test{:}]';           % 600 × 784
 
-Y_train = imds_train.Labels;         % categorical, 800×1
-Y_test  = imds_test.Labels;          % categorical, 200×1
+Y_train = imds_train.Labels;         % categorical, 2400×1
+Y_test  = imds_test.Labels;          % categorical, 600×1
 
 %% 4. Define the network architecture (layer-by-layer)
 layers = [
-    featureInputLayer(784,  'Name', 'input')
-    fullyConnectedLayer(10, 'Name', 'fc1')       % ← change this size in HW 36
-    reluLayer(              'Name', 'relu1')
-    fullyConnectedLayer(10, 'Name', 'fc2')       % output neurons = # of classes
-    softmaxLayer(           'Name', 'softmax')
-    classificationLayer(    'Name', 'output')
+    featureInputLayer(784,   'Name', 'input')
+    fullyConnectedLayer(128, 'Name', 'fc1')       % ← change this size in HW 36
+    reluLayer(               'Name', 'relu1')
+    dropoutLayer(0.3,        'Name', 'drop1')     % regularization
+    fullyConnectedLayer(10,  'Name', 'fc2')       % output neurons = # of classes
+    softmaxLayer(            'Name', 'softmax')
+    classificationLayer(     'Name', 'output')
 ];
 
 %% 5. Set training options
-opts = trainingOptions('sgdm', ...           % SGD with momentum
-    'MaxEpochs',           30, ...
+opts = trainingOptions('adam', ...           % adaptive learning rate
+    'MaxEpochs',           50, ...
     'MiniBatchSize',       64, ...
-    'InitialLearnRate',    0.01, ...
-    'Momentum',            0.9, ...
     'ValidationData',      {X_test, Y_test}, ...
     'ValidationFrequency', 5, ...
+    'ValidationPatience',  10, ...           % early stopping
     'Plots',               'training-progress', ...
     'Verbose',             false);
 
 %% 6. Train
 net = trainNetwork(X_train, Y_train, layers, opts);
 % → Watch the Training Progress window.
-% → Both accuracy curves remain low — classic underfitting.
-%   10 hidden neurons cannot capture 10 digit classes from 784 features.
+% → With 128 hidden neurons and 2,400 training samples, accuracy should
+%   rise steadily on both curves — good generalization pattern.
 
 %% 7. Evaluate on test set
 Y_pred = classify(net, X_test);
 acc    = 100 * mean(Y_pred == Y_test);
 fprintf('Test accuracy: %.1f%%\n', acc);
 
-%% 8. Visualize 25 test examples in a 5×5 grid
+%% 8. Visualize 25 random test examples in a 5×5 grid
+%  Note: test images are stored in class order, so taking the first 25
+%  would show mostly "0"s.  Use randperm to get a representative mix.
+idx = randperm(numel(imgs_test), 25);
 figure('Name', 'Test Set Predictions', 'NumberTitle', 'off');
 for k = 1:25
     subplot(5,5,k);
-    imshow(imgs_test{k});
-    pred_str = char(Y_pred(k));
-    true_str = char(Y_test(k));
+    imshow(imgs_test{idx(k)});
+    pred_str = char(Y_pred(idx(k)));
+    true_str = char(Y_test(idx(k)));
     if strcmp(pred_str, true_str)
         title(sprintf('Pred: %s', pred_str), 'Color', 'g', 'FontSize', 7);
     else
@@ -806,10 +809,10 @@ for k = 1:25
               'Color', 'r', 'FontSize', 7);
     end
 end
-sgtitle('Test Predictions  (green = correct  |  red = wrong)');
+sgtitle('25 Random Test Predictions  (green = correct  |  red = wrong)');
 </code></pre>
     <div class="callout info">
-      <strong>What to notice in the Training Progress plot:</strong> With only 10 hidden neurons both the training and validation accuracy curves should plateau at a low value (often below 50%) &mdash; a classic underfitting signature. Increasing the number of neurons in <code>fc1</code> is the most direct fix, which you will explore in HW&nbsp;36.
+      <strong>What to notice in the Training Progress plot:</strong> With 128 hidden neurons and 2,400 training samples both curves should rise and converge &mdash; the good generalization pattern. Early stopping (<code>ValidationPatience, 10</code>) automatically halts training if the validation accuracy stops improving, preventing the curves from diverging into overfitting. In HW&nbsp;36 you will deliberately change these parameters to produce underfitting and overfitting patterns.
     </div>
     <div class="callout info">
       <strong>Why flatten instead of using raw images?</strong> A fully-connected layer treats each pixel as an independent feature &mdash; it does not exploit the spatial structure of the image. Convolutional Neural Networks (Lesson&nbsp;37) solve this by applying shared filters that detect local patterns regardless of position.
