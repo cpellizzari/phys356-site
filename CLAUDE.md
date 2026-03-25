@@ -76,8 +76,8 @@ All colors and sizing use CSS custom properties defined at the top of `style.css
 | 33 | Intro to ML, regression, regularization | hw33.html | `physics_grades.mat` |
 | 34 | Supervised Learning (KNN, SVM, logistic regression) | hw34.html | `sat_data.mat` |
 | 35 | Neural Networks — Architecture & Forward Pass | hw35.html | `sat_data.mat` |
-| 36 | Neural Networks — Backpropagation & Training | hw36.html | `sat_data.mat` |
-| 37 | CNNs | hw37.html | `sat_data.mat` |
+| 36 | Neural Networks — Backpropagation & Training | hw36.html | MATLAB DigitDataset |
+| 37 | CNNs | hw37.html | MATLAB DigitDataset |
 | 38 | Transformers & LLMs | hw38.html | — |
 
 **Note:** After the L35–L38 restructure, the source slide decks (`356_Lesson_35.pptx` etc.) no longer align with lesson topics. Slide decks will be updated separately; use slide content as a resource but do not assume slide number = lesson number.
@@ -90,6 +90,8 @@ In-lesson MATLAB examples must be **clearly distinct** from the homework problem
 - L31 example: Gaussian ML (sample mean) — HW uses exponential/laser-speckle
 - L32 example: scalar Bayesian (single sample) — HW uses 50-dim covariance
 - L35 example: synthetic spectral data with `patternnet` (3 features, 2 classes) — HW uses `sat_data.mat` (2 features, 4 classes) with `patternnet`
+- L36 example: MATLAB DigitDataset, `patternnet(10)` (deliberately small, shows underfitting) — HW uses same DigitDataset, students tune architecture + training params
+- L37 example: MATLAB DigitDataset with CNN via `trainNetwork` — HW uses same dataset (natural extension of L36 HW)
 
 ## Video Embedding Notes
 
@@ -109,8 +111,9 @@ Canonical video placements:
 - StatQuest "Logistic Regression Pt 1" (`yIYKR4sgzI8`) → L34
 - CS231n Lecture 2 — Linear Classification (`OoUX-nOEjG0`) → L34
 - 3B1B "Gradient descent" (`IHZwWFHWa-w`) → L35
-- 3B1B "But what is a neural network?" (`aircAruvnKk`) → L36
-- 3B1B "Backpropagation calculus" (`tIeHLnjs5U8`) → L37
+- 3B1B "But what is a neural network?" (`aircAruvnKk`) → L35 (architecture intuition)
+- 3B1B "What is backpropagation really doing?" (`Ilg3gGewQ5U`) → L36 (first video)
+- 3B1B "Backpropagation calculus" (`tIeHLnjs5U8`) → L36 (second video)
 - Karpathy "Let's build GPT" (`kCc8FmEb1nY`) → L38
 
 ## Source Material
@@ -140,12 +143,14 @@ Canonical video placements:
 | lesson32.html | ✅ Final | Bayesian MAP & MMSE; 3B1B + Veritasium videos; "Note:" callouts; proportionality fix in Gaussian example |
 | lesson33.html | ✅ Final | Regression, regularization, bias-variance; β/x clarified; design matrix expanded; argmin equation; hw33 reference updated |
 | lesson34.html | ✅ Final | Supervised Learning: KNN, SVM, logistic regression; sat_data.mat |
-| lesson35.html | ✅ Final | Neural Networks: architecture, forward pass, activations; patternnet worked example; CS231n video (55:11–104:00); 3B1B gradient descent video |
-| lesson36.html–38.html | 🔄 Draft | Backprop, CNNs, Transformers |
+| lesson35.html | ✅ Final | Neural Networks: architecture, forward pass, activations; patternnet worked example; CS231n video (55:11–104:00); 3B1B gradient descent + "But what is a NN?" videos |
+| lesson36.html | 🔄 Draft | Backprop + training; chain rule; SGD; learning rate SVG diagram; train/val curves SVG; 2 × 3B1B videos; MATLAB example on DigitDataset (`patternnet(10)`, underfitting demo) |
+| lesson37.html–38.html | 🔄 Draft | CNNs, Transformers |
 | hw29.html–hw33.html | ✅ Final | Reviewed; submit/.mlx line removed from all |
 | hw34.html | ✅ Final | KNN, SVM, logistic regression on sat_data.mat |
 | hw35.html | ✅ Final | patternnet on sat_data.mat (4-class GEO identification); modeled on old HW_37.docx |
-| hw36.html–hw38.html | 🔄 Draft | hw36.html and hw37.html not yet created |
+| hw36.html | 🔄 Draft | DigitDataset: fix underfitting (Problem 1), induce overfitting (Problem 2), learning rate exploration (Problem 3), best config + CNN preview (Problem 4) |
+| hw37.html–hw38.html | 🔄 Draft | Not yet created |
 
 ## Git / GitHub
 

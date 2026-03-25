@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW 36 — Training Parameter Exploration (DigitDataset) | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Homework Assignment</div>
+    <h1>HW 36 &mdash; Training Parameter Exploration</h1>
+    <div class="hw-meta">
+      <span>&#x1F4D8; Related: <a href="../lesson36.html" style="color:rgba(255,255,255,0.9)">Lesson 36</a></span>
+      <span>&#x1F6E0; MATLAB + Deep Learning Toolbox required</span>
+      <span>&#x1F4C1; Dataset: MATLAB DigitDataset</span>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F30D;</span> Background</h2>
+    <p>
+      In the Lesson&nbsp;36 worked example you trained a <code>patternnet(10)</code> on handwritten digits and observed an underfitting pattern in the Performance plot: both training and validation losses remained high because 10 hidden neurons are insufficient to recognize 10 distinct digit classes from 784 pixel features. In this assignment you will systematically tune the network to improve performance, and in doing so, identify and diagnose each of the training curve patterns discussed in the lesson.
+    </p>
+    <p>
+      Use the same data loading code from the Lesson&nbsp;36 example. Set <code>rng(356)</code> at the top of your script so your data split is reproducible.
+    </p>
+  </div>
+
+  <!-- Dataset reminder -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F4C1;</span> Dataset Setup</h2>
+    <p>
+      Load the data exactly as in the Lesson&nbsp;36 example (200 images per class, 2000 total, flattened to 784-dim vectors):
+    </p>
+<pre><code class="language-matlab">digitPath = fullfile(matlabroot,'toolbox','nnet','nndemos', ...
+                     'nndatasets','DigitDataset');
+imds = imageDatastore(digitPath, ...
+    'IncludeSubfolders', true, 'LabelSource', 'foldernames');
+rng(356);
+imds_sub  = splitEachLabel(imds, 200, 'randomize');
+imgs      = readall(imds_sub);
+X         = cell2mat(cellfun(@(I) double(I(:))/255, imgs, ...
+                    'UniformOutput', false)')';   % 784 x 2000
+classNums = grp2idx(imds_sub.Labels);             % 2000x1
+T         = full(ind2vec(classNums'));             % 10 x 2000
+</code></pre>
+  </div>
+
+  <!-- Problem 1 -->
+  <div class="problem">
+    <h3>Problem 1 &mdash; Fixing Underfitting: Network Size</h3>
+    <ol>
+      <li>
+        Train networks with at least four different hidden layer sizes: <code>patternnet(10)</code>, <code>patternnet(50)</code>, <code>patternnet(100)</code>, and <code>patternnet(200)</code>. For each, record the training accuracy returned by:
+<pre><code class="language-matlab">pred = vec2ind(net(X));
+acc  = 100 * mean(pred == classNums');
+</code></pre>
+      </li>
+      <li>
+        For each architecture, open the <strong>Performance</strong> plot and classify the pattern you observe as underfitting, good generalization, or overfitting. As the network grows, at what size does the pattern transition from underfitting to good generalization?
+      </li>
+      <li>
+        Present your results in a table (hidden neurons | accuracy | pattern) and identify the architecture you would recommend. Justify your choice.
+      </li>
+    </ol>
+  </div>
+
+  <!-- Problem 2 -->
+  <div class="problem">
+    <h3>Problem 2 &mdash; Inducing Overfitting</h3>
+    <ol>
+      <li>
+        Using a very large network on limited data is a reliable way to produce overfitting. Reduce your training subset to <strong>30 images per class</strong> (300 total):
+<pre><code class="language-matlab">rng(356);
+imds_small = splitEachLabel(imds, 30, 'randomize');
+</code></pre>
+        Flatten and prepare this smaller dataset exactly as before, then train a <code>patternnet(200)</code> on it.
+      </li>
+      <li>
+        Open the <strong>Performance</strong> plot. Do you see the overfitting pattern (validation loss rises after a minimum)? Approximately which epoch does the validation loss reach its minimum?
+      </li>
+      <li>
+        Now retrain with <code>net.trainParam.max_fail = 50</code> (effectively disabling early stopping) and observe how the final accuracy compares to the run where early stopping was active. Does early stopping help? Why?
+      </li>
+    </ol>
+  </div>
+
+  <!-- Problem 3 -->
+  <div class="problem">
+    <h3>Problem 3 &mdash; Effect of Learning Rate</h3>
+    <ol>
+      <li>
+        Return to the full 200-per-class dataset. Using your best architecture from Problem&nbsp;1, switch to gradient descent with momentum and try at least four learning rates:
+<pre><code class="language-matlab">net.trainFcn          = 'traingdm';
+net.trainParam.lr     = ???;       % try 0.001, 0.01, 0.1, 0.5
+net.trainParam.epochs = 300;
+net.trainParam.showWindow = false; % suppress GUI in loop
+</code></pre>
+        For each, record the training accuracy.
+      </li>
+      <li>
+        Re-enable the GUI (<code>showWindow = true</code>) for the learning rate that gave the best accuracy and include the Performance plot in your submission. Which of the four curve patterns from Figure&nbsp;2 of the lesson does it most resemble?
+      </li>
+      <li>
+        Compare your best <code>traingdm</code> result to the default <code>trainscg</code>. Which converges to higher accuracy? Which requires fewer epochs? Explain in 2&ndash;3 sentences why <code>trainscg</code> typically outperforms a fixed-learning-rate method on small datasets.
+      </li>
+    </ol>
+  </div>
+
+  <!-- Problem 4 -->
+  <div class="problem">
+    <h3>Problem 4 &mdash; Putting It Together</h3>
+    <ol>
+      <li>
+        Based on everything you have explored, identify the single best configuration you found (architecture + training algorithm + any parameter choices). Report its training accuracy.
+      </li>
+      <li>
+        In the Lesson&nbsp;36 example we flattened each 28&times;28 image into a 784-element vector, discarding spatial information. List two specific limitations this imposes on the network's ability to recognize digits, and explain how a Convolutional Neural Network (which you will build in Lesson&nbsp;37) addresses each limitation.
+      </li>
+    </ol>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="../lesson36.html" class="prev">&larr; Back to Lesson 36</a>
+    <a href="hw37.html" class="next">
+      <div><span class="nav-label">Next HW</span><br>HW 37: CNNs on DigitDataset</div>
+      &rarr;
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Meteorology &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

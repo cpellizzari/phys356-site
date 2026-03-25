@@ -46,57 +46,77 @@
   <div class="lesson-banner">
     <div class="lesson-meta">Lesson 36 &bull; Physics 356</div>
     <h1>Backpropagation &amp; Training Neural Networks</h1>
-    <span class="reading-time">⏱ ~50 min read + in-class exercise</span>
+    <span class="reading-time">&#x23F1; ~50 min read</span>
   </div>
 
   <div class="objectives-box">
     <h2>Learning Objectives</h2>
     <ul>
-      <li>Apply the chain rule of calculus to compute gradients through composed functions.</li>
-      <li>Describe a computational graph and trace the forward and backward passes through it.</li>
-      <li>Derive the backpropagation equations for a two-layer network.</li>
-      <li>Explain the "closing the loop" relationship: backprop computes the gradients that SGD needs.</li>
-      <li>Implement a complete forward + backward pass for a shallow NN in MATLAB.</li>
+      <li>Apply the chain rule of calculus to compute gradients through a computational graph.</li>
+      <li>Describe the backpropagation algorithm and its role in computing the gradients that gradient descent needs.</li>
+      <li>Distinguish between full-batch, stochastic, and mini-batch gradient descent and explain why the stochasticity can be beneficial.</li>
+      <li>Explain how the learning rate affects training convergence and stability, and describe strategies to adapt it.</li>
+      <li>Interpret training and validation loss curves to diagnose underfitting, overfitting, and good generalization.</li>
+      <li>Load image data in MATLAB, train a shallow network with <code>patternnet</code>, and interpret the Performance plot.</li>
     </ul>
   </div>
 
   <div class="notation-box">
     <h3>Notation used in this lesson</h3>
     <div class="notation-grid">
-      <div class="notation-item"><span class="sym">\(\delta^{[\ell]}\)</span><span class="desc">Error signal at layer \(\ell\) (backprop term)</span></div>
-      <div class="notation-item"><span class="sym">\(\frac{\partial L}{\partial \mathbf{W}^{[\ell]}}\)</span><span class="desc">Gradient of loss w.r.t. layer weights</span></div>
-      <div class="notation-item"><span class="sym">\(\phi'\)</span><span class="desc">Derivative of activation function</span></div>
+      <div class="notation-item"><span class="sym">\(\delta^{[\ell]}\)</span><span class="desc">Error signal at layer \(\ell\) — the gradient of \(L\) w.r.t. the pre-activation \(z^{[\ell]}\)</span></div>
+      <div class="notation-item"><span class="sym">\(\frac{\partial L}{\partial \mathbf{W}^{[\ell]}}\)</span><span class="desc">Gradient of loss w.r.t. the weight matrix at layer \(\ell\)</span></div>
+      <div class="notation-item"><span class="sym">\(\phi'\)</span><span class="desc">Derivative of the activation function</span></div>
       <div class="notation-item"><span class="sym">\(\odot\)</span><span class="desc">Element-wise (Hadamard) product</span></div>
-      <div class="notation-item"><span class="sym">\(B\)</span><span class="desc">Mini-batch size</span></div>
+      <div class="notation-item"><span class="sym">\(\alpha\)</span><span class="desc">Learning rate: controls the step size of each parameter update</span></div>
+      <div class="notation-item"><span class="sym">\(\mathbf{v}\)</span><span class="desc">Velocity vector in momentum-based optimization</span></div>
+      <div class="notation-item"><span class="sym">\(B\)</span><span class="desc">Mini-batch size (number of training samples per gradient update)</span></div>
+      <div class="notation-item"><span class="sym">epoch</span><span class="desc">One complete pass through the entire training dataset</span></div>
     </div>
   </div>
 
-  <!-- Background -->
+  <!-- ─── Section 1: Background ─── -->
   <div class="card">
-    <h2><span class="section-icon">🌍</span> Background &amp; Motivation</h2>
+    <h2><span class="section-icon">&#x1F30D;</span> Background &amp; Motivation</h2>
     <h3>Closing the loop</h3>
     <p>
-      In Lesson 34 we trained a linear classifier using gradient descent. Now with a multi-layer network, we need to efficiently compute \(\partial L / \partial \mathbf{W}^{[\ell]}\) for every layer.
+      In Lesson 30 we introduced gradient descent: given the gradient of a loss function, we update parameters by stepping opposite the gradient. In Lesson 35 we built neural networks with multiple layers, each with its own weights \(\mathbf{W}^{[\ell]}\) and biases \(\mathbf{b}^{[\ell]}\). The missing piece is: <strong>how do we efficiently compute \(\partial L / \partial \mathbf{W}^{[\ell]}\) for every layer?</strong>
     </p>
     <p>
-      <strong>Backpropagation</strong> is the answer. It is an application of the chain rule from calculus, applied systematically to the computational graph of the neural network. It is not a learning algorithm itself — it is a gradient <em>computation</em> algorithm. SGD then uses those gradients to update parameters.
+      <strong>Backpropagation</strong> is the answer. It is an efficient application of the chain rule from calculus, applied layer-by-layer from the output back to the input. Backpropagation is not a learning algorithm itself — it is a gradient <em>computation</em> algorithm. Gradient descent then uses those gradients to update parameters.
+    </p>
+    <div class="callout info">
+      <strong>The full neural network training loop:</strong>
+      (1)&nbsp;Forward pass &rarr;
+      (2)&nbsp;Compute loss &rarr;
+      (3)&nbsp;Backward pass (backpropagation) &rarr;
+      (4)&nbsp;Gradient descent update &rarr;
+      repeat until convergence.
+    </div>
+    <h3>Historical note &amp; the AI boom</h3>
+    <p>
+      The backpropagation algorithm was popularized by Rumelhart, Hinton, and Williams in their landmark 1986 <em>Nature</em> paper, which demonstrated that multi-layer networks could be trained by propagating error signals backward through the network. Before this, there was no practical way to efficiently compute gradients for hidden layers, which meant deep networks were essentially untrained potential.
     </p>
     <p>
-      In Lesson 35 we built a neural network with multiple layers, each with its own weights and biases. This lesson shows how to efficiently compute gradients for all of them simultaneously.
+      Despite the 1986 breakthrough, true deep learning remained dormant for two decades due to computational and data limitations. The AI boom of the 2010s was ignited by three converging factors:
     </p>
-    <h3>Historical note</h3>
-    <p>
-      Backpropagation was popularized in the 1986 paper by Rumelhart, Hinton, and Williams. The key insight was that gradients can be computed efficiently by a backward pass through the same graph used for the forward pass — reusing already-computed intermediate values.
-    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
+      <li><strong>Big data:</strong> The internet generated billions of labeled images, text, and audio samples — more training data than had ever existed.</li>
+      <li><strong>GPU acceleration:</strong> GPUs could perform the matrix multiplications required by backpropagation thousands of times faster than CPUs, making training of 100-layer networks practical.</li>
+      <li><strong>Backpropagation:</strong> Already known since 1986, but now scalable to large architectures. The same chain-rule algorithm you will learn today powers GPT-4, AlphaFold, and DALL-E.</li>
+    </ul>
+    <div class="callout info">
+      <strong>Key insight:</strong> Backpropagation did not change between 1986 and 2012. What changed was the hardware and data that unlocked its full potential.
+    </div>
   </div>
 
-  <!-- Key Concepts -->
+  <!-- ─── Section 2: Chain Rule & Computational Graphs ─── -->
   <div class="card">
-    <h2><span class="section-icon">🧠</span> Key Concepts</h2>
+    <h2><span class="section-icon">&#x1F9E0;</span> The Chain Rule &amp; Computational Graphs</h2>
 
-    <h3>1. The Chain Rule (Review)</h3>
+    <h3>Chain rule review</h3>
     <p>
-      If \(L\) depends on \(z\), which depends on \(w\), then:
+      If our loss function \(L\) depends on an intermediate quantity \(z\), which in turn depends on a weight \(w\), the chain rule gives:
     </p>
     <div class="math-block">
       \[
@@ -112,285 +132,662 @@
       \]
     </div>
     <p>
-      Backpropagation is simply this chain rule applied layer-by-layer from the output back to the input, accumulating gradient contributions.
+      Backpropagation applies this rule systematically, layer by layer from output to input, accumulating gradient contributions at each step.
     </p>
 
-    <h3>2. Computational Graphs</h3>
+    <h3>Computational graphs</h3>
     <p>
-      A <strong>computational graph</strong> represents a mathematical expression as a directed acyclic graph (DAG). Each node is an operation; each edge carries a value and (in the backward pass) a gradient.
+      A <strong>computational graph</strong> represents a mathematical expression as a directed graph: each node is an operation, each edge carries a value forward and a gradient backward.
     </p>
-    <p>Example for a single neuron \(L = (\sigma(wx + b) - y)^2\):</p>
-    <div class="callout info" style="font-family:monospace;font-size:0.9rem;line-height:2;">
-      w, x → [multiply] → wx → [add b] → z → [σ] → p → [subtract y] → e → [square] → L
+    <p>Consider the simplest possible network: a single neuron with two inputs, no bias, ReLU activation, and L2 (MSE) loss:</p>
+    <div class="callout info" style="font-family:monospace;font-size:0.9rem;line-height:2.2;">
+      x&#x2081;&thinsp;&middot;&thinsp;w&#x2081; &rarr; a&#x2081; &#x2572;<br>
+      &emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&ensp;[&Sigma;] &rarr; z &rarr; [ReLU] &rarr; &#x177; &rarr; [&frac12;(y&minus;&#x177;)&sup2;] &rarr; L<br>
+      x&#x2082;&thinsp;&middot;&thinsp;w&#x2082; &rarr; a&#x2082; &#x2571;
     </div>
     <p>
-      The <strong>forward pass</strong> evaluates left-to-right, computing and storing intermediate values. The <strong>backward pass</strong> propagates \(\frac{\partial L}{\partial \text{each node}}\) right-to-left using the chain rule.
+      The <strong>forward pass</strong> evaluates left-to-right, computing and storing every intermediate value. The <strong>backward pass</strong> propagates \(\partial L / \partial(\text{each node})\) right-to-left using the chain rule — this <em>is</em> backpropagation. It tells us exactly how much each weight contributed to the loss.
     </p>
 
-    <h3>3. Backprop for a Two-Layer Network</h3>
-    <p>
-      Network: \(\mathbf{x} \to [\mathbf{W}^{[1]}, \mathbf{b}^{[1]}] \to \text{ReLU} \to [\mathbf{W}^{[2]}, b^{[2]}] \to \sigma \to L_{\text{BCE}}\)
-    </p>
-    <p><strong>Forward pass (recap):</strong></p>
+    <h3>Simple numerical walkthrough</h3>
+    <p>Let's trace both passes through the single-neuron graph with concrete numbers.</p>
+    <p><strong>Given:</strong></p>
     <div class="math-block">
       \[
-        \mathbf{z}^{[1]} = \mathbf{W}^{[1]}\mathbf{x} + \mathbf{b}^{[1]}, \quad
-        \mathbf{a}^{[1]} = \text{ReLU}(\mathbf{z}^{[1]}), \quad
-        z^{[2]} = \mathbf{W}^{[2]}\mathbf{a}^{[1]} + b^{[2]}, \quad
-        \hat{p} = \sigma(z^{[2]})
+        x_1 = 2,\quad x_2 = 1,\quad w_1 = 0.3,\quad w_2 = 0.1,\quad y = 2\;(\text{target})
       \]
     </div>
-    <p><strong>Backward pass (backprop):</strong></p>
+
+    <p><strong>Forward pass:</strong></p>
     <div class="math-block">
       \[
-        \delta^{[2]} = \frac{\partial L}{\partial z^{[2]}} = \hat{p} - y
-        \quad \text{(cross-entropy + sigmoid — they simplify beautifully!)}
+        a_1 = w_1 x_1 = 0.6,\qquad a_2 = w_2 x_2 = 0.1
       \]
       \[
-        \frac{\partial L}{\partial \mathbf{W}^{[2]}} = \delta^{[2]} \,(\mathbf{a}^{[1]})^\top, \qquad
+        z = a_1 + a_2 = 0.7,\qquad \hat{y} = \text{ReLU}(0.7) = 0.7
+      \]
+      \[
+        L = \tfrac{1}{2}(y - \hat{y})^2 = \tfrac{1}{2}(2 - 0.7)^2 = \tfrac{1}{2}(1.69) = 0.845
+      \]
+    </div>
+
+    <p><strong>Backward pass</strong> — apply chain rule right-to-left:</p>
+    <div class="math-block">
+      \[
+        \frac{\partial L}{\partial \hat{y}} = -(y - \hat{y}) = -(2 - 0.7) = -1.3
+      \]
+      \[
+        \frac{\partial \hat{y}}{\partial z} = 1\quad\text{(ReLU derivative, since } z=0.7 > 0\text{)}
+      \]
+      \[
+        \frac{\partial L}{\partial z} = \frac{\partial L}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z} = -1.3 \times 1 = -1.3
+      \]
+      \[
+        \frac{\partial L}{\partial w_1} = \frac{\partial L}{\partial z}\cdot\frac{\partial z}{\partial w_1} = -1.3\times x_1 = -1.3\times 2 = -2.6
+      \]
+      \[
+        \frac{\partial L}{\partial w_2} = \frac{\partial L}{\partial z}\cdot\frac{\partial z}{\partial w_2} = -1.3\times x_2 = -1.3\times 1 = -1.3
+      \]
+    </div>
+
+    <p><strong>Gradient descent update</strong> with \(\alpha = 0.1\):</p>
+    <div class="math-block">
+      \[
+        w_1^{\text{new}} = 0.3 - 0.1(-2.6) = 0.56,\qquad w_2^{\text{new}} = 0.1 - 0.1(-1.3) = 0.23
+      \]
+    </div>
+
+    <p><strong>Verify loss decreased:</strong></p>
+    <div class="math-block">
+      \[
+        z^{\text{new}} = 0.56(2) + 0.23(1) = 1.35,\quad \hat{y}^{\text{new}} = 1.35,\quad L^{\text{new}} = \tfrac{1}{2}(2-1.35)^2 = 0.211
+      \]
+    </div>
+    <div class="callout success">
+      <strong>It works!</strong> One gradient descent step reduced the loss from \(0.845\) to \(0.211\). The negative gradients indicated we should <em>increase</em> both weights to bring \(\hat{y}\) closer to \(y=2\), which is exactly what happened.
+    </div>
+  </div>
+
+  <!-- ─── Section 3: Backprop for Multi-Layer Networks ─── -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F500;</span> Backpropagation in a Multi-Layer Network</h2>
+    <p>
+      The single-neuron example above traced the chain rule through 4 operations. A multi-layer network is the same idea — just more links in the chain. The key advantage of backpropagation is that once you compute each error signal \(\delta^{[\ell]}\), you can reuse it to compute both the weight gradient and the error signal for the layer below.
+    </p>
+
+    <h3>Two-layer network with L2 loss</h3>
+    <p>
+      Consider: \(\mathbf{x} \xrightarrow{[\mathbf{W}^{[1]},\,\mathbf{b}^{[1]}]} \text{ReLU} \xrightarrow{[\mathbf{W}^{[2]},\,b^{[2]}]} \hat{y} \xrightarrow{} L\)
+    </p>
+    <p><strong>Forward pass:</strong></p>
+    <div class="math-block">
+      \[
+        \mathbf{z}^{[1]} = \mathbf{W}^{[1]}\mathbf{x} + \mathbf{b}^{[1]},\qquad
+        \mathbf{a}^{[1]} = \text{ReLU}\!\left(\mathbf{z}^{[1]}\right)
+      \]
+      \[
+        \hat{y} = z^{[2]} = \mathbf{W}^{[2]}\mathbf{a}^{[1]} + b^{[2]}\qquad\text{(linear output)}
+      \]
+      \[
+        L = \tfrac{1}{2}(y - \hat{y})^2\qquad\text{(L2 / MSE loss)}
+      \]
+    </div>
+    <p><strong>Backward pass — deriving each error signal step by step:</strong></p>
+    <div class="math-block">
+      \[
+        \delta^{[2]}
+        = \frac{\partial L}{\partial z^{[2]}}
+        = \frac{\partial L}{\partial \hat{y}}\cdot\frac{\partial \hat{y}}{\partial z^{[2]}}
+        = -(y-\hat{y})\cdot 1
+        = \hat{y} - y
+      \]
+    </div>
+    <div class="math-block">
+      \[
+        \frac{\partial L}{\partial \mathbf{W}^{[2]}} = \delta^{[2]}\,(\mathbf{a}^{[1]})^\top,\qquad
         \frac{\partial L}{\partial b^{[2]}} = \delta^{[2]}
       \]
+    </div>
+    <div class="math-block">
       \[
-        \delta^{[1]} = \frac{\partial L}{\partial \mathbf{z}^{[1]}} = (\mathbf{W}^{[2]})^\top \delta^{[2]} \odot \mathbf{1}[\mathbf{z}^{[1]} > 0]
-        \quad \text{(chain rule through ReLU)}
+        \delta^{[1]}
+        = \frac{\partial L}{\partial \mathbf{z}^{[1]}}
+        = \underbrace{(\mathbf{W}^{[2]})^\top\delta^{[2]}}_{\text{backprop through }\mathbf{W}^{[2]}}
+        \;\odot\;
+        \underbrace{\mathbf{1}[\mathbf{z}^{[1]}>0]}_{\text{ReLU gate}}
       \]
+    </div>
+    <div class="math-block">
       \[
-        \frac{\partial L}{\partial \mathbf{W}^{[1]}} = \delta^{[1]} \mathbf{x}^\top, \qquad
+        \frac{\partial L}{\partial \mathbf{W}^{[1]}} = \delta^{[1]}\,\mathbf{x}^\top,\qquad
         \frac{\partial L}{\partial \mathbf{b}^{[1]}} = \delta^{[1]}
       \]
     </div>
-    <div class="callout tip">
-      <strong>Key pattern:</strong> Each layer's gradient depends on the <em>error signal from above</em> (\(\delta^{[\ell+1]}\)) multiplied back through the weight matrix and gated by the activation derivative. This is the "backpropagated error" interpretation.
+    <div class="callout info">
+      <strong>Key pattern:</strong> Each layer's error signal \(\delta^{[\ell]}\) is computed from the layer above's signal \(\delta^{[\ell+1]}\) multiplied back through the weight matrix, then gated by the activation derivative. This is the "backpropagated error" interpretation — each layer receives its share of blame from the layer above.
+    </div>
+    <div class="callout info">
+      <strong>Note on classification:</strong> For multi-class classification with softmax output and cross-entropy loss, the formula simplifies to \(\delta^{[L]} = \hat{\mathbf{p}} - \mathbf{y}\) (predicted probabilities minus one-hot target). The remainder of the backprop equations are identical. MATLAB's <code>patternnet</code> handles this automatically.
     </div>
 
-    <h3>4. The ReLU Derivative</h3>
+    <h3>The ReLU derivative</h3>
     <p>
-      \(\text{ReLU}'(z) = \mathbf{1}[z > 0]\) — it is 1 where the neuron was active, 0 where it was inactive. This is why the expression \(\odot \mathbf{1}[\mathbf{z}^{[1]} > 0]\) appears: we "gate" the gradient through neurons that fired.
+      \(\text{ReLU}'(z) = \mathbf{1}[z>0]\) — it is 1 where the neuron was active during the forward pass, and 0 where it was not. The term \(\odot\,\mathbf{1}[\mathbf{z}^{[1]}>0]\) in \(\delta^{[1]}\) "gates" the gradient: only neurons that fired receive gradient signal. Neurons that did not fire have zero gradient — they receive no update this iteration.
     </p>
     <div class="callout warning">
-      <strong>Dying ReLU:</strong> If a neuron's pre-activation \(z\) is always negative, its gradient is always 0 — it never learns. This is called a "dead neuron." Careful initialization and moderate learning rates prevent this.
+      <strong>Dying ReLU:</strong> If a neuron's pre-activation is always negative across all training samples, its gradient is always 0 — it never updates and effectively dies. Careful weight initialization (e.g., Xavier or He) and moderate learning rates prevent this.
     </div>
 
-    <h3>5. The General Backprop Algorithm</h3>
-    <p>For a network with \(L\) layers and mini-batch of \(B\) examples:</p>
+    <h3>The general backpropagation algorithm</h3>
+    <p>For a network with \(L\) layers and a mini-batch of \(B\) examples:</p>
     <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
-      <li><strong>Forward pass:</strong> Compute and store \(\mathbf{z}^{[\ell]}\), \(\mathbf{a}^{[\ell]}\) for all \(\ell = 1, \ldots, L\).</li>
-      <li><strong>Compute output gradient:</strong> \(\delta^{[L]} = \nabla_{z^{[L]}} L\).</li>
-      <li><strong>Backpropagate</strong> from \(\ell = L-1\) down to \(1\): \(\delta^{[\ell]} = (\mathbf{W}^{[\ell+1]})^\top \delta^{[\ell+1]} \odot \phi'(\mathbf{z}^{[\ell]})\).</li>
-      <li><strong>Compute weight gradients:</strong> \(\frac{\partial L}{\partial \mathbf{W}^{[\ell]}} = \frac{1}{B}\delta^{[\ell]} (\mathbf{A}^{[\ell-1]})^\top\).</li>
-      <li><strong>Update parameters</strong> with SGD: \(\mathbf{W}^{[\ell]} \leftarrow \mathbf{W}^{[\ell]} - \alpha \frac{\partial L}{\partial \mathbf{W}^{[\ell]}}\).</li>
+      <li><strong>Forward pass:</strong> Compute and <em>store</em> \(\mathbf{z}^{[\ell]}\) and \(\mathbf{a}^{[\ell]}\) for all \(\ell=1,\ldots,L\). Storage is necessary — the backward pass reuses these values.</li>
+      <li><strong>Compute output error signal:</strong> \(\delta^{[L]} = \nabla_{z^{[L]}} L\) (depends on loss and output activation choice).</li>
+      <li><strong>Backpropagate</strong> from \(\ell=L-1\) down to \(1\): \(\;\delta^{[\ell]} = (\mathbf{W}^{[\ell+1]})^\top\delta^{[\ell+1]} \odot \phi'(\mathbf{z}^{[\ell]})\).</li>
+      <li><strong>Compute weight gradients:</strong> \(\;\dfrac{\partial L}{\partial \mathbf{W}^{[\ell]}} = \dfrac{1}{B}\,\delta^{[\ell]}(\mathbf{A}^{[\ell-1]})^\top\).</li>
+      <li><strong>Update parameters</strong> with gradient descent: \(\;\mathbf{W}^{[\ell]} \leftarrow \mathbf{W}^{[\ell]} - \alpha\,\dfrac{\partial L}{\partial \mathbf{W}^{[\ell]}}\).</li>
     </ol>
+  </div>
 
-    <h3>6. Stochastic Gradient Descent (SGD)</h3>
+  <!-- ─── Section 4: SGD ─── -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F3B2;</span> Stochastic Gradient Descent (SGD)</h2>
+
+    <h3>What does "stochastic" mean?</h3>
     <p>
-      Backpropagation computes the gradient — SGD uses it to update parameters. The three variants differ in how many samples are used to estimate the gradient at each step:
+      In Lesson 30, gradient descent computed the exact gradient using all \(N\) training samples. In machine learning, \(N\) can be millions — computing the exact gradient over the entire dataset for every update is prohibitively expensive.
     </p>
+    <p>
+      <strong>Stochastic</strong> means <em>random</em>. Rather than using all \(N\) samples, we randomly select a small subset (\(B\) samples, called a <strong>mini-batch</strong>) and compute an approximate gradient from that subset. We then take a step using this noisy approximation and move on to the next random mini-batch.
+    </p>
+
+    <h3>What is the "noise" and how does it help?</h3>
+    <p>
+      The noise is the difference between the true gradient (computed over all \(N\) samples) and the estimated gradient (computed over \(B\) samples). Since the mini-batch is a random sample, the estimated gradient is a random variable — it points roughly in the right direction but not exactly.
+    </p>
+    <p>Surprisingly, this noise is often <em>beneficial</em> in three ways:</p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
+      <li><strong>Speed:</strong> Each update is cheap — only \(B\) samples instead of \(N\). You can take many more steps per unit time.</li>
+      <li><strong>Escaping local minima:</strong> The noisy gradient occasionally pushes the optimizer over small barriers in the loss landscape that exact gradient descent would get stuck in.</li>
+      <li><strong>Implicit regularization:</strong> The random variation in gradient estimates prevents the model from perfectly memorizing any single batch, acting similarly to dropout regularization.</li>
+    </ul>
+
+    <h3>The three variants</h3>
     <table class="summary-table" style="margin-top:0.75rem;">
-      <thead><tr><th>Variant</th><th>Gradient Computed Over</th><th>Update Frequency</th><th>Noise</th></tr></thead>
+      <thead><tr><th>Variant</th><th>Gradient Computed Over</th><th>Updates per Epoch</th><th>Noise Level</th></tr></thead>
       <tbody>
         <tr>
-          <td><strong>Batch GD</strong></td>
-          <td>All \(N\) samples</td>
-          <td>Once per epoch</td>
-          <td>Low — exact gradient</td>
+          <td><strong>GD (full batch)</strong></td>
+          <td>All \(N\) training samples</td>
+          <td>1</td>
+          <td>None — exact gradient</td>
         </tr>
         <tr>
-          <td><strong>SGD</strong></td>
-          <td>1 sample</td>
-          <td>Every sample</td>
-          <td>High — noisy but fast</td>
+          <td><strong>SGD (pure stochastic)</strong></td>
+          <td>1 random sample</td>
+          <td>\(N\)</td>
+          <td>Very high</td>
         </tr>
         <tr>
           <td><strong>Mini-batch SGD</strong></td>
-          <td>\(B\) samples (e.g., \(B=32\))</td>
-          <td>Every \(B\) samples</td>
+          <td>\(B\) random samples (\(B \approx 32\text{–}256\))</td>
+          <td>\(\lfloor N/B\rfloor\)</td>
           <td>Moderate — best trade-off</td>
         </tr>
       </tbody>
     </table>
-    <p>
-      In practice, <strong>mini-batch SGD</strong> with \(B \in \{32, 64, 128\}\) is standard. The noise in the gradient estimate acts as a regularizer and helps escape sharp local minima. One <strong>epoch</strong> = one full pass through the training dataset; one <strong>iteration</strong> = one gradient update using \(B\) samples.
-    </p>
     <div class="callout info">
-      <strong>The full training loop:</strong> (1) Forward pass → (2) Compute loss → (3) Backward pass (backprop) → (4) SGD update → repeat for each mini-batch until convergence.
+      <strong>Terminology note:</strong> In practice, "SGD" usually refers to mini-batch SGD. Pure single-sample SGD is rarely used in modern deep learning. One <strong>epoch</strong> = one full pass through the training data = \(\lfloor N/B \rfloor\) mini-batch updates.
+    </div>
+    <div class="callout info">
+      <strong>MATLAB's <code>patternnet</code>:</strong> By default it uses full-batch gradient descent with a second-order optimizer (scaled conjugate gradient), which processes all training samples each iteration. This is appropriate for our small datasets (hundreds of samples). For the neural network literature and large-scale deep learning, mini-batch SGD is standard.
     </div>
   </div>
 
-  <!-- Video -->
+  <!-- ─── Section 5: Learning Rate ─── -->
   <div class="card">
-    <h2><span class="section-icon">▶</span> Recommended Video</h2>
-    <p>3Blue1Brown's backpropagation calculus video is the definitive visual treatment of the chain rule in neural networks:</p>
-    <a href="https://www.youtube.com/watch?v=tIeHLnjs5U8" target="_blank" rel="noopener" class="video-link-card">
-      <div class="video-link-thumb">▶</div>
+    <h2><span class="section-icon">&#x2699;&#xFE0F;</span> The Learning Rate</h2>
+    <p>
+      The learning rate \(\alpha\) controls the step size at each parameter update:
+    </p>
+    <div class="math-block">
+      \[
+        \mathbf{W} \leftarrow \mathbf{W} - \alpha\,\frac{\partial L}{\partial \mathbf{W}}
+      \]
+    </div>
+    <p>
+      This is exactly the gradient descent update rule from Lesson 30 (where we called it \(\gamma\)). The same trade-offs apply — but they are amplified in neural networks because the loss surface is high-dimensional, non-convex, and full of saddle points and narrow valleys.
+    </p>
+
+    <h3>Four regimes</h3>
+
+    <!-- Learning Rate SVG Diagram -->
+    <figure style="margin:1.5rem 0;">
+      <svg viewBox="0 0 600 330" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:600px;display:block;margin:0 auto;font-family:inherit;">
+        <!-- Background -->
+        <rect x="0" y="0" width="600" height="330" fill="none"/>
+        <!-- Plot area border -->
+        <rect x="75" y="25" width="470" height="240" fill="var(--card-bg,#fff)" stroke="var(--border-color,#ccc)" stroke-width="1"/>
+
+        <!-- Gridlines (horizontal) -->
+        <g stroke="var(--border-color,#ddd)" stroke-width="0.5" stroke-dasharray="4,3">
+          <!-- y=0.5 → px_y=265-96*0.5=217 -->
+          <line x1="75" y1="217" x2="545" y2="217"/>
+          <!-- y=1.0 → px_y=265-96=169 -->
+          <line x1="75" y1="169" x2="545" y2="169"/>
+          <!-- y=1.5 → px_y=265-144=121 -->
+          <line x1="75" y1="121" x2="545" y2="121"/>
+          <!-- y=2.0 → px_y=265-192=73 -->
+          <line x1="75" y1="73" x2="545" y2="73"/>
+        </g>
+        <!-- Gridlines (vertical) -->
+        <g stroke="var(--border-color,#ddd)" stroke-width="0.5" stroke-dasharray="4,3">
+          <!-- epoch 10 → px_x=75+94=169 -->
+          <line x1="169" y1="25" x2="169" y2="265"/>
+          <!-- epoch 20 → 75+188=263 -->
+          <line x1="263" y1="25" x2="263" y2="265"/>
+          <!-- epoch 30 → 75+282=357 -->
+          <line x1="357" y1="25" x2="357" y2="265"/>
+          <!-- epoch 40 → 75+376=451 -->
+          <line x1="451" y1="25" x2="451" y2="265"/>
+        </g>
+
+        <!-- Axes -->
+        <line x1="75" y1="265" x2="545" y2="265" stroke="var(--text-primary,#333)" stroke-width="1.5"/>
+        <line x1="75" y1="265" x2="75" y2="25" stroke="var(--text-primary,#333)" stroke-width="1.5"/>
+
+        <!-- X-axis ticks and labels -->
+        <g font-size="11" fill="var(--text-secondary,#666)" text-anchor="middle">
+          <line x1="75" y1="265" x2="75" y2="270" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="75" y="281">0</text>
+          <line x1="169" y1="265" x2="169" y2="270" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="169" y="281">10</text>
+          <line x1="263" y1="265" x2="263" y2="270" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="263" y="281">20</text>
+          <line x1="357" y1="265" x2="357" y2="270" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="357" y="281">30</text>
+          <line x1="451" y1="265" x2="451" y2="270" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="451" y="281">40</text>
+          <line x1="545" y1="265" x2="545" y2="270" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="545" y="281">50</text>
+        </g>
+
+        <!-- Y-axis ticks and labels -->
+        <!-- px_y = 265 - 96*loss  -->
+        <g font-size="11" fill="var(--text-secondary,#666)" text-anchor="end">
+          <line x1="70" y1="265" x2="75" y2="265" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="68" y="269">0</text>
+          <line x1="70" y1="217" x2="75" y2="217" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="68" y="221">0.5</text>
+          <line x1="70" y1="169" x2="75" y2="169" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="68" y="173">1.0</text>
+          <line x1="70" y1="121" x2="75" y2="121" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="68" y="125">1.5</text>
+          <line x1="70" y1="73" x2="75" y2="73" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="68" y="77">2.0</text>
+          <line x1="70" y1="25" x2="75" y2="25" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+          <text x="68" y="29">2.5</text>
+        </g>
+
+        <!-- Axis labels -->
+        <text x="310" y="300" font-size="13" fill="var(--text-primary,#333)" text-anchor="middle">Epoch</text>
+        <text x="18" y="145" font-size="13" fill="var(--text-primary,#333)" text-anchor="middle" transform="rotate(-90,18,145)">Training Loss</text>
+
+        <!-- CURVES -->
+        <!-- Blue: Too small (α~0.001) — barely decreasing -->
+        <!-- epoch 0→50, loss 2.2→2.0 -->
+        <!-- px_x=75+9.4*e, px_y=265-96*L -->
+        <polyline points="75,54 169,62 263,67 357,71 451,72 545,73"
+                  fill="none" stroke="#4477cc" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Green: Good (α~0.05) — smooth fast decrease -->
+        <!-- loss: 2.2, 1.1, 0.55, 0.3, 0.19, 0.12, 0.09, 0.08 at epochs 0,5,10,15,20,30,40,50 -->
+        <!-- px_y: 265-96*[2.2,1.1,0.55,0.3,0.19,0.12,0.09,0.08]=[54,159,212,236,247,254,256,257] -->
+        <polyline points="75,54 122,159 169,212 216,236 263,247 357,254 451,256 545,257"
+                  fill="none" stroke="#22aa44" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Orange: Too large (α~0.5) — oscillating, converges slowly to ~1.0 -->
+        <!-- epochs: 0,3,6,9,12,16,20,25,30,35,40,45,50 -->
+        <!-- loss: 2.2,0.4,1.9,0.6,1.5,0.8,1.3,0.9,1.05,0.95,1.02,0.97,0.99 -->
+        <!-- px_x: 75+9.4*[0,3,6,9,12,16,20,25,30,35,40,45,50]=[75,103,131,160,188,225,263,310,357,404,451,498,545] -->
+        <!-- px_y: 265-96*loss = [54,227,83,207,121,188,140,179,164,174,167,172,170] -->
+        <polyline points="75,54 103,227 131,83 160,207 188,121 225,188 263,140 310,179 357,164 404,174 451,167 498,172 545,170"
+                  fill="none" stroke="#dd7722" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+        <!-- Red: Diverges — briefly decreases then shoots off chart -->
+        <!-- epoch: 0, 1.5, 3 (loss → 2.5, off chart) -->
+        <!-- px_x: 75, 75+9.4*1.5=89, 75+9.4*3=103 -->
+        <!-- loss: 2.2, 1.6, 2.5+ -->
+        <!-- px_y: 54, 265-96*1.6=111, 265-96*2.5=25 (boundary) -->
+        <polyline points="75,54 89,111 103,25"
+                  fill="none" stroke="#cc2233" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Arrow indicating "goes to infinity" -->
+        <polygon points="103,16 99,27 107,27" fill="#cc2233"/>
+        <text x="108" y="20" font-size="11" fill="#cc2233" font-style="italic">&#x2191; diverges</text>
+
+        <!-- LEGEND -->
+        <rect x="260" y="78" width="278" height="96" rx="4" fill="var(--card-bg,#fafafa)" fill-opacity="0.92" stroke="var(--border-color,#ccc)" stroke-width="1"/>
+        <g font-size="11.5" fill="var(--text-primary,#333)">
+          <line x1="270" y1="96" x2="296" y2="96" stroke="#4477cc" stroke-width="2.2"/>
+          <text x="301" y="100">Too small (&alpha; ~ 10&#x207B;&#xB3;)</text>
+          <line x1="270" y1="115" x2="296" y2="115" stroke="#22aa44" stroke-width="2.2"/>
+          <text x="301" y="119">Good (&alpha; ~ 5&times;10&#x207B;&#xB2;)</text>
+          <line x1="270" y1="134" x2="296" y2="134" stroke="#dd7722" stroke-width="2.2"/>
+          <text x="301" y="138">Too large (&alpha; ~ 0.5)</text>
+          <line x1="270" y1="153" x2="296" y2="153" stroke="#cc2233" stroke-width="2.2"/>
+          <text x="301" y="157">Diverges (&alpha; ~ 2)</text>
+        </g>
+      </svg>
+      <figcaption style="text-align:center;font-size:0.85rem;color:var(--text-secondary);margin-top:0.5rem;">
+        <strong>Figure 1.</strong> Effect of learning rate on training loss. A good learning rate gives a smooth, rapid decrease (green). Too small converges but extremely slowly (blue). Too large causes oscillation (orange) or divergence (red).
+      </figcaption>
+    </figure>
+
+    <h3>Momentum</h3>
+    <p>
+      Standard gradient descent treats each update independently. <strong>Gradient descent with momentum</strong> accumulates a moving average of past gradients — called the <em>velocity</em> — and adds it to the current update. This damps oscillations (the updates are smoother) and builds speed along consistent gradient directions (like a ball rolling downhill and gaining inertia):
+    </p>
+    <div class="math-block">
+      \[
+        \mathbf{v} \leftarrow \mu\,\mathbf{v} + \alpha\,\nabla_{\mathbf{W}} L, \qquad
+        \mathbf{W} \leftarrow \mathbf{W} - \mathbf{v}
+      \]
+    </div>
+    <p>
+      where \(\mathbf{v}\) is the <strong>velocity vector</strong> (same dimensions as \(\mathbf{W}\)), initialized to zero and updated each iteration. The momentum coefficient \(\mu \in [0,1)\), typically set to \(0.9\), controls how much of the previous velocity is retained. A higher \(\mu\) gives more "inertia." In MATLAB, <code>traingdm</code> implements gradient descent with momentum.
+    </p>
+
+    <h3>Adaptive learning rates</h3>
+    <p>
+      A fixed learning rate requires careful tuning: what works for early training (when gradients are large) may be too large or too small later. <strong>Adaptive optimizers</strong> automatically adjust the learning rate for each parameter based on its gradient history:
+    </p>
+    <table class="summary-table" style="margin-top:0.75rem;">
+      <thead><tr><th>Optimizer</th><th>Key Idea</th><th>MATLAB</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>GD with momentum</strong></td>
+          <td>Accumulate gradient history as velocity; damp oscillations</td>
+          <td><code>traingdm</code></td>
+        </tr>
+        <tr>
+          <td><strong>RMSprop</strong></td>
+          <td>Divide learning rate by a running average of squared gradients; parameters with large gradients get smaller steps</td>
+          <td><em>trainNetwork only</em></td>
+        </tr>
+        <tr>
+          <td><strong>Adam</strong></td>
+          <td>Combines momentum (first moment) and RMSprop (second moment); widely used default for deep learning</td>
+          <td><code>trainNetwork</code> with <code>sgdmOptions</code> / <code>adamOptions</code></td>
+        </tr>
+        <tr>
+          <td><strong>SCG (default in patternnet)</strong></td>
+          <td>Second-order method; uses curvature information to select step size automatically; no learning rate to tune</td>
+          <td><code>trainscg</code> (default)</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="callout info">
+      <strong>Practical guideline:</strong> For small datasets (hundreds of samples), <code>trainscg</code> (MATLAB's default) is often the best choice because it selects its step size automatically using second-order curvature information. For large datasets or deep architectures, Adam is the most common choice. Manual learning-rate tuning with <code>traingdm</code> is useful for understanding the effect of \(\alpha\), which is the focus of HW&nbsp;36.
+    </div>
+  </div>
+
+  <!-- ─── Section 6: Training & Validation Curves ─── -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F4C8;</span> Training &amp; Validation Curves</h2>
+    <p>
+      Monitoring the loss during training is how you diagnose whether your network is learning well. The key principle: split your data into <strong>training</strong> and <strong>validation</strong> sets, then track the loss on both throughout training. MATLAB's <code>patternnet</code> does this automatically.
+    </p>
+
+    <h3>How <code>patternnet</code> splits data</h3>
+    <p>
+      By default, <code>patternnet</code> randomly divides all input data into three subsets before training:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
+      <li><strong>Training (70%):</strong> Used to compute gradients and update weights each iteration.</li>
+      <li><strong>Validation (15%):</strong> Evaluated each epoch but <em>never</em> used for weight updates. Monitors for overfitting.</li>
+      <li><strong>Test (15%):</strong> Evaluated once, after training completes. Gives an unbiased final performance estimate.</li>
+    </ul>
+    <p>Click <strong>Performance</strong> in the training GUI to see the loss on all three sets vs. epoch.</p>
+
+    <h3>Three diagnostic patterns</h3>
+
+    <!-- Training/Validation SVG -->
+    <figure style="margin:1.5rem 0;">
+      <svg viewBox="0 0 570 215" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:570px;display:block;margin:0 auto;font-family:inherit;">
+
+        <!-- ── Panel 1: Underfitting ── -->
+        <!-- Panel frame x=[0,170], y=[0,170]; plot area local x=[28,162], y=[12,148] -->
+        <rect x="0" y="0" width="170" height="170" rx="4" fill="none" stroke="var(--border-color,#ccc)" stroke-width="1"/>
+        <!-- Plot area -->
+        <rect x="28" y="12" width="134" height="136" fill="var(--card-bg,#fff)" stroke="var(--border-color,#ddd)" stroke-width="0.5"/>
+        <!-- Axes -->
+        <line x1="28" y1="148" x2="162" y2="148" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+        <line x1="28" y1="148" x2="28" y2="12" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+        <!-- epoch 0-40, x=28+3.35*e; loss 0-2.5, y=148-52.8*L -->
+        <!-- Train: loss 2.1→1.7, barely changes -->
+        <!-- epoch 0,10,20,30,40: loss 2.1,1.88,1.78,1.72,1.70 -->
+        <!-- px_x: 28,61.5,95,128.5,162 -->
+        <!-- px_y: 148-52.8*[2.1,1.88,1.78,1.72,1.70]=[37,49,54,57,58] -->
+        <polyline points="28,37 62,49 95,54 129,57 162,58"
+                  fill="none" stroke="#2266cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Val: loss 2.2→1.75, similar -->
+        <!-- epoch 0,10,20,30,40: loss 2.2,1.92,1.82,1.77,1.75 -->
+        <!-- px_y: 148-52.8*[2.2,1.92,1.82,1.77,1.75]=[32,47,52,55,56] -->
+        <polyline points="28,32 62,47 95,52 129,55 162,56"
+                  fill="none" stroke="#dd7722" stroke-width="2" stroke-dasharray="6,3" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Panel title -->
+        <text x="85" y="185" font-size="11.5" fill="var(--text-primary,#333)" text-anchor="middle" font-weight="600">Underfitting</text>
+        <text x="85" y="198" font-size="10" fill="var(--text-secondary,#666)" text-anchor="middle">Both losses high &amp; flat</text>
+
+        <!-- ── Panel 2: Good Fit ── x-offset = 200 ── -->
+        <rect x="200" y="0" width="170" height="170" rx="4" fill="none" stroke="var(--border-color,#ccc)" stroke-width="1"/>
+        <rect x="228" y="12" width="134" height="136" fill="var(--card-bg,#fff)" stroke="var(--border-color,#ddd)" stroke-width="0.5"/>
+        <line x1="228" y1="148" x2="362" y2="148" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+        <line x1="228" y1="148" x2="228" y2="12" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+        <!-- Train: loss 2.1→0.12, smooth decrease; offset +200 on x -->
+        <!-- epoch 0,5,10,15,20,30,40: loss 2.1,1.3,0.7,0.38,0.24,0.14,0.12 -->
+        <!-- px_x (local): 28,45,62,78,95,128,162 → global: +200 = 228,245,262,278,295,328,362 -->
+        <!-- px_y: 148-52.8*[2.1,1.3,0.7,0.38,0.24,0.14,0.12]=[37,79,111,128,135,140,142] -->
+        <polyline points="228,37 245,79 262,111 278,128 295,135 328,140 362,142"
+                  fill="none" stroke="#2266cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Val: loss 2.1→0.2, stays close to train -->
+        <!-- epoch 0,5,10,15,20,30,40: loss 2.1,1.35,0.78,0.45,0.3,0.22,0.20 -->
+        <!-- px_y: 148-52.8*[2.1,1.35,0.78,0.45,0.3,0.22,0.20]=[37,77,107,124,132,137,137] -->
+        <!-- Wait, 148-52.8*2.1 = 148-110.9 = 37.1≈37 ✓ -->
+        <polyline points="228,37 245,77 262,107 278,124 295,132 328,137 362,138"
+                  fill="none" stroke="#dd7722" stroke-width="2" stroke-dasharray="6,3" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="285" y="185" font-size="11.5" fill="var(--text-primary,#333)" text-anchor="middle" font-weight="600">Good Generalization</text>
+        <text x="285" y="198" font-size="10" fill="var(--text-secondary,#666)" text-anchor="middle">Both low &amp; tracking closely</text>
+
+        <!-- ── Panel 3: Overfitting ── x-offset = 400 ── -->
+        <rect x="400" y="0" width="170" height="170" rx="4" fill="none" stroke="var(--border-color,#ccc)" stroke-width="1"/>
+        <rect x="428" y="12" width="134" height="136" fill="var(--card-bg,#fff)" stroke="var(--border-color,#ddd)" stroke-width="0.5"/>
+        <line x1="428" y1="148" x2="562" y2="148" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+        <line x1="428" y1="148" x2="428" y2="12" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+        <!-- Train: keeps decreasing; offset +400 -->
+        <!-- epoch 0,5,10,15,20,25,30,35,40: loss 2.1,1.3,0.7,0.35,0.18,0.10,0.06,0.04,0.03 -->
+        <!-- px_x (local 28,45,62,78,95,112,128,145,162) → global +400: 428,445,462,478,495,512,528,545,562 -->
+        <!-- px_y: 148-52.8*loss = [37,79,111,130,138,143,145,146,147] -->
+        <polyline points="428,37 445,79 462,111 478,130 495,138 512,143 528,145 545,146 562,147"
+                  fill="none" stroke="#2266cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Val: decreases then increases (U-shape) -->
+        <!-- epoch 0,5,10,15,20,25,30,35,40: loss 2.1,1.35,0.80,0.55,0.62,0.80,1.00,1.18,1.30 -->
+        <!-- px_y: 148-52.8*[2.1,1.35,0.80,0.55,0.62,0.80,1.00,1.18,1.30] -->
+        <!--       = [37,77,106,119,115,106,95,86,79] -->
+        <polyline points="428,37 445,77 462,106 478,119 495,115 512,106 528,95 545,86 562,79"
+                  fill="none" stroke="#dd7722" stroke-width="2" stroke-dasharray="6,3" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Best epoch marker (epoch ~15, where val is lowest) -->
+        <line x1="478" y1="12" x2="478" y2="148" stroke="#cc2233" stroke-width="1.2" stroke-dasharray="3,3"/>
+        <text x="478" y="10" font-size="9.5" fill="#cc2233" text-anchor="middle">best val</text>
+        <text x="485" y="185" font-size="11.5" fill="var(--text-primary,#333)" text-anchor="middle" font-weight="600">Overfitting</text>
+        <text x="485" y="198" font-size="10" fill="var(--text-secondary,#666)" text-anchor="middle">Val. rises after best epoch</text>
+
+        <!-- Shared legend at bottom -->
+        <line x1="155" y1="208" x2="180" y2="208" stroke="#2266cc" stroke-width="2"/>
+        <text x="183" y="212" font-size="11" fill="var(--text-primary,#333)">Training loss</text>
+        <line x1="270" y1="208" x2="295" y2="208" stroke="#dd7722" stroke-width="2" stroke-dasharray="6,3"/>
+        <text x="298" y="212" font-size="11" fill="var(--text-primary,#333)">Validation loss</text>
+      </svg>
+      <figcaption style="text-align:center;font-size:0.85rem;color:var(--text-secondary);margin-top:0.5rem;">
+        <strong>Figure 2.</strong> Three diagnostic patterns in the performance plot. <em>Underfitting</em>: model too simple. <em>Good generalization</em>: train and val track closely. <em>Overfitting</em>: val loss diverges upward; best weights are at the dashed line.
+      </figcaption>
+    </figure>
+
+    <h3>Interpreting the patterns</h3>
+    <table class="summary-table" style="margin-top:0.5rem;">
+      <thead><tr><th>Pattern</th><th>Diagnosis</th><th>Remedy</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Both curves high and flat</td>
+          <td><strong>Underfitting</strong> — model too simple or learning rate too small</td>
+          <td>Add neurons/layers; increase learning rate; train longer</td>
+        </tr>
+        <tr>
+          <td>Training low, validation high</td>
+          <td><strong>Overfitting</strong> — model memorizes training data</td>
+          <td>Reduce model size; add regularization; get more data</td>
+        </tr>
+        <tr>
+          <td>Val. loss decreases then rises</td>
+          <td><strong>Overfitting onset</strong> — model has reached its generalization limit</td>
+          <td>Stop at the validation minimum (early stopping)</td>
+        </tr>
+        <tr>
+          <td>Both curves low and close</td>
+          <td><strong>Good generalization</strong> — model fits well</td>
+          <td>No action needed</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Early stopping</h3>
+    <p>
+      <strong>Early stopping</strong> halts training when the validation loss has not improved for a specified number of consecutive epochs, then rolls back the weights to the best validation epoch. In MATLAB:
+    </p>
+<pre><code class="language-matlab">net.trainParam.max_fail = 6;   % stop after 6 consecutive epochs without
+                               % improvement in validation loss (default)
+</code></pre>
+    <div class="callout info">
+      <strong>Why early stopping is powerful:</strong> It is automatic (no extra hyperparameters to tune), free (no extra computation), and directly prevents the overfitting pattern shown in Figure 2. When <code>max_fail</code> triggers, MATLAB restores the weights from the best validation epoch — the dashed red line in the rightmost panel.
+    </div>
+  </div>
+
+  <!-- ─── Section 7: Videos ─── -->
+  <div class="card">
+    <h2><span class="section-icon">&#x25B6;</span> Recommended Videos</h2>
+    <p>3Blue1Brown's two-part backpropagation series. Watch Ch.&nbsp;3 first for intuition, then Ch.&nbsp;4 for the full calculus derivation:</p>
+    <a href="https://www.youtube.com/watch?v=Ilg3gGewQ5U" target="_blank" rel="noopener" class="video-link-card">
+      <div class="video-link-thumb">&#x25B6;</div>
       <div class="video-link-info">
-        <div class="video-link-title">Backpropagation calculus (Chapter 4)</div>
+        <div class="video-link-title">What is backpropagation really doing? (Chapter 3, Deep Learning)</div>
+        <div class="video-link-channel">3Blue1Brown &mdash; YouTube</div>
+      </div>
+    </a>
+    <a href="https://www.youtube.com/watch?v=tIeHLnjs5U8" target="_blank" rel="noopener" class="video-link-card" style="margin-top:0.75rem;">
+      <div class="video-link-thumb">&#x25B6;</div>
+      <div class="video-link-info">
+        <div class="video-link-title">Backpropagation calculus (Chapter 4, Deep Learning)</div>
         <div class="video-link-channel">3Blue1Brown &mdash; YouTube</div>
       </div>
     </a>
   </div>
 
-  <!-- Worked Example -->
+  <!-- ─── Section 8: MATLAB Worked Example ─── -->
   <div class="card">
-    <h2><span class="section-icon">💻</span> Worked Example — Full Forward + Backward Pass</h2>
+    <h2><span class="section-icon">&#x1F4BB;</span> Worked Example &mdash; Handwritten Digit Recognition</h2>
     <p>
-      This implements both the forward and backward pass for a 1-hidden-layer network. Compare this directly to the forward-only code in Lesson 35:
+      We train a shallow network on MATLAB's built-in <strong>DigitDataset</strong> (10,000 handwritten digit images, classes 0&ndash;9, 28&times;28 pixels). For a shallow network, we flatten each image into a 784-element feature vector. HW&nbsp;36 uses the same dataset &mdash; your job is to tune the parameters to improve performance.
     </p>
-<pre><code class="language-matlab">%% Lesson 36 — Full Backpropagation Example
-% Network: d → n1 → 1  (binary classification)
-% Activation: ReLU (hidden), Sigmoid (output)
+    <p>
+      This example deliberately uses a <em>small</em> network (<code>patternnet(10)</code>) so the Performance plot shows the <strong>underfitting</strong> pattern from Figure&nbsp;2. Recognizing this pattern &mdash; and knowing how to fix it &mdash; is the goal of HW&nbsp;36.
+    </p>
+<pre><code class="language-matlab">%% Lesson 36 — Handwritten Digit Classification with patternnet
+% Dataset: MATLAB's built-in DigitDataset (10,000 images, 10 classes, 28x28)
+% Network: 784 → 10 → 10  (deliberately small — shows underfitting)
+% HW 36 uses the same dataset; your task is to improve this baseline.
 
-rng(42);
-d  = 4;   n1 = 8;   % small network for clarity
-N  = 50;            % batch size
+%% 1. Load dataset and take a subset
+digitPath = fullfile(matlabroot,'toolbox','nnet','nndemos', ...
+                     'nndatasets','DigitDataset');
+imds = imageDatastore(digitPath, ...
+    'IncludeSubfolders', true, 'LabelSource', 'foldernames');
 
-% Synthetic data
-X = randn(d, N);                % d × N
-y = double(sum(X) > 0)';        % N × 1 labels
+% Use 200 images per digit class (2000 total) — fast enough without GPU
+rng(356);
+imds_sub = splitEachLabel(imds, 200, 'randomize');
 
-% Initialize parameters (Xavier)
-W1 = randn(n1,d)  * sqrt(2/d);  b1 = zeros(n1,1);
-W2 = randn(1, n1) * sqrt(2/n1); b2 = 0;
+%% 2. Flatten images: each 28x28 → 784-element column vector
+imgs = readall(imds_sub);
+X    = cell2mat(cellfun(@(I) double(I(:))/255, imgs, ...
+               'UniformOutput', false)')';    % 784 x 2000
 
-relu    = @(z) max(0, z);
-sigmoid = @(z) 1 ./ (1 + exp(-z));
-alpha   = 0.05;  eps = 1e-8;
+% Integer class labels 1–10 ('0'→1, '1'→2, ..., '9'→10)
+classNums = grp2idx(imds_sub.Labels);         % 2000x1
+T         = full(ind2vec(classNums'));         % 10 x 2000 one-hot
 
-loss_hist = zeros(200,1);
+fprintf('Data: %d samples, %d features, %d classes\n', ...
+    size(X,2), size(X,1), size(T,1));
 
-for t = 1:200
-    %% ===== FORWARD PASS =====
-    Z1 = W1 * X + b1;          % n1 × N
-    A1 = relu(Z1);              % n1 × N
+%% 3. Define and train a SMALL network (1 hidden layer, 10 neurons)
+net = patternnet(10);               % 784 → 10 → 10
+net = train(net, X, T);
+% → Click "Performance" in the training GUI.
+% → Observe: both training and validation losses remain relatively high.
+%   This is UNDERFITTING — 10 neurons cannot represent 10 digit classes
+%   from 784 features. In HW 36 you will explore larger architectures.
 
-    Z2 = W2 * A1 + b2;         % 1 × N
-    P  = sigmoid(Z2)';          % N × 1  — predicted probabilities
-
-    % Binary cross-entropy loss
-    L_val = -mean(y.*log(P+eps) + (1-y).*log(1-P+eps));
-    loss_hist(t) = L_val;
-
-    %% ===== BACKWARD PASS =====
-    % Output layer error
-    dZ2 = (P - y)';             % 1 × N  (chain rule: dL/dZ2 = p_hat - y)
-
-    % Gradients for W2, b2
-    dW2 = (dZ2 * A1') / N;     % 1 × n1
-    db2 = sum(dZ2, 2) / N;     % scalar
-
-    % Backprop through hidden layer
-    dA1 = W2' * dZ2;            % n1 × N
-    dZ1 = dA1 .* double(Z1>0); % n1 × N  (ReLU gate)
-
-    % Gradients for W1, b1
-    dW1 = (dZ1 * X') / N;      % n1 × d
-    db1 = sum(dZ1, 2) / N;     % n1 × 1
-
-    %% ===== SGD UPDATE =====
-    W2 = W2 - alpha * dW2;
-    b2 = b2 - alpha * db2;
-    W1 = W1 - alpha * dW1;
-    b1 = b1 - alpha * db1;
-end
-
-%% Results
-fprintf('Final loss: %.4f\n', loss_hist(end));
-P_final = sigmoid(W2 * relu(W1*X + b1) + b2)';
-acc = mean(double(P_final >= 0.5) == y);
-fprintf('Training accuracy: %.2f%%\n', acc*100);
-
-figure;
-plot(loss_hist, 'b-', 'LineWidth', 2);
-xlabel('Iteration'); ylabel('Cross-Entropy Loss');
-title('Backprop + SGD Training'); grid on;
+%% 4. Compute training accuracy
+pred = vec2ind(net(X));
+acc  = 100 * mean(pred == classNums');
+fprintf('Training accuracy: %.1f%%\n', acc);
 </code></pre>
     <div class="callout info">
-      <strong>Key line to study:</strong> <code>dZ1 = dA1 .* double(Z1>0)</code> — this is the chain rule applied to ReLU. <code>double(Z1>0)</code> is the derivative: 1 where the neuron fired, 0 where it did not.
+      <strong>What to notice in the Performance plot:</strong> With only 10 hidden neurons both the training and validation loss curves should be high (above 0.1 cross-entropy) and the curves may not decrease much — a classic underfitting signature. Increasing the number of neurons is the most direct fix, which you will explore in HW&nbsp;36.
+    </div>
+    <div class="callout info">
+      <strong>Why flatten instead of using raw images?</strong> A standard fully-connected layer (like <code>patternnet</code>) treats each pixel as an independent feature — it does not exploit the spatial structure of the image. Convolutional Neural Networks (Lesson&nbsp;37) solve this by applying shared filters that detect local patterns regardless of position.
     </div>
   </div>
 
-  <!-- In-Class Exercise (Printable) -->
-  <div class="card" style="border:2px dashed var(--usafa-blue);">
-    <h2><span class="section-icon">✏️</span> In-Class Exercise (Printable)</h2>
-    <p style="font-style:italic;color:var(--text-secondary);">Work through this by hand. Show all steps.</p>
-
-    <h3>Setup</h3>
-    <p>Consider a tiny network with \(d=2\), \(n_1=2\), output \(n_2=1\).</p>
-    <p>Given (at a particular training step):</p>
-    <div class="math-block">
-      \[
-        \mathbf{x} = \begin{bmatrix}1\\2\end{bmatrix}, \quad y = 1, \quad
-        \mathbf{W}^{[1]} = \begin{bmatrix}0.5 & -0.3\\0.1 & 0.8\end{bmatrix}, \quad
-        \mathbf{b}^{[1]} = \begin{bmatrix}0\\0\end{bmatrix}
-      \]
-      \[
-        \mathbf{W}^{[2]} = \begin{bmatrix}0.4 & -0.6\end{bmatrix}, \quad
-        b^{[2]} = 0.1
-      \]
-    </div>
-
-    <h3>Tasks</h3>
-    <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;font-size:0.95rem;">
-      <li><strong>(a)</strong> Compute \(\mathbf{z}^{[1]}\) and \(\mathbf{a}^{[1]} = \text{ReLU}(\mathbf{z}^{[1]})\).</li>
-      <li><strong>(b)</strong> Compute \(z^{[2]}\) and \(\hat{p} = \sigma(z^{[2]})\).</li>
-      <li><strong>(c)</strong> Compute the binary cross-entropy loss \(L\) for this single example.</li>
-      <li><strong>(d)</strong> Backprop: compute \(\delta^{[2]} = \hat{p} - y\).</li>
-      <li><strong>(e)</strong> Compute \(\frac{\partial L}{\partial \mathbf{W}^{[2]}}\) and \(\frac{\partial L}{\partial b^{[2]}}\).</li>
-      <li><strong>(f)</strong> Backprop through layer 1: compute \(\delta^{[1]} = (\mathbf{W}^{[2]})^\top \delta^{[2]} \odot \mathbf{1}[\mathbf{z}^{[1]}>0]\).</li>
-      <li><strong>(g)</strong> Compute \(\frac{\partial L}{\partial \mathbf{W}^{[1]}}\) and \(\frac{\partial L}{\partial \mathbf{b}^{[1]}}\).</li>
-      <li><strong>(h)</strong> With \(\alpha = 0.1\), perform one SGD update on all parameters. What are the new values of \(\mathbf{W}^{[1]}\)?</li>
-    </ol>
-
-    <h3>Expected Answers (Check your work)</h3>
-    <details>
-      <summary style="cursor:pointer;color:var(--accent);font-weight:600;margin-top:0.5rem;">Click to reveal</summary>
-      <div style="margin-top:0.75rem;">
-        <p><strong>(a)</strong> \(\mathbf{z}^{[1]} = [-0.1,\ 1.7]^\top\), \(\mathbf{a}^{[1]} = [0,\ 1.7]^\top\) (ReLU zeros the negative)</p>
-        <p><strong>(b)</strong> \(z^{[2]} = 0.4(0) + (-0.6)(1.7) + 0.1 = -0.92\), \(\hat{p} = \sigma(-0.92) \approx 0.285\)</p>
-        <p><strong>(c)</strong> \(L = -\log(0.285) \approx 1.255\)</p>
-        <p><strong>(d)</strong> \(\delta^{[2]} = 0.285 - 1 = -0.715\)</p>
-        <p><strong>(e)</strong> \(\frac{\partial L}{\partial \mathbf{W}^{[2]}} = \delta^{[2]}\mathbf{a}^{[1]\top} = [-0.715 \cdot 0,\ -0.715 \cdot 1.7] = [0,\ -1.215]\); \(\frac{\partial L}{\partial b^{[2]}} = -0.715\)</p>
-        <p><strong>(f)</strong> \((\mathbf{W}^{[2]})^\top \delta^{[2]} = [-0.286,\ 0.429]^\top\); gate with \([0,\ 1]\): \(\delta^{[1]} = [0,\ 0.429]^\top\)</p>
-        <p><strong>(g)</strong> \(\frac{\partial L}{\partial \mathbf{W}^{[1]}} = \delta^{[1]}\mathbf{x}^\top = \begin{bmatrix}0&0\\0.429&0.858\end{bmatrix}\)</p>
-      </div>
-    </details>
-  </div>
-
-  <!-- Summary -->
+  <!-- ─── Summary ─── -->
   <div class="card">
-    <h2><span class="section-icon">📝</span> Summary</h2>
+    <h2><span class="section-icon">&#x1F4DD;</span> Summary</h2>
     <table class="summary-table">
       <thead><tr><th>Concept</th><th>Key Idea</th></tr></thead>
       <tbody>
-        <tr><td>Chain rule</td><td>\(\frac{dL}{dw} = \frac{dL}{dz}\cdot\frac{dz}{dw}\) — applied layer by layer backward</td></tr>
-        <tr><td>Output delta</td><td>\(\delta^{[L]} = \hat{p} - y\) for BCE + sigmoid (elegant simplification)</td></tr>
+        <tr><td>Backpropagation</td><td>Chain rule applied layer-by-layer backward; computes \(\partial L/\partial \mathbf{W}^{[\ell]}\) for every layer efficiently</td></tr>
+        <tr><td>L2 output delta</td><td>\(\delta^{[L]} = \hat{y} - y\) for linear output + MSE loss</td></tr>
         <tr><td>Hidden delta</td><td>\(\delta^{[\ell]} = (\mathbf{W}^{[\ell+1]})^\top\delta^{[\ell+1]} \odot \phi'(\mathbf{z}^{[\ell]})\)</td></tr>
-        <tr><td>Weight gradient</td><td>\(\frac{\partial L}{\partial \mathbf{W}^{[\ell]}} = \delta^{[\ell]}(\mathbf{a}^{[\ell-1]})^\top\)</td></tr>
-        <tr><td>Mini-batch SGD</td><td>Batch size \(B\); stochastic gradient estimate reduces compute per step and acts as regularizer</td></tr>
-        <tr><td>Full training loop</td><td>Forward pass → loss → backward pass → SGD update → repeat</td></tr>
+        <tr><td>Mini-batch SGD</td><td>Use \(B\) random samples per update; noise improves speed, helps escape local minima, acts as regularization</td></tr>
+        <tr><td>Learning rate \(\alpha\)</td><td>Too small &rarr; slow; too large &rarr; oscillates or diverges; adaptive methods (Adam, SCG) remove the need to tune</td></tr>
+        <tr><td>Momentum</td><td>Velocity \(\mathbf{v}\) accumulates past gradients; damps oscillations and builds speed in consistent directions</td></tr>
+        <tr><td>Training &amp; validation curves</td><td>Underfitting: both high; good fit: both low and close; overfitting: val. rises while train. falls</td></tr>
+        <tr><td>Early stopping</td><td>Halt when val. loss stops improving; restore best weights; prevents overfitting automatically</td></tr>
       </tbody>
     </table>
-    <div class="callout info">
-      <strong>Looking ahead:</strong> In Lesson 37 you will see how these training principles apply to CNNs — architectures that exploit spatial structure in image data.
-    </div>
-    <a href="hw/hw35.html" class="hw-button">📋 HW 35 — Shallow Neural Network</a>
+    <a href="hw/hw36.html" class="hw-button">&#x1F4CB; HW 36 &mdash; Training Parameter Exploration (DigitDataset)</a>
   </div>
 
-  <!-- References -->
+  <!-- ─── References ─── -->
   <div class="card references">
-    <h2><span class="section-icon">📚</span> References</h2>
+    <h2><span class="section-icon">&#x1F4DA;</span> References</h2>
     <ol>
-      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Ch. 6.5 (Backprop). MIT Press.</li>
+      <li>Goodfellow, I., Bengio, Y., &amp; Courville, A. (2016). <em>Deep Learning</em>, Ch. 6.5 (Backprop) &amp; Ch. 8 (Optimization). MIT Press.</li>
+      <li>3Blue1Brown. (2017). <em>What is backpropagation really doing?</em> [Video]. YouTube. <a href="https://www.youtube.com/watch?v=Ilg3gGewQ5U" target="_blank" rel="noopener">youtube.com</a></li>
       <li>3Blue1Brown. (2017). <em>Backpropagation calculus</em> [Video]. YouTube. <a href="https://www.youtube.com/watch?v=tIeHLnjs5U8" target="_blank" rel="noopener">youtube.com</a></li>
-      <li>Rumelhart, D. E., Hinton, G. E., &amp; Williams, R. J. (1986). Learning representations by back-propagating errors. <em>Nature, 323</em>(6088), 533–536.</li>
-      <li>Karpathy, A. (2022). <em>micrograd</em> [GitHub]. <a href="https://github.com/karpathy/micrograd" target="_blank" rel="noopener">github.com/karpathy/micrograd</a></li>
+      <li>Rumelhart, D. E., Hinton, G. E., &amp; Williams, R. J. (1986). Learning representations by back-propagating errors. <em>Nature, 323</em>(6088), 533&ndash;536.</li>
+      <li>Prechelt, L. (1998). Early stopping &mdash; but when? In <em>Neural Networks: Tricks of the Trade</em>, Springer, pp. 55&ndash;69.</li>
+      <li>Kingma, D. P. &amp; Ba, J. (2015). Adam: A method for stochastic optimization. <em>ICLR 2015</em>.</li>
     </ol>
   </div>
 
   <div class="lesson-nav">
-    <a href="lesson35.html" class="prev">← L35: Neural Networks</a>
+    <a href="lesson35.html" class="prev">
+      <div>&larr; <span class="nav-label">Previous</span><br>L35: Neural Networks</div>
+    </a>
     <a href="lesson37.html" class="next">
       <div><span class="nav-label">Next Lesson</span><br>L37: Convolutional Neural Networks</div>
-      →
+      &rarr;
     </a>
   </div>
 
