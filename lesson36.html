@@ -549,11 +549,11 @@
     </ul>
     <p>Click <strong>Performance</strong> in the training GUI to see the loss on all three sets vs. epoch.</p>
 
-    <h3>Three diagnostic patterns</h3>
+    <h3>Four diagnostic patterns</h3>
 
     <!-- Training/Validation SVG -->
     <figure style="margin:1.5rem 0;">
-      <svg viewBox="0 0 570 215" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:570px;display:block;margin:0 auto;font-family:inherit;">
+      <svg viewBox="0 0 745 215" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:745px;display:block;margin:0 auto;font-family:inherit;">
 
         <!-- ── Panel 1: Underfitting ── -->
         <!-- Panel frame x=[0,170], y=[0,170]; plot area local x=[28,162], y=[12,148] -->
@@ -619,43 +619,73 @@
         <!-- Best epoch marker (epoch ~15, where val is lowest) -->
         <line x1="478" y1="12" x2="478" y2="148" stroke="#cc2233" stroke-width="1.2" stroke-dasharray="3,3"/>
         <text x="478" y="10" font-size="9.5" fill="#cc2233" text-anchor="middle">best val</text>
-        <text x="485" y="185" font-size="11.5" fill="var(--text-primary,#333)" text-anchor="middle" font-weight="600">Overfitting</text>
+        <text x="485" y="185" font-size="11.5" fill="var(--text-primary,#333)" text-anchor="middle" font-weight="600">Overfitting Onset</text>
         <text x="485" y="198" font-size="10" fill="var(--text-secondary,#666)" text-anchor="middle">Val. rises after best epoch</text>
 
-        <!-- Shared legend at bottom -->
-        <line x1="155" y1="208" x2="180" y2="208" stroke="#2266cc" stroke-width="2"/>
-        <text x="183" y="212" font-size="11" fill="var(--text-primary,#333)">Training loss</text>
-        <line x1="270" y1="208" x2="295" y2="208" stroke="#dd7722" stroke-width="2" stroke-dasharray="6,3"/>
-        <text x="298" y="212" font-size="11" fill="var(--text-primary,#333)">Validation loss</text>
+        <!-- ── Panel 4: Severe Overfitting (persistent gap) ── x-offset = 565 ── -->
+        <!-- Panel frame -->
+        <rect x="565" y="0" width="170" height="170" rx="4" fill="none" stroke="var(--border-color,#ccc)" stroke-width="1"/>
+        <!-- Plot area: local x=[28,162] → global [593,727]; y same as other panels -->
+        <rect x="593" y="12" width="134" height="136" fill="var(--card-bg,#fff)" stroke="var(--border-color,#ddd)" stroke-width="0.5"/>
+        <!-- Axes -->
+        <line x1="593" y1="148" x2="727" y2="148" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+        <line x1="593" y1="148" x2="593" y2="12" stroke="var(--text-secondary,#666)" stroke-width="1"/>
+        <!-- Train: loss 2.1 → ~0.03, drops to near zero (overtrained)
+             epoch 0,5,10,15,20,30,40: loss 2.1,1.2,0.5,0.18,0.08,0.04,0.03
+             px_y = 148-52.8*loss = [37,85,122,138,144,146,147]
+             global px_x = 565+28+3.35*epoch = [593,610,627,643,660,693,727] -->
+        <polyline points="593,37 610,85 627,122 643,138 660,144 693,146 727,147"
+                  fill="none" stroke="#2266cc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Val: starts at 2.1, drops slightly, then plateaus high — large persistent gap
+             epoch 0,5,10,15,20,30,40: loss 2.1,1.6,1.35,1.25,1.22,1.20,1.19
+             px_y = [37,63,77,82,84,85,85] -->
+        <polyline points="593,37 610,63 627,77 643,82 660,84 693,85 727,85"
+                  fill="none" stroke="#dd7722" stroke-width="2" stroke-dasharray="6,3" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Gap annotation arrow -->
+        <line x1="720" y1="85" x2="720" y2="147" stroke="#888" stroke-width="1" marker-end="url(#arrowhead)"/>
+        <text x="735" y="120" font-size="9" fill="#888" text-anchor="middle" transform="rotate(90,735,120)">large gap</text>
+        <!-- Panel title -->
+        <text x="650" y="185" font-size="11.5" fill="var(--text-primary,#333)" text-anchor="middle" font-weight="600">Severe Overfitting</text>
+        <text x="650" y="198" font-size="10" fill="var(--text-secondary,#666)" text-anchor="middle">Train low, val remains high</text>
+
+        <!-- Shared legend — centered in 745px SVG -->
+        <line x1="265" y1="208" x2="290" y2="208" stroke="#2266cc" stroke-width="2"/>
+        <text x="293" y="212" font-size="11" fill="var(--text-primary,#333)">Training loss</text>
+        <line x1="385" y1="208" x2="410" y2="208" stroke="#dd7722" stroke-width="2" stroke-dasharray="6,3"/>
+        <text x="413" y="212" font-size="11" fill="var(--text-primary,#333)">Validation loss</text>
       </svg>
       <figcaption style="text-align:center;font-size:0.85rem;color:var(--text-secondary);margin-top:0.5rem;">
-        <strong>Figure 2.</strong> Three diagnostic patterns in the performance plot. <em>Underfitting</em>: model too simple. <em>Good generalization</em>: train and val track closely. <em>Overfitting</em>: val loss diverges upward; best weights are at the dashed line.
+        <strong>Figure 2.</strong> Four diagnostic patterns in the performance plot. <em>Underfitting</em>: model too simple. <em>Good generalization</em>: both curves low and close. <em>Overfitting onset</em>: validation rises after a minimum — stop here. <em>Severe overfitting</em>: training near zero but validation stays high throughout.
       </figcaption>
     </figure>
 
     <h3>Interpreting the patterns</h3>
     <table class="summary-table" style="margin-top:0.5rem;">
-      <thead><tr><th>Pattern</th><th>Diagnosis</th><th>Remedy</th></tr></thead>
+      <thead><tr><th>Panel</th><th>Pattern</th><th>Diagnosis</th><th>Remedy</th></tr></thead>
       <tbody>
         <tr>
+          <td>1</td>
           <td>Both curves high and flat</td>
           <td><strong>Underfitting</strong> — model too simple or learning rate too small</td>
           <td>Add neurons/layers; increase learning rate; train longer</td>
         </tr>
         <tr>
-          <td>Training low, validation high</td>
-          <td><strong>Overfitting</strong> — model memorizes training data</td>
-          <td>Reduce model size; add regularization; get more data</td>
-        </tr>
-        <tr>
-          <td>Val. loss decreases then rises</td>
-          <td><strong>Overfitting onset</strong> — model has reached its generalization limit</td>
-          <td>Stop at the validation minimum (early stopping)</td>
-        </tr>
-        <tr>
-          <td>Both curves low and close</td>
+          <td>2</td>
+          <td>Both curves low and tracking closely</td>
           <td><strong>Good generalization</strong> — model fits well</td>
           <td>No action needed</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>Val. loss decreases then rises (U-shape)</td>
+          <td><strong>Overfitting onset</strong> — model has reached its generalization limit</td>
+          <td>Use early stopping; restore weights at the validation minimum</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>Training near zero, validation stays high throughout</td>
+          <td><strong>Severe overfitting</strong> — large persistent gap; model memorizes training data</td>
+          <td>Reduce model size; add more data; add regularization</td>
         </tr>
       </tbody>
     </table>
@@ -668,7 +698,7 @@
                                % improvement in validation loss (default)
 </code></pre>
     <div class="callout info">
-      <strong>Why early stopping is powerful:</strong> It is automatic (no extra hyperparameters to tune), free (no extra computation), and directly prevents the overfitting pattern shown in Figure 2. When <code>max_fail</code> triggers, MATLAB restores the weights from the best validation epoch — the dashed red line in the rightmost panel.
+      <strong>Why early stopping is powerful:</strong> It is automatic (no extra hyperparameters to tune), free (no extra computation), and directly prevents the overfitting pattern shown in Figure 2. When <code>max_fail</code> triggers, MATLAB restores the weights from the best validation epoch — the dashed red line in Panel 3.
     </div>
   </div>
 
