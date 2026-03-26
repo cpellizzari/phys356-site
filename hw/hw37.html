@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HW 37 — CNN on DigitDataset | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Homework Assignment</div>
+    <h1>HW 37 &mdash; CNN on DigitDataset</h1>
+    <div class="hw-meta">
+      <span>&#x1F4D8; Related: <a href="../lesson37.html" style="color:rgba(255,255,255,0.9)">Lesson 37</a></span>
+      <span>&#x1F6E0; MATLAB + Deep Learning Toolbox required</span>
+      <span>&#x1F4C1; Dataset: MATLAB DigitDataset</span>
+    </div>
+  </div>
+
+  <!-- Background -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F30D;</span> Background</h2>
+    <p>
+      In HW&nbsp;36 you tuned a fully-connected network on the DigitDataset and found that even a well-tuned FC network is limited by its inability to exploit spatial structure. In this assignment you will build a CNN on the same dataset and systematically compare its performance, explore the effect of depth and filter count, and visualize what the network has learned.
+    </p>
+    <p>
+      Use the same CNN structure from the Lesson&nbsp;37 example (<code>imageInputLayer</code>, <code>convolution2dLayer</code>, <code>batchNormalizationLayer</code>, <code>maxPooling2dLayer</code>, <code>fullyConnectedLayer</code>, <code>trainNetwork</code>) and the same dataset loading pattern. Use <strong>200 images per class</strong> (2,000 total) and an 80/20 train/test split unless otherwise specified. Set <code>rng(356)</code> at the top of your script.
+    </p>
+  </div>
+
+  <!-- Problem 1 -->
+  <div class="problem">
+    <h3>Problem 1 &mdash; CNN vs. FC Baseline</h3>
+    <ol>
+      <li>
+        Run the Lesson&nbsp;37 example with the default parameters (<code>n_per_class=200</code>, <code>n_filters=8</code>, <code>learn_rate=0.01</code>) and record the test accuracy. Then retrieve your best FC result from HW&nbsp;36. Compare the two accuracies and the number of trainable parameters in each network.
+      </li>
+      <li>
+        Examine the Training Progress plot for the CNN. Which of the four diagnostic patterns from Lesson&nbsp;36 (underfitting, good generalization, overfitting onset, severe overfitting) does it most closely resemble? How does this compare to what you saw for the FC network under similar conditions?
+      </li>
+    </ol>
+  </div>
+
+  <!-- Problem 2 -->
+  <div class="problem">
+    <h3>Problem 2 &mdash; Effect of Filter Count and Network Depth</h3>
+    <ol>
+      <li>
+        Keeping all other parameters fixed (<code>n_per_class=200</code>, <code>learn_rate=0.01</code>, 20 epochs), train CNNs with at least three different filter counts: <code>n_filters</code> = 4, 8, 16, and 32 (recall the second conv block always uses <code>2*n_filters</code>). Record the test accuracy and note the Training Progress pattern for each.
+      </li>
+      <li>
+        Now add a <strong>third conv block</strong> to your best-performing architecture from part 1. Insert it between Pool2 and the FC layer:
+<pre><code class="language-matlab">% Third conv block: 7×7×(2*n_filters) → 7×7×(4*n_filters) → 3×3×(4*n_filters)
+convolution2dLayer(3, 4*n_filters, 'Padding', 'same', 'Name', 'conv3')
+batchNormalizationLayer('Name', 'bn3')
+reluLayer('Name', 'relu3')
+maxPooling2dLayer(2, 'Stride', 2, 'Name', 'pool3')
+</code></pre>
+        Does adding the extra block improve accuracy? Examine the Training Progress plot and comment on whether the additional depth is helping or introducing overfitting.
+      </li>
+    </ol>
+  </div>
+
+  <!-- Problem 3 -->
+  <div class="problem">
+    <h3>Problem 3 &mdash; Data Efficiency</h3>
+    <ol>
+      <li>
+        One of the key benefits of CNNs is that parameter sharing makes them more data-efficient than FC networks. To test this, train your best CNN architecture on progressively smaller datasets. Use <code>n_per_class</code> = 20, 50, 100, and 200 (with <code>learn_rate=0.001</code> and 30 epochs). Record test accuracy for each and present the results in a table.
+      </li>
+      <li>
+        Using the same four dataset sizes, train the best FC architecture from HW&nbsp;36 (use <code>learn_rate=0.001</code>, same epochs). Plot or tabulate both sets of results side by side. At which dataset size does the accuracy gap between the CNN and FC network become most pronounced? Explain why in 2&ndash;3 sentences.
+      </li>
+    </ol>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="../lesson37.html" class="prev">&larr; Back to Lesson 37</a>
+    <a href="hw38.html" class="next">
+      <div><span class="nav-label">Next HW</span><br>HW 38: Transformers &amp; LLMs</div>
+      &rarr;
+    </a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Meteorology &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

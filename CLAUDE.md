@@ -91,7 +91,7 @@ In-lesson MATLAB examples must be **clearly distinct** from the homework problem
 - L32 example: scalar Bayesian (single sample) — HW uses 50-dim covariance
 - L35 example: synthetic spectral data with `patternnet` (3 features, 2 classes) — HW uses `sat_data.mat` (2 features, 4 classes) with `patternnet`
 - L36 example: MATLAB DigitDataset, DL Toolbox layers (`featureInputLayer` + `fullyConnectedLayer` + `dropoutLayer`), `trainNetwork` with Adam; 3 tunable params at top (`n_per_class=100`, `n_hidden=10`, `learn_rate=0.05`) default to overfitting; 5×5 prediction grid at end — HW uses same dataset/API, students sweep network size, early stopping, and learning rate
-- L37 example: MATLAB DigitDataset with CNN via `trainNetwork` — HW uses same dataset (natural extension of L36 HW)
+- L37 example: MATLAB DigitDataset, CNN with `imageInputLayer` + `convolution2dLayer` + `batchNormalizationLayer` + `maxPooling2dLayer`; pass imageDatastore directly to `trainNetwork` (no flattening); 3 tunable params (n_per_class=200, n_filters=8, learn_rate=0.01); defaults show good generalization — HW has students compare to FC baseline, sweep filter count, add depth, and test data efficiency
 
 ## Video Embedding Notes
 
@@ -112,6 +112,7 @@ Canonical video placements:
 - CS231n Lecture 2 — Linear Classification (`OoUX-nOEjG0`) → L34
 - 3B1B "Gradient descent" (`IHZwWFHWa-w`) → L35
 - 3B1B "But what is a neural network?" (`aircAruvnKk`) → L35 (architecture intuition)
+- 3B1B "But what is a convolution?" (`KuXjwB4LzSA`) → L37 (first video)
 - 3B1B "What is backpropagation really doing?" (`Ilg3gGewQ5U`) → L36 (first video)
 - 3B1B "Backpropagation calculus" (`tIeHLnjs5U8`) → L36 (second video)
 - Karpathy "Let's build GPT" (`kCc8FmEb1nY`) → L38
@@ -128,6 +129,7 @@ Canonical video placements:
 
 **ML & AI (L33–L38):**
 `/Users/caseypellizzari/Library/CloudStorage/OneDrive-afacademy.af.edu/USAFA Classes/Phys 356/2026/AI_ML_Material/`
+- CS231n slides, notes, and schedule online at: https://cs231n.stanford.edu/2017/syllabus.html
 - Slides: `356_Lesson_33.pptx` through `356_Lesson_38.pptx`
 - HW specs: `HW_33.docx` through `HW_37.docx` (note: `HW_36.docx` is the source for hw34.html)
 - Reference text: `Text - machine_learning_for_humans.pdf`
@@ -146,12 +148,14 @@ Canonical video placements:
 | lesson34.html | ✅ Final | Supervised Learning: KNN, SVM, logistic regression; sat_data.mat |
 | lesson35.html | ✅ Final | Neural Networks: architecture, forward pass, activations; patternnet worked example; CS231n video (55:11–104:00); 3B1B gradient descent + "But what is a NN?" videos |
 | lesson36.html | ✅ Final | Backprop + training; chain rule; SGD; learning rate SVG diagram; 4-panel train/val curves SVG; 2 × 3B1B videos; MATLAB example on DigitDataset using DL Toolbox layers (`featureInputLayer`, `trainNetwork`); 3 tunable params at top (`n_per_class=100`, `n_hidden=10`, `learn_rate=0.05`); 5×5 test prediction grid; default params show overfitting |
-| lesson37.html–38.html | 🔄 Draft | CNNs, Transformers |
+| lesson37.html | ✅ Final | CNNs; animated convolution SVG; max pooling SVG; volume flow SVG; 3B1B "But what is a convolution?" (KuXjwB4LzSA) + CS231n L5 (bNb2fEVKeEo); MATLAB example: CNN on DigitDataset with imageInputLayer, no flattening; 3 tunable params (n_per_class, n_filters, learn_rate) |
+| lesson38.html | 🔄 Draft | Transformers |
 | hw29.html–hw33.html | ✅ Final | Reviewed; submit/.mlx line removed from all |
 | hw34.html | ✅ Final | KNN, SVM, logistic regression on sat_data.mat |
 | hw35.html | ✅ Final | patternnet on sat_data.mat (4-class GEO identification); modeled on old HW_37.docx |
 | hw36.html | ✅ Final | DigitDataset: network size exploration (Problem 1), overfitting + early stopping (Problem 2), sgdm lr sweep + Adam comparison (Problem 3); no redundant code from lesson; solution at AI_ML_Material/hw36_solution.m |
-| hw37.html–hw38.html | 🔄 Draft | Not yet created |
+| hw37.html | ✅ Final | CNN on DigitDataset: CNN vs FC baseline (P1), filter count + depth (P2), data efficiency comparison (P3); solution at AI_ML_Material/hw37_solution.m |
+| hw38.html | 🔄 Draft | Not yet created |
 
 ## Git / GitHub
 
