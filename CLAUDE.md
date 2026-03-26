@@ -90,7 +90,7 @@ In-lesson MATLAB examples must be **clearly distinct** from the homework problem
 - L31 example: Gaussian ML (sample mean) — HW uses exponential/laser-speckle
 - L32 example: scalar Bayesian (single sample) — HW uses 50-dim covariance
 - L35 example: synthetic spectral data with `patternnet` (3 features, 2 classes) — HW uses `sat_data.mat` (2 features, 4 classes) with `patternnet`
-- L36 example: MATLAB DigitDataset, `patternnet(10)` (deliberately small, shows underfitting) — HW uses same DigitDataset, students tune architecture + training params
+- L36 example: MATLAB DigitDataset, DL Toolbox layers (`featureInputLayer` + `fullyConnectedLayer` + `dropoutLayer`), `trainNetwork` with Adam; 3 tunable params at top (`n_per_class=100`, `n_hidden=10`, `learn_rate=0.05`) default to overfitting; 5×5 prediction grid at end — HW uses same dataset/API, students sweep network size, early stopping, and learning rate
 - L37 example: MATLAB DigitDataset with CNN via `trainNetwork` — HW uses same dataset (natural extension of L36 HW)
 
 ## Video Embedding Notes
@@ -132,6 +132,7 @@ Canonical video placements:
 - HW specs: `HW_33.docx` through `HW_37.docx` (note: `HW_36.docx` is the source for hw34.html)
 - Reference text: `Text - machine_learning_for_humans.pdf`
 - Data: `physics_grades.mat`, `sat_data.mat` (300 GEO objects: visual magnitude + rotation rate, 4 classes)
+- Solutions: `hw35_solution.m`, `hw36_solution.m` (MATLAB scripts with working code + instructor comments)
 
 ## Page Completion Status
 
@@ -144,12 +145,12 @@ Canonical video placements:
 | lesson33.html | ✅ Final | Regression, regularization, bias-variance; β/x clarified; design matrix expanded; argmin equation; hw33 reference updated |
 | lesson34.html | ✅ Final | Supervised Learning: KNN, SVM, logistic regression; sat_data.mat |
 | lesson35.html | ✅ Final | Neural Networks: architecture, forward pass, activations; patternnet worked example; CS231n video (55:11–104:00); 3B1B gradient descent + "But what is a NN?" videos |
-| lesson36.html | 🔄 Draft | Backprop + training; chain rule; SGD; learning rate SVG diagram; train/val curves SVG; 2 × 3B1B videos; MATLAB example on DigitDataset (`patternnet(10)`, underfitting demo) |
+| lesson36.html | ✅ Final | Backprop + training; chain rule; SGD; learning rate SVG diagram; 4-panel train/val curves SVG; 2 × 3B1B videos; MATLAB example on DigitDataset using DL Toolbox layers (`featureInputLayer`, `trainNetwork`); 3 tunable params at top (`n_per_class=100`, `n_hidden=10`, `learn_rate=0.05`); 5×5 test prediction grid; default params show overfitting |
 | lesson37.html–38.html | 🔄 Draft | CNNs, Transformers |
 | hw29.html–hw33.html | ✅ Final | Reviewed; submit/.mlx line removed from all |
 | hw34.html | ✅ Final | KNN, SVM, logistic regression on sat_data.mat |
 | hw35.html | ✅ Final | patternnet on sat_data.mat (4-class GEO identification); modeled on old HW_37.docx |
-| hw36.html | 🔄 Draft | DigitDataset: fix underfitting (Problem 1), induce overfitting (Problem 2), learning rate exploration (Problem 3), best config + CNN preview (Problem 4) |
+| hw36.html | ✅ Final | DigitDataset: network size exploration (Problem 1), overfitting + early stopping (Problem 2), sgdm lr sweep + Adam comparison (Problem 3); no redundant code from lesson; solution at AI_ML_Material/hw36_solution.m |
 | hw37.html–hw38.html | 🔄 Draft | Not yet created |
 
 ## Git / GitHub
