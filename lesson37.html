@@ -171,22 +171,22 @@
 
     <!-- K=2 animated convolution SVG -->
     <figure style="margin:1.5rem 0; text-align:center; overflow-x:auto;">
-      <svg viewBox="0 0 480 220" style="max-width:660px;width:100%;font-family:var(--font-mono);font-size:11px;" aria-label="K=2 animated 2D convolution">
+      <svg viewBox="0 0 480 244" style="max-width:660px;width:100%;font-family:var(--font-mono);font-size:11px;" aria-label="K=2 animated 2D convolution">
 
         <!-- ── Label row ── -->
         <text x="63" y="18" text-anchor="middle" font-size="12" font-weight="700" fill="#003087">Input (5&times;5)</text>
         <text x="181" y="11" text-anchor="middle" font-size="11" font-weight="700" fill="#555">Filters</text>
         <text x="181" y="23" text-anchor="middle" font-size="10" fill="#7a5c00">k=1 &#x25BC;</text>
-        <text x="181" y="115" text-anchor="middle" font-size="10" fill="#007070">k=2 &#x25BC;</text>
+        <text x="181" y="119" text-anchor="middle" font-size="10" fill="#007070">k=2 &#x25BC;</text>
         <text x="274" y="11" text-anchor="middle" font-size="11" font-weight="700" fill="#555">Output Maps</text>
         <text x="274" y="23" text-anchor="middle" font-size="10" fill="#7a5c00">k=1 (after ReLU)</text>
-        <text x="274" y="115" text-anchor="middle" font-size="10" fill="#007070">k=2 (after ReLU)</text>
+        <text x="274" y="119" text-anchor="middle" font-size="10" fill="#007070">k=2 (after ReLU)</text>
         <text x="420" y="11" text-anchor="middle" font-size="11" font-weight="700" fill="#555">K=2 Output Vol.</text>
 
         <!-- Operators -->
         <text x="134" y="96" text-anchor="middle" font-size="18" fill="#555">&#x2217;</text>
         <text x="228" y="75" text-anchor="middle" font-size="18" fill="#555">=</text>
-        <text x="228" y="163" text-anchor="middle" font-size="18" fill="#555">=</text>
+        <text x="228" y="185" text-anchor="middle" font-size="18" fill="#555">=</text>
 
         <!-- ── Input grid 5×5 (cell=24px, top-left 5,28) ── -->
         <!-- row 0: 0 0 1 0 0 -->
@@ -232,17 +232,17 @@
         <rect x="168" y="80" width="26" height="26" fill="#f9f9f9" stroke="#c5a900" stroke-width="1"/><text x="181" y="98" text-anchor="middle" fill="#aaa">0</text>
         <rect x="194" y="80" width="26" height="26" fill="#fff8e1" stroke="#c5a900" stroke-width="1"/><text x="207" y="98" text-anchor="middle" font-weight="700" fill="#7a5c00">1</text>
 
-        <!-- ── Filter k=2 (teal, 3×3, cell=26px, top-left 142,120) ── -->
+        <!-- ── Filter k=2 (teal, 3×3, cell=26px, top-left 142,138) ── -->
         <!-- Values: [-1,0,1; -2,0,2; -1,0,1] Sobel-X left-edge detector -->
-        <rect x="142" y="120" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="155" y="138" text-anchor="middle" font-weight="700" fill="#007070">-1</text>
-        <rect x="168" y="120" width="26" height="26" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="181" y="138" text-anchor="middle" fill="#aaa">0</text>
-        <rect x="194" y="120" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="207" y="138" text-anchor="middle" font-weight="700" fill="#007070">1</text>
-        <rect x="142" y="146" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="155" y="164" text-anchor="middle" font-weight="700" fill="#007070">-2</text>
-        <rect x="168" y="146" width="26" height="26" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="181" y="164" text-anchor="middle" fill="#aaa">0</text>
-        <rect x="194" y="146" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="207" y="164" text-anchor="middle" font-weight="700" fill="#007070">2</text>
-        <rect x="142" y="172" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="155" y="190" text-anchor="middle" font-weight="700" fill="#007070">-1</text>
-        <rect x="168" y="172" width="26" height="26" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="181" y="190" text-anchor="middle" fill="#aaa">0</text>
-        <rect x="194" y="172" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="207" y="190" text-anchor="middle" font-weight="700" fill="#007070">1</text>
+        <rect x="142" y="138" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="155" y="156" text-anchor="middle" font-weight="700" fill="#007070">-1</text>
+        <rect x="168" y="138" width="26" height="26" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="181" y="156" text-anchor="middle" fill="#aaa">0</text>
+        <rect x="194" y="138" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="207" y="156" text-anchor="middle" font-weight="700" fill="#007070">1</text>
+        <rect x="142" y="164" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="155" y="182" text-anchor="middle" font-weight="700" fill="#007070">-2</text>
+        <rect x="168" y="164" width="26" height="26" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="181" y="182" text-anchor="middle" fill="#aaa">0</text>
+        <rect x="194" y="164" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="207" y="182" text-anchor="middle" font-weight="700" fill="#007070">2</text>
+        <rect x="142" y="190" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="155" y="208" text-anchor="middle" font-weight="700" fill="#007070">-1</text>
+        <rect x="168" y="190" width="26" height="26" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="181" y="208" text-anchor="middle" fill="#aaa">0</text>
+        <rect x="194" y="190" width="26" height="26" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="207" y="208" text-anchor="middle" font-weight="700" fill="#007070">1</text>
 
         <!-- ── Output Map k=1 (gold tones, cell=28px, top-left 236,28) ── -->
         <!-- Values: 4,3,4 / 3,5,3 / 4,3,4 -->
@@ -256,31 +256,32 @@
         <rect x="264" y="84" width="28" height="28" fill="#fff8e1" stroke="#c5a900" stroke-width="1"/><text x="278" y="103" text-anchor="middle" fill="#7a5c00">3</text>
         <rect x="292" y="84" width="28" height="28" fill="#fff8e1" stroke="#c5a900" stroke-width="1"/><text x="306" y="103" text-anchor="middle" fill="#7a5c00">4</text>
 
-        <!-- ── Output Map k=2 (teal tones, cell=28px, top-left 236,120) ── -->
+        <!-- ── Output Map k=2 (teal tones, cell=28px, top-left 236,138) ── -->
         <!-- Values: 3,0,0 / 2,0,0 / 3,0,0 (Sobel-X output after ReLU) -->
-        <rect x="236" y="120" width="28" height="28" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="250" y="139" text-anchor="middle" fill="#007070">3</text>
-        <rect x="264" y="120" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="278" y="139" text-anchor="middle" fill="#aaa">0</text>
-        <rect x="292" y="120" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="306" y="139" text-anchor="middle" fill="#aaa">0</text>
-        <rect x="236" y="148" width="28" height="28" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="250" y="167" text-anchor="middle" fill="#007070">2</text>
-        <rect x="264" y="148" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="278" y="167" text-anchor="middle" fill="#aaa">0</text>
-        <rect x="292" y="148" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="306" y="167" text-anchor="middle" fill="#aaa">0</text>
-        <rect x="236" y="176" width="28" height="28" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="250" y="195" text-anchor="middle" fill="#007070">3</text>
-        <rect x="264" y="176" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="278" y="195" text-anchor="middle" fill="#aaa">0</text>
-        <rect x="292" y="176" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="306" y="195" text-anchor="middle" fill="#aaa">0</text>
+        <rect x="236" y="138" width="28" height="28" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="250" y="157" text-anchor="middle" fill="#007070">3</text>
+        <rect x="264" y="138" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="278" y="157" text-anchor="middle" fill="#aaa">0</text>
+        <rect x="292" y="138" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="306" y="157" text-anchor="middle" fill="#aaa">0</text>
+        <rect x="236" y="166" width="28" height="28" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="250" y="185" text-anchor="middle" fill="#007070">2</text>
+        <rect x="264" y="166" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="278" y="185" text-anchor="middle" fill="#aaa">0</text>
+        <rect x="292" y="166" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="306" y="185" text-anchor="middle" fill="#aaa">0</text>
+        <rect x="236" y="194" width="28" height="28" fill="#e0f7f7" stroke="#007070" stroke-width="1"/><text x="250" y="213" text-anchor="middle" fill="#007070">3</text>
+        <rect x="264" y="194" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="278" y="213" text-anchor="middle" fill="#aaa">0</text>
+        <rect x="292" y="194" width="28" height="28" fill="#f9f9f9" stroke="#007070" stroke-width="1"/><text x="306" y="213" text-anchor="middle" fill="#aaa">0</text>
 
         <!-- ── Stacked K=2 output volume (two overlapping rects) ── -->
         <!-- Back layer (k=2, teal) -->
-        <rect x="368" y="68" width="74" height="74" fill="#e0f7f7" stroke="#007070" stroke-width="1.5" rx="3"/>
+        <rect x="368" y="78" width="74" height="74" fill="#e0f7f7" stroke="#007070" stroke-width="1.5" rx="3"/>
         <!-- Front layer (k=1, gold), offset up-left -->
-        <rect x="356" y="80" width="74" height="74" fill="#fff8e1" stroke="#c5a900" stroke-width="1.5" rx="3"/>
-        <!-- Depth labels -->
-        <text x="393" y="121" text-anchor="middle" font-size="10" fill="#7a5c00">k=1</text>
-        <text x="405" y="109" text-anchor="middle" font-size="10" fill="#007070">k=2</text>
-        <text x="393" y="157" text-anchor="middle" font-size="10" fill="#555">3&#x00D7;3&#x00D7;2</text>
+        <rect x="356" y="90" width="74" height="74" fill="#fff8e1" stroke="#c5a900" stroke-width="1.5" rx="3"/>
+        <!-- Depth labels inside rects -->
+        <text x="393" y="132" text-anchor="middle" font-size="10" fill="#7a5c00">k=1</text>
+        <text x="407" y="120" text-anchor="middle" font-size="10" fill="#007070">k=2</text>
+        <!-- "3×3×2" label below the stack with clear breathing room -->
+        <text x="393" y="180" text-anchor="middle" font-size="10" fill="#555">3&#x00D7;3&#x00D7;2</text>
 
         <!-- Dashed connector lines from maps to stacked output -->
-        <line x1="320" y1="70" x2="350" y2="100" stroke="#c5a900" stroke-width="1.2" stroke-dasharray="4,3"/>
-        <line x1="320" y1="148" x2="350" y2="116" stroke="#007070" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <line x1="320" y1="70" x2="350" y2="107" stroke="#c5a900" stroke-width="1.2" stroke-dasharray="4,3"/>
+        <line x1="320" y1="166" x2="350" y2="122" stroke="#007070" stroke-width="1.2" stroke-dasharray="4,3"/>
 
         <!-- ── Animated overlay: Filter k=1 (gold) scanning input ── -->
         <rect x="5" y="28" width="72" height="72"
@@ -325,21 +326,21 @@
         </rect>
 
         <!-- ── Animated highlight: Output Map k=2 ── -->
-        <rect x="236" y="120" width="28" height="28"
+        <rect x="236" y="138" width="28" height="28"
               fill="rgba(0,112,112,0.38)" stroke="#007070" stroke-width="2.5" rx="2">
           <animate attributeName="x" dur="14.4s" repeatCount="indefinite" calcMode="discrete"
                    keyTimes="0;0.0556;0.1111;0.1667;0.2222;0.2778;0.3333;0.3889;0.4444;0.5;0.5556;0.6111;0.6667;0.7222;0.7778;0.8333;0.8889;0.9444;1"
                    values="236;264;292;236;264;292;236;264;292;236;264;292;236;264;292;236;264;292;236"/>
           <animate attributeName="y" dur="14.4s" repeatCount="indefinite" calcMode="discrete"
                    keyTimes="0;0.0556;0.1111;0.1667;0.2222;0.2778;0.3333;0.3889;0.4444;0.5;0.5556;0.6111;0.6667;0.7222;0.7778;0.8333;0.8889;0.9444;1"
-                   values="120;120;120;148;148;148;176;176;176;120;120;120;148;148;148;176;176;176;120"/>
+                   values="138;138;138;166;166;166;194;194;194;138;138;138;166;166;166;194;194;194;138"/>
           <animate attributeName="opacity" dur="14.4s" repeatCount="indefinite" calcMode="discrete"
                    keyTimes="0;0.0556;0.1111;0.1667;0.2222;0.2778;0.3333;0.3889;0.4444;0.5;0.5556;0.6111;0.6667;0.7222;0.7778;0.8333;0.8889;0.9444;1"
                    values="0;0;0;0;0;0;0;0;0;1;1;1;1;1;1;1;1;1;0"/>
         </rect>
 
         <!-- stride annotation -->
-        <text x="5" y="212" font-size="10" fill="#666">Stride S=1, no padding &rarr; output per filter: (5&minus;3)/1+1 = 3&times;3 &rarr; K=2 filters produce a 3&times;3&times;2 volume</text>
+        <text x="5" y="236" font-size="10" fill="#666">Stride S=1, no padding &rarr; output per filter: (5&minus;3)/1+1 = 3&times;3 &rarr; K=2 filters produce a 3&times;3&times;2 volume</text>
       </svg>
       <figcaption style="font-size:0.82rem;color:#666;margin-top:0.4rem;">
         <strong>Gold (k=1):</strong> diagonal+center detector &rarr; map [4,3,4 / 3,5,3 / 4,3,4]. &nbsp;<strong>Teal (k=2):</strong> Sobel-X left-edge detector &rarr; map [3,0,0 / 2,0,0 / 3,0,0] after ReLU. Both maps stack into the 3&times;3&times;2 output volume on the right. The filter values shown are the <em>learned weights</em> &mdash; backpropagation adjusts them to minimize classification loss.
