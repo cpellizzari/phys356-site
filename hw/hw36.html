@@ -57,41 +57,11 @@
   <div class="card">
     <h2><span class="section-icon">&#x1F30D;</span> Background</h2>
     <p>
-      In the Lesson&nbsp;36 worked example you trained a small fully-connected network on handwritten digits and observed an underfitting pattern in the Training Progress plot: both training and validation accuracy remained low because 10 hidden neurons are insufficient to recognize 10 distinct digit classes from 784 pixel features. In this assignment you will systematically tune the network to improve performance, and in doing so, identify and diagnose each of the training curve patterns discussed in the lesson.
+      In the Lesson&nbsp;36 worked example you trained a small fully-connected network on handwritten digits. The default parameters &mdash; a high learning rate, small network, and limited data &mdash; produce an overfitting pattern in the Training Progress plot: training accuracy climbs while validation accuracy lags. In this assignment you will systematically vary those parameters to diagnose and correct each of the training curve patterns discussed in the lesson.
     </p>
     <p>
-      Use the Deep Learning Toolbox layer API (<code>featureInputLayer</code>, <code>fullyConnectedLayer</code>, <code>trainingOptions</code>, <code>trainNetwork</code>) as shown in the Lesson&nbsp;36 example. Set <code>rng(356)</code> at the top of your script so your data split is reproducible.
+      Use the same dataset loading, flattening, and Deep Learning Toolbox layer API (<code>featureInputLayer</code>, <code>fullyConnectedLayer</code>, <code>trainingOptions</code>, <code>trainNetwork</code>) from the Lesson&nbsp;36 example. Use <strong>200 images per class</strong> (2,000 total) and an 80/20 train/test split unless a problem specifies otherwise. Set <code>rng(356)</code> at the top of your script so your data split is reproducible.
     </p>
-  </div>
-
-  <!-- Dataset reminder -->
-  <div class="card">
-    <h2><span class="section-icon">&#x1F4C1;</span> Dataset Setup</h2>
-    <p>
-      Load the data using the same pattern as the Lesson&nbsp;36 example (200 images per class, 2000 total). The 80/20 train/test split gives you 1,600 training samples and 400 test samples.
-    </p>
-<pre><code class="language-matlab">digitPath = fullfile(matlabroot,'toolbox','nnet','nndemos', ...
-                     'nndatasets','DigitDataset');
-imds = imageDatastore(digitPath, ...
-    'IncludeSubfolders', true, 'LabelSource', 'foldernames');
-rng(356);
-imds_sub = splitEachLabel(imds, 200, 'randomize');
-
-% 80/20 train/test split
-[imds_train, imds_test] = splitEachLabel(imds_sub, 0.8, 'randomize');
-
-% Flatten: each 28×28 image → 784-element row vector; N×784 matrix
-imgs_train = readall(imds_train);
-v_train    = cellfun(@(I) double(I(:))/255, imgs_train, 'UniformOutput', false);
-X_train    = [v_train{:}]';          % 1600 × 784
-
-imgs_test  = readall(imds_test);
-v_test     = cellfun(@(I) double(I(:))/255, imgs_test,  'UniformOutput', false);
-X_test     = [v_test{:}]';           % 400 × 784
-
-Y_train = imds_train.Labels;         % categorical, 1600×1
-Y_test  = imds_test.Labels;          % categorical, 400×1
-</code></pre>
   </div>
 
   <!-- Problem 1 -->
@@ -99,50 +69,30 @@ Y_test  = imds_test.Labels;          % categorical, 400×1
     <h3>Problem 1 &mdash; Fixing Underfitting: Network Size</h3>
     <ol>
       <li>
-        Train networks with at least four different hidden layer sizes (10, 50, 100, 200 neurons in <code>fc1</code>). Use <code>adam</code> as your optimizer and 50 max epochs. A reusable template:
-<pre><code class="language-matlab">N = 50;   % hidden layer size — vary this
-layers = [
-    featureInputLayer(784)
-    fullyConnectedLayer(N)
-    reluLayer
-    fullyConnectedLayer(10)
-    softmaxLayer
-    classificationLayer
-];
-opts = trainingOptions('adam', 'MaxEpochs', 50, ...
-    'ValidationData', {X_test, Y_test}, ...
-    'Plots', 'training-progress', 'Verbose', false);
-net    = trainNetwork(X_train, Y_train, layers, opts);
-Y_pred = classify(net, X_test);
-acc    = 100 * mean(Y_pred == Y_test);
-fprintf('N=%d  Test acc: %.1f%%\n', N, acc);
-</code></pre>
+        Train networks with at least four different hidden layer sizes: 10, 50, 100, and 200 neurons. Use <code>'adam'</code> as your optimizer, 50 max epochs, and <code>learn_rate = 0.001</code> (the Adam default &mdash; a stable starting point). For each run, record the test accuracy.
       </li>
       <li>
-        For each architecture, classify the Training Progress pattern you observe as underfitting, good generalization, or overfitting. As the network grows, at what size does the pattern transition from underfitting to good generalization?
-      </li>
-      <li>
-        Present your results in a table (hidden neurons | accuracy | pattern) and identify the architecture you would recommend. Justify your choice.
+        For each architecture, examine the Training Progress window and report what you observe. Does the pattern change as the network grows? At what hidden-layer size, if any, do you see a transition in behavior?
       </li>
     </ol>
   </div>
 
   <!-- Problem 2 -->
   <div class="problem">
-    <h3>Problem 2 &mdash; Inducing Overfitting</h3>
+    <h3>Problem 2 &mdash; Inducing and Controlling Overfitting</h3>
     <ol>
       <li>
-        Using a very large network on limited data is a reliable way to produce overfitting. Create a small subset (30 images per class, 300 total) and train a large network on it:
+        Using a very large network on limited data is a reliable way to produce overfitting. Create a small subset (30 images per class, 300 total) and train a large network on it. Run the experiment twice &mdash; once with early stopping active (<code>'ValidationPatience', 6</code>) and once with it disabled (<code>'ValidationPatience', Inf</code>). Use 200 max epochs and <code>'adam'</code> with its default learning rate.
 <pre><code class="language-matlab">rng(356);
 imds_small = splitEachLabel(imds, 30, 'randomize');
 [imds_s_train, imds_s_test] = splitEachLabel(imds_small, 0.8, 'randomize');
 
-% Flatten (same pattern as Dataset Setup)
-imgs_s = readall(imds_s_train);
-v_s    = cellfun(@(I) double(I(:))/255, imgs_s, 'UniformOutput', false);
+% Flatten (same pattern as Lesson 36 example)
+imgs_s    = readall(imds_s_train);
+v_s       = cellfun(@(I) double(I(:))/255, imgs_s, 'UniformOutput', false);
 X_s_train = [v_s{:}]';
-imgs_st = readall(imds_s_test);
-v_st    = cellfun(@(I) double(I(:))/255, imgs_st, 'UniformOutput', false);
+imgs_st   = readall(imds_s_test);
+v_st      = cellfun(@(I) double(I(:))/255, imgs_st, 'UniformOutput', false);
 X_s_test  = [v_st{:}]';
 Y_s_train = imds_s_train.Labels;
 Y_s_test  = imds_s_test.Labels;
@@ -151,31 +101,32 @@ layers_big = [
     featureInputLayer(784)
     fullyConnectedLayer(200)
     reluLayer
+    dropoutLayer(0.3)
     fullyConnectedLayer(10)
     softmaxLayer
     classificationLayer
 ];
 
-% Run 1: early stopping active (stop after 6 non-improving validations)
+% Run 1: early stopping active
 opts1 = trainingOptions('adam', 'MaxEpochs', 200, ...
-    'ValidationData',    {X_s_test, Y_s_test}, ...
+    'ValidationData',     {X_s_test, Y_s_test}, ...
     'ValidationPatience', 6, ...
     'Plots', 'training-progress', 'Verbose', false);
 net1 = trainNetwork(X_s_train, Y_s_train, layers_big, opts1);
 
 % Run 2: early stopping disabled
 opts2 = trainingOptions('adam', 'MaxEpochs', 200, ...
-    'ValidationData',    {X_s_test, Y_s_test}, ...
+    'ValidationData',     {X_s_test, Y_s_test}, ...
     'ValidationPatience', Inf, ...
     'Plots', 'training-progress', 'Verbose', false);
 net2 = trainNetwork(X_s_train, Y_s_train, layers_big, opts2);
 </code></pre>
       </li>
       <li>
-        Examine the Training Progress plot for Run 1. Do you see the overfitting pattern (validation accuracy falls after a peak)? Approximately which epoch does validation accuracy reach its maximum?
+        Examine the Training Progress plot for Run&nbsp;2 (no early stopping). Do you see the overfitting pattern? Approximately which epoch does validation accuracy reach its maximum?
       </li>
       <li>
-        Compare the final test accuracy of Run 1 (early stopping) vs. Run 2 (no early stopping). Does early stopping help? Why?
+        Compare the final test accuracy of Run&nbsp;1 (early stopping) vs. Run&nbsp;2 (no early stopping). Does early stopping help? Why?
       </li>
     </ol>
   </div>
@@ -185,8 +136,8 @@ net2 = trainNetwork(X_s_train, Y_s_train, layers_big, opts2);
     <h3>Problem 3 &mdash; Effect of Learning Rate</h3>
     <ol>
       <li>
-        Return to the full 200-per-class dataset. Using your best architecture from Problem&nbsp;1, use SGD with momentum (<code>'sgdm'</code>) and try at least four learning rates:
-<pre><code class="language-matlab">lr = 0.01;   % vary: try 0.001, 0.01, 0.1, 0.5
+        Return to the full 200-per-class dataset and your best architecture from Problem&nbsp;1. Switch to SGD with momentum (<code>'sgdm'</code>) and try at least four learning rates (e.g., 0.001, 0.01, 0.1, 0.5). Use 100 max epochs, mini-batch size 64, and momentum 0.9. For each run record the test accuracy and describe the shape of the Training Progress curve.
+<pre><code class="language-matlab">lr = 0.01;   % vary this
 opts = trainingOptions('sgdm', ...
     'MaxEpochs',        100, ...
     'MiniBatchSize',    64, ...
@@ -200,26 +151,12 @@ Y_pred = classify(net, X_test);
 acc    = 100 * mean(Y_pred == Y_test);
 fprintf('lr=%.3f  Test acc: %.1f%%\n', lr, acc);
 </code></pre>
-        For each learning rate, record the test accuracy and describe the shape of the Training Progress curve.
       </li>
       <li>
         For the learning rate that gave the best accuracy, include the Training Progress plot in your submission. Which of the four curve patterns from Figure&nbsp;2 of the lesson does it most resemble?
       </li>
       <li>
         Now retrain with <code>'adam'</code> (keeping all other options the same, and removing the explicit <code>InitialLearnRate</code> so it uses the Adam default). Compare its test accuracy and convergence speed to your best <code>'sgdm'</code> result. Explain in 2&ndash;3 sentences why an adaptive optimizer like Adam typically outperforms fixed-learning-rate SGD.
-      </li>
-    </ol>
-  </div>
-
-  <!-- Problem 4 -->
-  <div class="problem">
-    <h3>Problem 4 &mdash; Putting It Together</h3>
-    <ol>
-      <li>
-        Based on everything you have explored, identify the single best configuration you found (architecture + training algorithm + any parameter choices). Report its training accuracy.
-      </li>
-      <li>
-        In the Lesson&nbsp;36 example we flattened each 28&times;28 image into a 784-element vector, discarding spatial information. List two specific limitations this imposes on the network's ability to recognize digits, and explain how a Convolutional Neural Network (which you will build in Lesson&nbsp;37) addresses each limitation.
       </li>
     </ol>
   </div>
