@@ -729,7 +729,7 @@
       We train a shallow network on MATLAB's built-in <strong>DigitDataset</strong> (10,000 handwritten digit images, classes 0&ndash;9, 28&times;28 pixels). Rather than <code>patternnet</code>, we use the Deep Learning Toolbox layer API directly &mdash; the same approach you will use in HW&nbsp;36 and beyond, giving you full control over architecture, activation functions, and optimizer settings.
     </p>
     <p>
-      Three parameters at the top of the script control the experiment: <code>n_per_class</code> (dataset size), <code>n_hidden</code> (network capacity), and <code>learn_rate</code> (optimizer step size). The defaults are chosen to produce the <strong>overfitting</strong> pattern from Figure&nbsp;2. Try adjusting them to see how each one affects the Training Progress curves before tackling HW&nbsp;36.
+      Three parameters at the top of the script control the experiment: <code>n_per_class</code> (dataset size), <code>n_hidden</code> (network capacity), and <code>learn_rate</code> (optimizer step size). <strong>The defaults are chosen to produce poor results.</strong>. Try adjusting them to see how each one affects the Training Progress curves before tackling HW&nbsp;36.
     </p>
 <pre><code class="language-matlab">%% Lesson 36 — Handwritten Digit Classification (Deep Learning Toolbox)
 % Dataset: MATLAB's built-in DigitDataset (10,000 images, 10 classes, 28x28)
@@ -821,9 +821,6 @@ for k = 1:25
 end
 sgtitle('25 Random Test Predictions  (green = correct  |  red = wrong)');
 </code></pre>
-    <div class="callout info">
-      <strong>What to notice in the Training Progress plot:</strong> With the default parameters (<code>learn_rate=0.05</code>, <code>n_hidden=10</code>, <code>n_per_class=100</code>) the high learning rate causes aggressive weight updates on a small dataset, so training accuracy climbs while validation accuracy lags or drops &mdash; the overfitting pattern. Try lowering <code>learn_rate</code> to <code>0.001</code> and increasing <code>n_per_class</code> to 300 and <code>n_hidden</code> to 128 to see good generalization instead.
-    </div>
     <div class="callout info">
       <strong>What does <code>dropoutLayer(0.3)</code> do?</strong> During each training mini-batch, dropout randomly sets 30% of the activations in that layer to zero &mdash; a different random subset each time. This forces the network to learn redundant, distributed representations rather than relying on a small number of neurons, which reduces overfitting. At test time dropout is automatically disabled and all activations are used (scaled to account for the dropped fraction during training). Dropout is one of the most widely used regularization techniques in deep learning.
     </div>
