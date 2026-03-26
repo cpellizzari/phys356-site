@@ -17,7 +17,7 @@ AI_ML_Site/
 │   └── gd_gradient_fig1.jpg # Fig 1 from Gradient_Based_Optimization.pdf (used in lesson30.html)
 └── hw/
     ├── hw29.html – hw32.html
-    └── hw33.html – hw38.html  (hw36.html and hw37.html not yet created)
+    └── hw33.html – hw38.html
 ```
 
 ## CDN Dependencies (no local installs)
@@ -91,7 +91,7 @@ In-lesson MATLAB examples must be **clearly distinct** from the homework problem
 - L32 example: scalar Bayesian (single sample) — HW uses 50-dim covariance
 - L35 example: synthetic spectral data with `patternnet` (3 features, 2 classes) — HW uses `sat_data.mat` (2 features, 4 classes) with `patternnet`
 - L36 example: MATLAB DigitDataset, DL Toolbox layers (`featureInputLayer` + `fullyConnectedLayer` + `dropoutLayer`), `trainNetwork` with Adam; 3 tunable params at top (`n_per_class=100`, `n_hidden=10`, `learn_rate=0.05`) default to overfitting; 5×5 prediction grid at end — HW uses same dataset/API, students sweep network size, early stopping, and learning rate
-- L37 example: MATLAB DigitDataset, CNN with `imageInputLayer` + `convolution2dLayer` + `batchNormalizationLayer` + `maxPooling2dLayer`; pass imageDatastore directly to `trainNetwork` (no flattening); 3 tunable params (n_per_class=200, n_filters=8, learn_rate=0.01); defaults show good generalization — HW has students compare to FC baseline, sweep filter count, add depth, and test data efficiency
+- L37 example: MATLAB DigitDataset, CNN with `imageInputLayer` + `convolution2dLayer` + `batchNormalizationLayer` + `maxPooling2dLayer`; pass imageDatastore directly to `trainNetwork` (no flattening); 3 tunable params (n_per_class=200, n_filters=8, learn_rate=0.01); defaults show good generalization; includes L36 fair-comparison guidance (n_hidden=11 → ~8,755 params ≈ CNN ~9,100) — HW has students describe Training Progress pattern (P1), sweep filter count 4/8/16/32 + add 3rd conv block (P2), data efficiency CNN vs FC at n_per_class=20/50/100/200 (P3)
 
 ## Video Embedding Notes
 
@@ -112,7 +112,7 @@ Canonical video placements:
 - CS231n Lecture 2 — Linear Classification (`OoUX-nOEjG0`) → L34
 - 3B1B "Gradient descent" (`IHZwWFHWa-w`) → L35
 - 3B1B "But what is a neural network?" (`aircAruvnKk`) → L35 (architecture intuition)
-- 3B1B "But what is a convolution?" (`KuXjwB4LzSA`) → L37 (first video)
+- Futurology "Convolutional Neural Networks Explained (CNN Visualized)" (`pj9-rr1wDhM`) → L37 (first video)
 - 3B1B "What is backpropagation really doing?" (`Ilg3gGewQ5U`) → L36 (first video)
 - 3B1B "Backpropagation calculus" (`tIeHLnjs5U8`) → L36 (second video)
 - Karpathy "Let's build GPT" (`kCc8FmEb1nY`) → L38
@@ -134,7 +134,7 @@ Canonical video placements:
 - HW specs: `HW_33.docx` through `HW_37.docx` (note: `HW_36.docx` is the source for hw34.html)
 - Reference text: `Text - machine_learning_for_humans.pdf`
 - Data: `physics_grades.mat`, `sat_data.mat` (300 GEO objects: visual magnitude + rotation rate, 4 classes)
-- Solutions: `hw35_solution.m`, `hw36_solution.m` (MATLAB scripts with working code + instructor comments)
+- Solutions: `hw35_solution.m`, `hw36_solution.m`, `hw37_solution.m` (MATLAB scripts with working code + instructor comments; local functions must appear at end of script file)
 
 ## Page Completion Status
 
@@ -148,13 +148,13 @@ Canonical video placements:
 | lesson34.html | ✅ Final | Supervised Learning: KNN, SVM, logistic regression; sat_data.mat |
 | lesson35.html | ✅ Final | Neural Networks: architecture, forward pass, activations; patternnet worked example; CS231n video (55:11–104:00); 3B1B gradient descent + "But what is a NN?" videos |
 | lesson36.html | ✅ Final | Backprop + training; chain rule; SGD; learning rate SVG diagram; 4-panel train/val curves SVG; 2 × 3B1B videos; MATLAB example on DigitDataset using DL Toolbox layers (`featureInputLayer`, `trainNetwork`); 3 tunable params at top (`n_per_class=100`, `n_hidden=10`, `learn_rate=0.05`); 5×5 test prediction grid; default params show overfitting |
-| lesson37.html | ✅ Final | CNNs; animated convolution SVG; max pooling SVG; volume flow SVG; 3B1B "But what is a convolution?" (KuXjwB4LzSA) + CS231n L5 (bNb2fEVKeEo); MATLAB example: CNN on DigitDataset with imageInputLayer, no flattening; 3 tunable params (n_per_class, n_filters, learn_rate) |
+| lesson37.html | ✅ Final | CNNs; K=2 animated convolution SVG (two filters alternating, stacked output volume); max pooling SVG; volume flow SVG; "What are channels?" section; Futurology CNN video (pj9-rr1wDhM) + CS231n L5 (bNb2fEVKeEo); CNN Explainer interactive tool link; MATLAB example: CNN on DigitDataset with imageInputLayer, no flattening; 3 tunable params (n_per_class=200, n_filters=8, learn_rate=0.01); L36 fair-comparison note (n_hidden=11) |
 | lesson38.html | 🔄 Draft | Transformers |
 | hw29.html–hw33.html | ✅ Final | Reviewed; submit/.mlx line removed from all |
 | hw34.html | ✅ Final | KNN, SVM, logistic regression on sat_data.mat |
 | hw35.html | ✅ Final | patternnet on sat_data.mat (4-class GEO identification); modeled on old HW_37.docx |
 | hw36.html | ✅ Final | DigitDataset: network size exploration (Problem 1), overfitting + early stopping (Problem 2), sgdm lr sweep + Adam comparison (Problem 3); no redundant code from lesson; solution at AI_ML_Material/hw36_solution.m |
-| hw37.html | ✅ Final | CNN on DigitDataset: CNN vs FC baseline (P1), filter count + depth (P2), data efficiency comparison (P3); solution at AI_ML_Material/hw37_solution.m |
+| hw37.html | ✅ Final | CNN on DigitDataset: Training Progress pattern (P1, single question), filter count sweep 4/8/16/32 + 3rd conv block (P2), data efficiency CNN vs FC (P3); solution at AI_ML_Material/hw37_solution.m (local functions at end of file) |
 | hw38.html | 🔄 Draft | Not yet created |
 
 ## Git / GitHub
