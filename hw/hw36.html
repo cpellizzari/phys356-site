@@ -69,7 +69,7 @@
     <h3>Problem 1 &mdash; Fixing Underfitting: Network Size</h3>
     <ol>
       <li>
-        Train networks with at least four different hidden layer sizes: 10, 50, 100, and 200 neurons. Use <code>'adam'</code> as your optimizer, 50 max epochs, and <code>learn_rate = 0.001</code> (the Adam default &mdash; a stable starting point). For each run, record the test accuracy.
+        Train your network with at least four different hidden layer sizes: 10, 50, 100, and 200 neurons. Use <code>'adam'</code> as your optimizer, 50 max epochs, and <code>learn_rate = 0.001</code> (the Adam default &mdash; a stable starting point). For each run, record the test accuracy.
       </li>
       <li>
         For each architecture, examine the Training Progress window and report what you observe. Does the pattern change as the network grows? At what hidden-layer size, if any, do you see a transition in behavior?
@@ -156,7 +156,7 @@ fprintf('lr=%.3f  Test acc: %.1f%%\n', lr, acc);
         For the learning rate that gave the best accuracy, include the Training Progress plot in your submission. Which of the four curve patterns from Figure&nbsp;2 of the lesson does it most resemble?
       </li>
       <li>
-        Now retrain with <code>'adam'</code> (keeping all other options the same, and removing the explicit <code>InitialLearnRate</code> so it uses the Adam default). Compare its test accuracy and convergence speed to your best <code>'sgdm'</code> result. Explain in 2&ndash;3 sentences why an adaptive optimizer like Adam typically outperforms fixed-learning-rate SGD.
+        Now retrain with <code>'adam'</code> (keeping all other options the same, and removing the explicit <code>InitialLearnRate</code> so it uses the Adam default of 0.001). Compare its test accuracy and convergence speed to your best <code>'sgdm'</code> result. Was Adam better or worse? Explain in 2&ndash;3 sentences what advantage Adam provides even if its peak accuracy on this problem is lower than a well-tuned SGDM.
       </li>
     </ol>
   </div>
