@@ -131,6 +131,39 @@
       where \(\phi\) is the activation function (typically ReLU), \(S\) is the stride, and \(b_k\) is a scalar bias. The three nested sums simply compute a <em>dot product</em> between a local \(F \times F \times C\) patch of the input and the filter &mdash; then apply bias and activation.
     </p>
 
+    <h3>What are channels?</h3>
+    <p>
+      The depth dimension \(C\) of the input volume is called the number of <strong>channels</strong>. Its meaning depends on where you are in the network:
+    </p>
+    <table class="summary-table">
+      <thead><tr><th>Location</th><th>\(C\)</th><th>What each channel represents</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>First layer input &mdash; color image</td>
+          <td>3</td>
+          <td>Red, Green, Blue pixel intensities. A 480&times;640 photo is a \(480\times640\times3\) volume. Each of the 3 planes holds one color channel.</td>
+        </tr>
+        <tr>
+          <td>First layer input &mdash; grayscale image</td>
+          <td>1</td>
+          <td>A single intensity value per pixel. The DigitDataset images are \(28\times28\times1\).</td>
+        </tr>
+        <tr>
+          <td>First layer input &mdash; multispectral / physics data</td>
+          <td>\(C\)</td>
+          <td>Any set of co-registered 2-D measurements: radar bands, spectral wavelengths, polarization states, time steps of a field, &hellip; CNNs treat them identically to RGB.</td>
+        </tr>
+        <tr>
+          <td>Hidden layer output</td>
+          <td>\(K\)</td>
+          <td>One learned <em>feature map</em> per filter. Channel \(k\) encodes "how strongly filter \(k\) activated at each spatial position." These are not human-interpretable colors &mdash; they are abstract learned features.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      The key point is that <strong>every filter spans all \(C\) input channels simultaneously</strong>. When a 3&times;3 filter processes an RGB image, it sees a 3&times;3&times;3 = 27-element patch and learns a single scalar response. This lets a filter detect, say, "a red edge" as opposed to a "green edge" &mdash; colour and spatial structure are learned jointly. The innermost sum \(\sum_{dc}\) in the convolution formula is what folds all channels into one response.
+    </p>
+
     <h3>Visualizing the sliding filter</h3>
     <p>
       The animation below shows a 3&times;3 filter (right) sliding across a 5&times;5 input (left) with stride 1 and no padding. The gold box shows the current patch; the highlighted cell in the output shows the result being written. Running \(K\) filters in parallel produces an output volume of depth \(K\).
