@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project 5 — Gradient Descent Optimization | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/github-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/languages/matlab.min.js"></script>
+  <script>hljs.highlightAll();</script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Project</div>
+    <h1>Project 5 &mdash; Gradient Descent Optimization</h1>
+    <div class="hw-meta">
+      <span>&#x1F4D8; Related: <a href="../lesson29.html" style="color:rgba(255,255,255,0.9)">Lesson 29</a>, <a href="../lesson30.html" style="color:rgba(255,255,255,0.9)">Lesson 30</a></span>
+      <span>&#x1F6E0; MATLAB required</span>
+    </div>
+  </div>
+
+  <!-- Introduction -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F30D;</span> Introduction</h2>
+    <p>
+      This project explores two gradient descent optimization algorithms used to minimize a two-dimensional function. It also introduces concepts related to the optimization of non-convex cost functions. These ideas tie into machine learning concepts presented later in the course.
+    </p>
+    <div class="callout info">
+      <strong>Submission note:</strong> You are not required to complete a full write-up for this project. You only need to submit a published version of your code (in PDF format using the HW template). However, please include a paragraph that summarizes any conclusions about your experiment.
+    </div>
+  </div>
+
+  <!-- Part 1 -->
+  <div class="problem">
+    <h3>Part 1 &mdash; Gradient Descent on a Quadratic Function</h3>
+
+    <h4>1.1 &nbsp; Write Optimization UDFs</h4>
+    <p>
+      Write user-defined functions (UDFs) to minimize a 2D function using the <strong>gradient descent</strong> algorithm with a fixed step size, and the <strong>steepest descent</strong> algorithm. Similar to the homework, the UDF inputs should include function handles for the function and the gradient, an initial guess at the minimum, a stopping threshold, and a step size (for gradient descent only). <strong>Do not pass the true solution to your UDF.</strong>
+    </p>
+    <p>
+      The output should be a time-series of steps taken by the algorithm at each iteration, where the last step is the solution. In other words, the output should be an \(N \times (M+1)\) matrix where \(N\) is the dimension of the problem (2 in this case) and \(M\) is the number of steps taken. The \(+1\) accounts for the initial guess, which did not require a step.
+    </p>
+
+    <h4>1.2 &nbsp; Minimize a 2D Function</h4>
+    <p>Use each algorithm to minimize the function</p>
+    \[f = 4x_1^2 - 16x_1 + x_2^2 - 6x_2 + 25. \tag{1}\]
+    <p>
+      Use a starting point of \(x = (0, 0)\) for all algorithms. For the gradient descent algorithm, use a step size of \(0.1\).
+    </p>
+
+    <h4>1.3 &nbsp; Present Your Results</h4>
+    <p>
+      Plot Eq.&nbsp;(1) using MATLAB's <code>contour</code> feature. For each algorithm, overlay the steps at each iteration on top of the contour using MATLAB's <code>quiver</code> function (see the example code below). Additionally, on a single plot, show the true relative error vs.&nbsp;iteration for each algorithm using a log scale for the \(y\)-axis (i.e., use MATLAB's <code>semilogy</code>). Note that the actual solution is \(x = (2, 3)\).
+    </p>
+
+    <div class="callout info">
+      <strong>Quiver plot example</strong> &mdash; the code below demonstrates how to overlay algorithm steps on a contour plot using <code>quiver</code>. The step coordinates in this example are pre-computed; your script will pass in the output matrix from your UDFs.
+    </div>
+<pre><code class="language-matlab">%% Example: Plot Algorithm Steps with Quiver
+% Maj Casey Pellizzari, 17 Dec 2018
+% Reference: Gilat & Subramaniam, Numerical Methods for Engineers and
+%            Scientists, 3rd Ed.
+
+clear; clc;
+
+% Set up the 2D function for plotting
+X1 = linspace(-2, 8, 1000);
+[X1, X2] = meshgrid(X1);
+F = 4*X1.^2 - 16*X1 + X2.^2 - 6*X2 + 25;
+
+% Algorithm steps (normally the output of your UDF)
+x = [0    2.2037  1.6088  2.0399  1.9235  2.0078  1.9850  2.0015  1.9971  2.0003  1.9994; ...
+     0    0.8264  2.4133  2.5749  2.8852  2.9168  2.9776  2.9837  2.9956  2.9968  2.9991];
+
+% Compute differences for quiver arrows
+d1 = [diff(x(1,:)) 0];
+d2 = [diff(x(2,:)) 0];
+
+scale = 2;  % scale arrow length for visibility
+
+figure(1); clf;
+set(gcf, 'DefaultAxesFontSize', 12)
+set(gcf, 'DefaultAxesFontWeight', 'bold')
+contour(X1(1,:), X2(:,1), F, 10);
+hold on
+quiver(x(1,:), x(2,:), d1, d2, scale, 'r', 'LineWidth', 1, 'MarkerSize', 10)
+axis([-2 8 -2 8])
+axis image
+legend('function', 'steps')
+xlabel('x_1')
+ylabel('x_2')
+title('Plot of Algorithm Steps')
+</code></pre>
+  </div>
+
+  <!-- Part 2 -->
+  <div class="problem">
+    <h3>Part 2 &mdash; Non-Convex Optimization: The Griewank Function</h3>
+    <p>
+      The Griewank function is an example of a non-convex function. The second-order Griewank function is given by
+    </p>
+    \[f = 1 + \frac{1}{4000}x_1^2 + \frac{1}{4000}x_2^2 - \cos(x_1)\cos\!\left(\tfrac{1}{2}x_2\sqrt{2}\right). \tag{2}\]
+    <p>
+      While Eq.&nbsp;(2) has a global minimum at \(x = (0, 0)\), it also has many local minima that can trap gradient-based optimization algorithms.
+    </p>
+    <ol>
+      <li>
+        Provide a contour plot of the Griewank function over the interval \(-2 \le x_1 \le 8\) and \(-2 \le x_2 \le 8\).
+      </li>
+      <li>
+        Using the gradient descent algorithm from Part&nbsp;1, minimize Eq.&nbsp;(2) <strong>twice</strong>: once starting at \(x_0 = (1.6,\, 2)\) and again starting at \(x_0 = (1.6,\, 2.5)\). For both cases, plot the algorithm steps overlaid on a contour plot and plot the error vs.&nbsp;iteration using a log scale for the \(y\)-axis. You may show both error results on one plot.
+      </li>
+    </ol>
+  </div>
+
+  <!-- Part 3 -->
+  <div class="problem">
+    <h3>Part 3 &mdash; Effect of Step Size</h3>
+    <p>
+      Using the same cost function from Part&nbsp;2 (the Griewank function, Eq.&nbsp;(2)), use gradient descent to find the minimum with three different step sizes: \(a = 0.02,\ 0.5,\ 2\). In all three cases use a starting point of \(x_0 = (1.6,\, 2)\).
+    </p>
+    <p>
+      For each case, plot the algorithm steps overlaid on a contour plot. Also plot the error vs.&nbsp;iteration using a log scale for the \(y\)-axis.
+    </p>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="../index.html" class="prev">&larr; Back to Course Home</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Meteorology &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
