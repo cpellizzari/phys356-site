@@ -77,6 +77,7 @@
       <div class="notation-item"><span class="sym">\(\mathbb{E}[X]\)</span><span class="desc">Expected value (mean) of random variable \(X\)</span></div>
       <div class="notation-item"><span class="sym">\(\mu,\,\sigma^2\)</span><span class="desc">Mean and variance of a Gaussian</span></div>
       <div class="notation-item"><span class="sym">\(R\)</span><span class="desc">Covariance matrix (multivariate Gaussian)</span></div>
+      <div class="notation-item"><span class="sym">\(\Omega\)</span><span class="desc">Parameter space — the set of all admissible values of \(\theta\)</span></div>
       <div class="notation-item"><span class="sym">\(\text{MSE}_\theta\)</span><span class="desc">Mean squared error of estimate</span></div>
     </div>
   </div>
@@ -116,7 +117,7 @@
 
     <h3>The Multivariate Gaussian Distribution</h3>
     <p>
-      When \(X \in \mathbb{R}^p\) is a vector rather than a scalar, the Gaussian distribution generalizes to:
+      When \(X \in \mathbb{R}^p\) is a vector rather than a scalar, where each element is an independently Gaussian distributed random variable, the Gaussian distribution generalizes to:
     </p>
     <div class="math-block">
       \[
@@ -134,13 +135,16 @@
 
     <h3>Other distributions</h3>
     <p>
-      Not all physical measurements are Gaussian. Counting experiments (photons, decay events) follow Poisson distributions. Some intensity measurements (e.g., laser speckle) follow exponential distributions. The estimation framework below applies to any distribution — the key is knowing (or assuming) the form of \(p_\theta(y)\).
+      Not all physical measurements are Gaussian. Counting experiments (photons, decay events) follow Poisson distributions. Some intensity measurements (e.g., laser speckle) follow exponential distributions. The estimation framework below applies to any distribution — the key is knowing (or assuming) the form of the probability density function for your measurements.
     </p>
   </div>
 
   <!-- Section 3: Frequentist Framework -->
   <div class="card">
     <h2><span class="section-icon">📐</span> The Frequentist Framework</h2>
+    <p>
+      Throughout this lesson \(\theta\) denotes the <strong>unknown parameter</strong> we want to estimate — for example, the mean \(\mu\) of a Gaussian, the rate \(\lambda\) of an exponential distribution, or any other scalar or vector that characterizes \(p_\theta(y)\). Our job is to infer \(\theta\) from the observed data \(Y\).
+    </p>
 
     <h3>Setup</h3>
     <p>
@@ -254,12 +258,12 @@
   <!-- Video -->
   <div class="card">
     <h2><span class="section-icon">▶</span> Recommended Video</h2>
-    <p>StatQuest's step-by-step walkthrough of maximum likelihood estimation — derives the log-likelihood, works through a Gaussian example, and explains why MLE works.</p>
-    <a href="https://www.youtube.com/watch?v=XepXtl9YKwc" target="_blank" rel="noopener" class="video-link-card">
-      <div class="video-link-thumb">▶</div>
+    <p>An intuitive and visual walkthrough of maximum likelihood estimation — builds up the core idea from first principles and explains why MLE is the most important theory in statistics.</p>
+    <a href="https://www.youtube.com/watch?v=A_orXFstQLw" target="_blank" rel="noopener" class="video-link-card">
+      <div class="video-link-thumb">&#x25B6;</div>
       <div class="video-link-info">
-        <div class="video-link-title">Maximum Likelihood, clearly explained!!!</div>
-        <div class="video-link-channel">StatQuest with Josh Starmer &mdash; YouTube</div>
+        <div class="video-link-title">Maximum Likelihood Estimation: The Engine Behind Every AI Model</div>
+        <div class="video-link-channel">Practical Stats &mdash; YouTube</div>
       </div>
     </a>
   </div>
