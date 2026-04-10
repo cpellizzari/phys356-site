@@ -185,7 +185,7 @@
 
   <!-- Section 4: Gaussian Example -->
   <div class="card">
-    <h2><span class="section-icon">📈</span> Example: Gaussian Signal in Gaussian Noise (MBIP Example 2.6)</h2>
+    <h2><span class="section-icon">📈</span> Example 1: Gaussian Signal in Gaussian Noise (Scalar)</h2>
 
     <h3>Problem setup</h3>
     <p>
@@ -261,7 +261,7 @@
 
   <!-- Section 5: Multivariate Case -->
   <div class="card">
-    <h2><span class="section-icon">🔢</span> Multivariate Gaussian Estimation</h2>
+    <h2><span class="section-icon">🔢</span> Example 2: Multivariate Gaussian Estimation</h2>
     <p>
       The scalar result generalizes directly to vectors. Now \(X \in \mathbb{R}^n\) is an \(n\)-dimensional unknown — for example, all \(n\) pixel values in an image, or \(n\) physical quantities measured simultaneously. The distribution \(X \sim \mathcal{N}(0, R_x)\) is still Gaussian, but the variance is replaced by a <strong>covariance matrix</strong> \(R_x \in \mathbb{R}^{n \times n}\).
     </p>
@@ -335,9 +335,9 @@
   <div class="card">
     <h2><span class="section-icon">💻</span> Worked Example — MATLAB</h2>
     <p>
-      This example demonstrates the scalar Gaussian case from Example 2.6: comparing the ML and MMSE estimates for a single observation. Your HW 32 extends this to the full 50-dimensional multivariate case from Example 2.7 — use this example to build intuition first.
+      This example demonstrates the scalar Gaussian case from Example 1: comparing the ML and MMSE estimates for a single observation. Your HW 32 extends this to the full 50-dimensional multivariate case from Example 2 — use this example to build intuition first.
     </p>
-<pre><code class="language-matlab">%% Lesson 32 — Scalar Bayesian Estimation (demonstration, Example 2.6)
+<pre><code class="language-matlab">%% Lesson 32 — Scalar Bayesian Estimation (demonstration, Example 1)
 % X ~ N(0, sigma_x^2),  W ~ N(0, sigma_w^2),  Y = X + W
 % ML estimate:   X_hat_ML   = Y
 % MMSE estimate: X_hat_MMSE = (sigma_x^2 / (sigma_x^2 + sigma_w^2)) * Y
