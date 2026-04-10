@@ -261,9 +261,21 @@
 
   <!-- Section 5: Multivariate Case -->
   <div class="card">
-    <h2><span class="section-icon">🔢</span> Multivariate Gaussian Estimation (Example 2.7)</h2>
+    <h2><span class="section-icon">🔢</span> Multivariate Gaussian Estimation</h2>
     <p>
-      The scalar result generalizes directly to vectors. Let \(X \sim \mathcal{N}(0, R_x)\), \(W \sim \mathcal{N}(0, R_w)\) (independent), and \(Y = X + W\). Then the MMSE estimate of the vector \(X\) given \(Y\) is:
+      The scalar result generalizes directly to vectors. Now \(X \in \mathbb{R}^n\) is an \(n\)-dimensional unknown — for example, all \(n\) pixel values in an image, or \(n\) physical quantities measured simultaneously. The distribution \(X \sim \mathcal{N}(0, R_x)\) is still Gaussian, but the variance is replaced by a <strong>covariance matrix</strong> \(R_x \in \mathbb{R}^{n \times n}\).
+    </p>
+    <p>
+      The covariance matrix \(R_x\) captures both the variance of each individual component <em>and</em> the statistical relationships between components:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;margin-bottom:0.75rem;">
+      <li><strong>Diagonal entry</strong> \([R_x]_{ii} = \mathbb{E}[X_i^2]\) — the variance of component \(X_i\).</li>
+      <li><strong>Off-diagonal entry</strong> \([R_x]_{ij} = \mathbb{E}[X_i X_j]\) — the covariance between \(X_i\) and \(X_j\). Zero means uncorrelated.</li>
+      <li>\(R_x\) is always <strong>symmetric</strong> (\(R_x = R_x^T\)) and <strong>positive semi-definite</strong>.</li>
+      <li>If all components are independent, \(R_x\) is diagonal (off-diagonal entries are zero).</li>
+    </ul>
+    <p>
+      Similarly \(W \sim \mathcal{N}(0, R_w)\) is independent noise with covariance \(R_w\), and \(Y = X + W\). The MMSE estimate of \(X\) given \(Y\) is:
     </p>
     <div class="math-block">
       \[ \hat X_{\mathrm{MMSE}} = \mathbb{E}[X \mid Y] = R_x(R_x + R_w)^{-1} Y \]
