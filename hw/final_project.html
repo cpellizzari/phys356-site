@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Final Project — Applied Machine Learning | PHYS 356</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <script>
+    MathJax = {
+      tex: { inlineMath: [['\\(','\\)'],['$','$']], displayMath: [['\\[','\\]'],['$$','$$']] },
+      options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="site-logo">
+      <span class="logo-badge">PHYS 356</span>
+      <span class="logo-text">Advanced Topics</span>
+    </a>
+    <nav class="site-nav">
+      <a href="../index.html">Home</a>
+      <a href="../lesson29.html">L29</a>
+      <a href="../lesson30.html">L30</a>
+      <a href="../lesson31.html">L31</a>
+      <a href="../lesson32.html">L32</a>
+      <a href="../lesson33.html">L33</a>
+      <a href="../lesson34.html">L34</a>
+      <a href="../lesson35.html">L35</a>
+      <a href="../lesson36.html">L36</a>
+      <a href="../lesson37.html">L37</a>
+      <a href="../lesson38.html">L38</a>
+    </nav>
+  </div>
+</header>
+
+<main class="page-wrapper">
+
+  <div class="hw-header">
+    <div class="hw-label">Final Project</div>
+    <h1>Final Project &mdash; Applied Machine Learning</h1>
+    <div class="hw-meta">
+      <span>&#x1F4D8; Covers: <a href="../lesson33.html" style="color:rgba(255,255,255,0.9)">L33</a>&ndash;<a href="../lesson38.html" style="color:rgba(255,255,255,0.9)">L38</a></span>
+      <span>&#x1F4CA; 250 points total</span>
+    </div>
+  </div>
+
+  <!-- Overview -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F30D;</span> Overview</h2>
+    <p>
+      This final project covers the application and use of machine learning (ML). It serves as a capstone activity addressing the three course objectives:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;margin-bottom:1rem;">
+      <li>Understand common numerical approaches, how to implement them, and explain their advantages and drawbacks compared to other techniques <em>(Problem Solving &amp; Research Skills)</em></li>
+      <li>Be able to apply numerical approaches to real-world problems and assess efficacy of numerical approaches <em>(Problem Solving &amp; Research Skills)</em></li>
+      <li>Explain numerical approaches, formulate a strategy for solving the problem, and assess solutions through written and oral communication <em>(Communication Skills)</em></li>
+    </ul>
+    <p>
+      While you must accomplish the tasks described below, you may choose your own application of ML. The primary goal is that you apply the ML principles and techniques learned in class to solve a problem, answer some question, find patterns, or make a prediction. Ideally, this application could be related to your research at USAFA; however, you may explore other non-technical topics or hobbies.
+    </p>
+    <div class="callout warning">
+      <strong>Topic approval required:</strong> Although not required, I advise you to discuss this opportunity with your research advisor. <strong>You must get approval for your topic before starting.</strong>
+    </div>
+  </div>
+
+  <!-- Task 2.1 -->
+  <div class="problem">
+    <h3>Task 2.1 &mdash; Literature Survey <span style="font-weight:400;color:var(--text-secondary)">(30 pts)</span></h3>
+    <p>
+      Conduct a literature survey to find scholarly articles — journal or conference papers — that are related to the topic area you choose. Techniques may include general artificial intelligence (AI) or ML, neural networks (NNs), convolutional neural networks (CNNs), diffusion models, transformers, or other state-of-the-art approaches.
+    </p>
+    <p>
+      Summarize the papers <strong>in your own words</strong> (do not simply paraphrase the abstract) and explain how the work is related to your project. Be sure to describe the specific ML approach being used. Address the following questions for each paper:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li>Is it supervised or unsupervised, parametric or non-parametric?</li>
+      <li>What is the structure of the network or algorithm?</li>
+      <li>What are the inputs and outputs?</li>
+      <li>How is it trained and what type of data is used?</li>
+      <li>Do you see any issues with this approach?</li>
+    </ul>
+    <p style="margin-top:0.75rem;">Be sure to properly cite all papers you reference.</p>
+  </div>
+
+  <!-- Task 2.2 -->
+  <div class="problem">
+    <h3>Task 2.2 &mdash; Data Generation and Curation <span style="font-weight:400;color:var(--text-secondary)">(30 pts)</span></h3>
+    <p>
+      To apply ML techniques, you must have representative data that is appropriately labeled, organized, preprocessed, and properly divided for training, validation, and testing. You may either find data from publicly available resources (see references below) or obtain/generate the data yourself.
+    </p>
+    <p>
+      In your paper, describe the process used to obtain and prepare your data. Also discuss how well the data represents the behavior you wish to capture in your ML model.
+    </p>
+  </div>
+
+  <!-- Task 2.3 -->
+  <div class="problem">
+    <h3>Task 2.3 &mdash; Model Selection <span style="font-weight:400;color:var(--text-secondary)">(30 pts)</span></h3>
+    <p>
+      Choose <strong>three different ML models</strong> to apply to your problem. Note that models which are similar in concept but different in structure may be counted as two separate models. Examples might include:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li>Two neural networks — one fully connected and one convolutional</li>
+      <li>One model that uses regression and one that uses classification</li>
+    </ul>
+    <p style="margin-top:0.75rem;">
+      In your paper, discuss why you chose these models, describe their architecture, and explain the motivation behind that architecture (e.g., why you chose \(N\) hidden layers).
+    </p>
+  </div>
+
+  <!-- Task 2.4 -->
+  <div class="problem">
+    <h3>Task 2.4 &mdash; Training <span style="font-weight:400;color:var(--text-secondary)">(30 pts)</span></h3>
+    <p>
+      Train your models using the data you obtained or generated. In the paper, explain:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li>How you trained the model</li>
+      <li>Why you chose the training parameters you used</li>
+      <li>How you determined when to stop</li>
+      <li>Any other important information related to the training process</li>
+    </ul>
+    <p style="margin-top:0.75rem;">Also include plots that describe the training process (e.g., loss vs. iteration).</p>
+  </div>
+
+  <!-- Task 2.5 -->
+  <div class="problem">
+    <h3>Task 2.5 &mdash; Testing <span style="font-weight:400;color:var(--text-secondary)">(30 pts)</span></h3>
+    <p>
+      Test your trained models. In the paper, describe your testing process and the metric used to assess performance. Which model performed best?
+    </p>
+  </div>
+
+  <!-- Task 2.6 -->
+  <div class="problem">
+    <h3>Task 2.6 &mdash; Paper <span style="font-weight:400;color:var(--text-secondary)">(50 pts)</span></h3>
+    <p>
+      Describe your efforts in a paper using one of the approved templates provided in class. You will be assessed on your ability to clearly communicate your research. The paper should provide enough detail that a reader could replicate the effort if desired.
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li>Use first-person active voice in your writing.</li>
+      <li>Review the feedback provided on previous projects — I want to see progression in your writing based on that feedback.</li>
+      <li>Properly cite all references.</li>
+      <li>Include your code as an appendix.</li>
+    </ul>
+  </div>
+
+  <!-- Task 2.7 -->
+  <div class="problem">
+    <h3>Task 2.7 &mdash; Presentation <span style="font-weight:400;color:var(--text-secondary)">(50 pts)</span></h3>
+    <p>
+      Provide a <strong>10-minute presentation</strong> of your research effort to the class. You will be assessed on your ability to orally communicate the work you did and the results you obtained. You will also be assessed on the quality of your visual aids.
+    </p>
+  </div>
+
+  <!-- References -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F4DA;</span> Data Resources</h2>
+    <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;font-size:0.95rem;">
+      <li>List of datasets for machine learning research &mdash; Wikipedia: <a href="https://en.wikipedia.org/wiki/List_of_datasets_for_machine-learning_research" target="_blank" rel="noopener">en.wikipedia.org/wiki/List_of_datasets_for_machine-learning_research</a></li>
+      <li>Kaggle Datasets: <a href="https://www.kaggle.com/datasets" target="_blank" rel="noopener">kaggle.com/datasets</a></li>
+    </ol>
+  </div>
+
+  <div class="lesson-nav">
+    <a href="../index.html" class="prev">&larr; Back to Course Home</a>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Physics 356 &mdash; Department of Physics &amp; Meteorology &bull; USAFA &bull; Updated Spring 2026</p>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>
