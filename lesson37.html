@@ -532,126 +532,126 @@
       A CNN is a sequence of layers, each transforming a 3-D volume \([H \times W \times D]\) into another. Spatial dimensions \(H\) and \(W\) shrink at pooling layers; depth \(D\) grows at conv layers. The network trades spatial resolution for richer feature representations, then flattens and classifies. The architecture below is the one used in the Lesson&nbsp;37 worked example and HW&nbsp;37 for classifying the MATLAB DigitDataset (28&times;28 grayscale handwritten digits, 10 classes).
     </p>
 
-    <!-- Volume flow SVG -->
+    <!-- Actual digit image example -->
+    <p>The input to this CNN is a 28&times;28 single-channel (grayscale) image. Below is an actual example from MATLAB&rsquo;s DigitDataset &mdash; the same dataset used in the worked example and HW&nbsp;37:</p>
+    <figure style="text-align:center;margin:0.75rem 0 1.75rem;">
+      <img src="images/digit3_example.png" alt="Actual 28×28 handwritten digit from DigitDataset"
+           style="width:140px;height:140px;image-rendering:pixelated;border:2px solid #003087;border-radius:4px;"/>
+      <figcaption style="font-size:0.82rem;color:#666;margin-top:0.5rem;">
+        Actual 28&times;28 pixel grayscale image from the DigitDataset (class &ldquo;3&rdquo;), shown at 5&times; magnification so individual pixels are visible. Each pixel holds one intensity value; the full image is a \(28\times28\times1\) array of 784 numbers.
+      </figcaption>
+    </figure>
+
+    <!-- Volume flow SVG — redesigned with proper spacing and actual digit in input box -->
     <figure style="margin:1.5rem 0; text-align:center; overflow-x:auto;">
-      <svg viewBox="0 0 700 215" style="max-width:900px;width:100%;font-family:var(--font-sans, sans-serif);font-size:10px;" aria-label="CNN volume flow diagram">
-
-        <!-- ── Input 28×28×1: pixel-art digit "3" on light background ── -->
-        <rect x="20" y="39" width="56" height="56" fill="#e8eef5" stroke="#003087" stroke-width="1.5" rx="2"/>
-        <!-- Pixel art "3": 8-row × 5-col grid, each cell 7×7 px -->
-        <!-- Row 0: cols 1,2,3 -->
-        <rect x="27" y="39" width="7" height="7" fill="#1a3a6e"/>
-        <rect x="34" y="39" width="7" height="7" fill="#1a3a6e"/>
-        <rect x="41" y="39" width="7" height="7" fill="#1a3a6e"/>
-        <!-- Row 1: cols 0,4 -->
-        <rect x="20" y="46" width="7" height="7" fill="#1a3a6e"/>
-        <rect x="48" y="46" width="7" height="7" fill="#1a3a6e"/>
-        <!-- Row 2: col 4 only -->
-        <rect x="48" y="53" width="7" height="7" fill="#1a3a6e"/>
-        <!-- Row 3: cols 1,2,3,4 -->
-        <rect x="27" y="60" width="7" height="7" fill="#1a3a6e"/>
-        <rect x="34" y="60" width="7" height="7" fill="#1a3a6e"/>
-        <rect x="41" y="60" width="7" height="7" fill="#1a3a6e"/>
-        <rect x="48" y="60" width="7" height="7" fill="#1a3a6e"/>
-        <!-- Row 4: col 4 only -->
-        <rect x="48" y="67" width="7" height="7" fill="#1a3a6e"/>
-        <!-- Row 5: cols 0,4 -->
-        <rect x="20" y="74" width="7" height="7" fill="#1a3a6e"/>
-        <rect x="48" y="74" width="7" height="7" fill="#1a3a6e"/>
-        <!-- Row 6: cols 1,2,3 -->
-        <rect x="27" y="81" width="7" height="7" fill="#1a3a6e"/>
-        <rect x="34" y="81" width="7" height="7" fill="#1a3a6e"/>
-        <rect x="41" y="81" width="7" height="7" fill="#1a3a6e"/>
-        <!-- label -->
-        <text x="48" y="108" text-anchor="middle" font-size="9" fill="#444">Input</text>
-        <text x="48" y="119" text-anchor="middle" font-size="9" fill="#444">28×28×1</text>
-
-        <!-- Arrow 1: Conv+BN+ReLU — labels above arrow -->
-        <line x1="78" y1="67" x2="98" y2="67" stroke="#888" stroke-width="1.2" marker-end="url(#arr2)"/>
-        <text x="88" y="50" text-anchor="middle" font-size="8" fill="#555">Conv+BN</text>
-        <text x="88" y="61" text-anchor="middle" font-size="8" fill="#555">+ReLU</text>
-
-        <!-- Volume 2: After Conv1 28×28×8 — 3 stacked rects (depth indicator) -->
-        <rect x="108" y="49" width="56" height="56" fill="#003087" rx="2" opacity="0.4"/>
-        <rect x="105" y="45" width="56" height="56" fill="#003087" rx="2" opacity="0.65"/>
-        <rect x="102" y="39" width="56" height="56" fill="#003087" rx="2"/>
-        <text x="122" y="108" text-anchor="middle" font-size="9" fill="#444">Conv1</text>
-        <text x="122" y="119" text-anchor="middle" font-size="9" fill="#444">28×28×8</text>
-
-        <!-- Arrow 2: MaxPool — labels above arrow -->
-        <line x1="162" y1="67" x2="182" y2="67" stroke="#888" stroke-width="1.2" marker-end="url(#arr2)"/>
-        <text x="172" y="50" text-anchor="middle" font-size="8" fill="#555">MaxPool</text>
-        <text x="172" y="61" text-anchor="middle" font-size="8" fill="#555">2×2, S=2</text>
-
-        <!-- Volume 3: After Pool1 14×14×8 — 3 stacked, smaller -->
-        <rect x="198" y="62" width="28" height="28" fill="#003087" rx="2" opacity="0.4"/>
-        <rect x="195" y="58" width="28" height="28" fill="#003087" rx="2" opacity="0.65"/>
-        <rect x="192" y="53" width="28" height="28" fill="#003087" rx="2"/>
-        <text x="206" y="108" text-anchor="middle" font-size="9" fill="#444">Pool1</text>
-        <text x="206" y="119" text-anchor="middle" font-size="9" fill="#444">14×14×8</text>
-
-        <!-- Arrow 3: Conv+BN+ReLU — labels above arrow -->
-        <line x1="225" y1="67" x2="248" y2="67" stroke="#888" stroke-width="1.2" marker-end="url(#arr2)"/>
-        <text x="237" y="50" text-anchor="middle" font-size="8" fill="#555">Conv+BN</text>
-        <text x="237" y="61" text-anchor="middle" font-size="8" fill="#555">+ReLU</text>
-
-        <!-- Volume 4: After Conv2 14×14×16 — 5 stacked rects -->
-        <rect x="272" y="74" width="28" height="28" fill="#003087" rx="2" opacity="0.25"/>
-        <rect x="269" y="70" width="28" height="28" fill="#003087" rx="2" opacity="0.42"/>
-        <rect x="266" y="65" width="28" height="28" fill="#003087" rx="2" opacity="0.58"/>
-        <rect x="263" y="59" width="28" height="28" fill="#003087" rx="2" opacity="0.75"/>
-        <rect x="260" y="53" width="28" height="28" fill="#003087" rx="2"/>
-        <text x="276" y="108" text-anchor="middle" font-size="9" fill="#444">Conv2</text>
-        <text x="276" y="119" text-anchor="middle" font-size="9" fill="#444">14×14×16</text>
-
-        <!-- Arrow 4: MaxPool — labels above arrow -->
-        <line x1="293" y1="67" x2="316" y2="67" stroke="#888" stroke-width="1.2" marker-end="url(#arr2)"/>
-        <text x="305" y="50" text-anchor="middle" font-size="8" fill="#555">MaxPool</text>
-        <text x="305" y="61" text-anchor="middle" font-size="8" fill="#555">2×2, S=2</text>
-
-        <!-- Volume 5: After Pool2 7×7×16 — 5 stacked, smaller -->
-        <rect x="336" y="80" width="14" height="14" fill="#003087" rx="1" opacity="0.25"/>
-        <rect x="334" y="76" width="14" height="14" fill="#003087" rx="1" opacity="0.42"/>
-        <rect x="332" y="72" width="14" height="14" fill="#003087" rx="1" opacity="0.58"/>
-        <rect x="330" y="68" width="14" height="14" fill="#003087" rx="1" opacity="0.75"/>
-        <rect x="328" y="60" width="14" height="14" fill="#003087" rx="1"/>
-        <text x="339" y="108" text-anchor="middle" font-size="9" fill="#444">Pool2</text>
-        <text x="339" y="119" text-anchor="middle" font-size="9" fill="#444">7×7×16</text>
-
-        <!-- Arrow 5: Flatten -->
-        <line x1="346" y1="67" x2="366" y2="67" stroke="#888" stroke-width="1.2" marker-end="url(#arr2)"/>
-        <text x="356" y="55" text-anchor="middle" font-size="8" fill="#555">Flatten</text>
-
-        <!-- Volume 6: Flatten = 784 vector -->
-        <rect x="370" y="32" width="12" height="70" fill="#003087" rx="2" opacity="0.75"/>
-        <text x="376" y="115" text-anchor="middle" font-size="9" fill="#444">Flatten</text>
-        <text x="376" y="126" text-anchor="middle" font-size="9" fill="#444">784</text>
-
-        <!-- Arrow 6: FC -->
-        <line x1="385" y1="67" x2="405" y2="67" stroke="#888" stroke-width="1.2" marker-end="url(#arr2)"/>
-        <text x="395" y="55" text-anchor="middle" font-size="8" fill="#555">FC</text>
-
-        <!-- Volume 7: Output = 10 classes -->
-        <rect x="410" y="55" width="12" height="24" fill="#c5a900" rx="2"/>
-        <text x="416" y="90" text-anchor="middle" font-size="9" fill="#444">Output</text>
-        <text x="416" y="101" text-anchor="middle" font-size="9" fill="#444">10 classes</text>
-
-        <!-- Legend -->
-        <rect x="460" y="30" width="12" height="12" fill="#003087"/>
-        <text x="478" y="41" font-size="10" fill="#444">Feature volume</text>
-        <rect x="460" y="50" width="12" height="12" fill="#c5a900"/>
-        <text x="478" y="61" font-size="10" fill="#444">Output vector</text>
-        <text x="460" y="82" font-size="10" fill="#444" font-style="italic">Stacked layers</text>
-        <text x="460" y="94" font-size="10" fill="#444" font-style="italic">= depth (channels)</text>
+      <svg viewBox="0 0 810 148" style="max-width:1000px;width:100%;font-family:var(--font-sans,sans-serif);font-size:10px;" aria-label="CNN volume flow diagram">
 
         <defs>
           <marker id="arr2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
             <path d="M0,0 L0,6 L6,3 z" fill="#888"/>
           </marker>
         </defs>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             Layout:  arrow-label zone  y=14,26
+                      volume center     y=72  (arrow y)
+                      dimension labels  y=122,133
+             All arrows run at y=72. Each stage's front face is centered on y=72.
+             Stacked depth layers offset +3 right, +3 down per layer (drawn back→front).
+             ═══════════════════════════════════════════════════════════ -->
+
+        <!-- ─── Stage 1: Input 28×28×1 ─── -->
+        <!-- Actual DigitDataset image (28×28, scaled to 58×58 SVG units) -->
+        <image x="12" y="43" width="58" height="58"
+               href="images/digit3_example.png"
+               preserveAspectRatio="none"
+               style="image-rendering:pixelated;"/>
+        <rect x="12" y="43" width="58" height="58" fill="none" stroke="#003087" stroke-width="1.5" rx="2"/>
+        <text x="41" y="122" text-anchor="middle" font-size="9" fill="#444">Input</text>
+        <text x="41" y="133" text-anchor="middle" font-size="9" fill="#444">28×28×1</text>
+
+        <!-- Arrow 1  (input right=70 → conv1 front=130, gap 54 units) -->
+        <line x1="73" y1="72" x2="127" y2="72" stroke="#888" stroke-width="1.3" marker-end="url(#arr2)"/>
+        <text x="100" y="14" text-anchor="middle" font-size="8" fill="#444">Conv+BN</text>
+        <text x="100" y="26" text-anchor="middle" font-size="8" fill="#444">+ReLU</text>
+
+        <!-- ─── Stage 2: Conv1 28×28×8 — 3 stacked layers ─── -->
+        <!-- back→front, each +3 right +3 down -->
+        <rect x="136" y="49" width="58" height="58" fill="#003087" rx="2" opacity="0.38"/>
+        <rect x="133" y="46" width="58" height="58" fill="#003087" rx="2" opacity="0.62"/>
+        <rect x="130" y="43" width="58" height="58" fill="#003087" rx="2"/>
+        <text x="159" y="122" text-anchor="middle" font-size="9" fill="#444">Conv1</text>
+        <text x="159" y="133" text-anchor="middle" font-size="9" fill="#444">28×28×8</text>
+
+        <!-- Arrow 2  (conv1 back-right=194 → pool1 front=254, gap 54 units) -->
+        <line x1="197" y1="72" x2="251" y2="72" stroke="#888" stroke-width="1.3" marker-end="url(#arr2)"/>
+        <text x="224" y="14" text-anchor="middle" font-size="8" fill="#444">MaxPool</text>
+        <text x="224" y="26" text-anchor="middle" font-size="8" fill="#444">2×2, S=2</text>
+
+        <!-- ─── Stage 3: Pool1 14×14×8 — 3 stacked layers ─── -->
+        <rect x="260" y="62" width="32" height="32" fill="#003087" rx="2" opacity="0.38"/>
+        <rect x="257" y="59" width="32" height="32" fill="#003087" rx="2" opacity="0.62"/>
+        <rect x="254" y="56" width="32" height="32" fill="#003087" rx="2"/>
+        <text x="270" y="122" text-anchor="middle" font-size="9" fill="#444">Pool1</text>
+        <text x="270" y="133" text-anchor="middle" font-size="9" fill="#444">14×14×8</text>
+
+        <!-- Arrow 3  (pool1 back-right=292 → conv2 front=352, gap 54 units) -->
+        <line x1="295" y1="72" x2="349" y2="72" stroke="#888" stroke-width="1.3" marker-end="url(#arr2)"/>
+        <text x="322" y="14" text-anchor="middle" font-size="8" fill="#444">Conv+BN</text>
+        <text x="322" y="26" text-anchor="middle" font-size="8" fill="#444">+ReLU</text>
+
+        <!-- ─── Stage 4: Conv2 14×14×16 — 5 stacked layers ─── -->
+        <rect x="364" y="68" width="32" height="32" fill="#003087" rx="2" opacity="0.22"/>
+        <rect x="361" y="65" width="32" height="32" fill="#003087" rx="2" opacity="0.40"/>
+        <rect x="358" y="62" width="32" height="32" fill="#003087" rx="2" opacity="0.57"/>
+        <rect x="355" y="59" width="32" height="32" fill="#003087" rx="2" opacity="0.75"/>
+        <rect x="352" y="56" width="32" height="32" fill="#003087" rx="2"/>
+        <text x="368" y="122" text-anchor="middle" font-size="9" fill="#444">Conv2</text>
+        <text x="368" y="133" text-anchor="middle" font-size="9" fill="#444">14×14×16</text>
+
+        <!-- Arrow 4  (conv2 back-right=396 → pool2 front=456, gap 54 units) -->
+        <line x1="399" y1="72" x2="453" y2="72" stroke="#888" stroke-width="1.3" marker-end="url(#arr2)"/>
+        <text x="426" y="14" text-anchor="middle" font-size="8" fill="#444">MaxPool</text>
+        <text x="426" y="26" text-anchor="middle" font-size="8" fill="#444">2×2, S=2</text>
+
+        <!-- ─── Stage 5: Pool2 7×7×16 — 5 stacked layers ─── -->
+        <rect x="468" y="74" width="20" height="20" fill="#003087" rx="1" opacity="0.22"/>
+        <rect x="465" y="71" width="20" height="20" fill="#003087" rx="1" opacity="0.40"/>
+        <rect x="462" y="68" width="20" height="20" fill="#003087" rx="1" opacity="0.57"/>
+        <rect x="459" y="65" width="20" height="20" fill="#003087" rx="1" opacity="0.75"/>
+        <rect x="456" y="62" width="20" height="20" fill="#003087" rx="1"/>
+        <text x="466" y="122" text-anchor="middle" font-size="9" fill="#444">Pool2</text>
+        <text x="466" y="133" text-anchor="middle" font-size="9" fill="#444">7×7×16</text>
+
+        <!-- Arrow 5  (pool2 back-right=488 → flatten front=543, gap 49 units) -->
+        <line x1="491" y1="72" x2="540" y2="72" stroke="#888" stroke-width="1.3" marker-end="url(#arr2)"/>
+        <text x="516" y="20" text-anchor="middle" font-size="8" fill="#444">Flatten</text>
+
+        <!-- ─── Stage 6: Flatten — tall 1-D vector bar ─── -->
+        <rect x="543" y="32" width="12" height="80" fill="#003087" rx="2" opacity="0.72"/>
+        <text x="549" y="122" text-anchor="middle" font-size="9" fill="#444">Flatten</text>
+        <text x="549" y="133" text-anchor="middle" font-size="9" fill="#444">784</text>
+
+        <!-- Arrow 6  (flatten right=555 → output front=605, gap 44 units) -->
+        <line x1="558" y1="72" x2="602" y2="72" stroke="#888" stroke-width="1.3" marker-end="url(#arr2)"/>
+        <text x="580" y="20" text-anchor="middle" font-size="8" fill="#444">FC</text>
+
+        <!-- ─── Stage 7: Output — 10-class vector ─── -->
+        <rect x="605" y="57" width="12" height="30" fill="#c5a900" rx="2"/>
+        <text x="611" y="122" text-anchor="middle" font-size="9" fill="#444">Output</text>
+        <text x="611" y="133" text-anchor="middle" font-size="9" fill="#444">10 classes</text>
+
+        <!-- ─── Legend ─── -->
+        <rect x="645" y="35" width="11" height="11" fill="#003087"/>
+        <text x="661" y="45" font-size="9" fill="#444">Feature volume</text>
+        <rect x="645" y="53" width="11" height="11" fill="#c5a900"/>
+        <text x="661" y="63" font-size="9" fill="#444">Output vector</text>
+        <text x="645" y="84" font-size="9" fill="#777" font-style="italic">Stacked slabs</text>
+        <text x="645" y="96" font-size="9" fill="#777" font-style="italic">show depth (K)</text>
+
       </svg>
       <figcaption style="font-size:0.82rem;color:#666;margin-top:0.4rem;">
-        Volume flow for a CNN classifying 28&times;28 grayscale handwritten digits (the pixelated &ldquo;3&rdquo; represents a sample input image). Spatial dimensions shrink at each pooling layer; depth grows at each conv layer (shown as stacked blue slabs). After two Conv+Pool blocks, the 7&times;7&times;16 volume is flattened to a 784-element vector and classified by the FC layer.
+        Volume flow for the DigitDataset CNN. The input box shows the actual 28&times;28 handwritten &ldquo;3&rdquo; from above. Spatial dimensions halve at each pool layer; depth doubles at each conv layer (stacked blue slabs). After two Conv+Pool blocks the 7&times;7&times;16 volume is flattened to 784 values for the fully-connected classifier.
       </figcaption>
     </figure>
 
