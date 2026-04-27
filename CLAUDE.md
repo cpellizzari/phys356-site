@@ -117,7 +117,7 @@ Canonical video placements:
 - 3B1B "What is backpropagation really doing?" (`Ilg3gGewQ5U`) → L36 (first video)
 - 3B1B "Backpropagation calculus" (`tIeHLnjs5U8`) → L36 (second video)
 - Karpathy "Let's build GPT" (`kCc8FmEb1nY`) → L38 (LLMs section)
-- Outlier "What are Diffusion Models?" (`fbLgFrlTnGU`) → L38 (Diffusion section)
+- 3B1B "But how do AI image generators actually work?" (`iv-5mZ_9CPY`) → L38 (Diffusion section)
 
 ## Source Material
 
