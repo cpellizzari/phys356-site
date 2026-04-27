@@ -46,69 +46,210 @@
   <div class="lesson-banner">
     <div class="lesson-meta">Lesson 38 &bull; Physics 356</div>
     <h1>Transformers, LLMs &amp; Diffusion Models</h1>
-    <span class="reading-time">⏱ ~50 min read</span>
+    <span class="reading-time">&#x23F1; ~60 min read</span>
   </div>
 
   <div class="objectives-box">
     <h2>Learning Objectives</h2>
     <ul>
-      <li>Articulate the attention mechanism: what it computes and why it's powerful for sequential data.</li>
-      <li>Describe the transformer architecture at a high level (encoder, self-attention, feed-forward sublayers).</li>
-      <li>Explain what large language models (LLMs) are and how they are trained (pre-training + fine-tuning).</li>
-      <li>Describe diffusion models conceptually: the forward noising process, the reverse denoising process, and how they are trained.</li>
+      <li>Explain how words (and other discrete tokens) are represented as continuous vectors, and why this is necessary.</li>
+      <li>Articulate the scaled dot-product attention mechanism: what it computes, why it works, and trace through a concrete numerical example.</li>
+      <li>Describe the transformer block (multi-head attention, add &amp; norm, feed-forward) and how stacking blocks gives depth.</li>
+      <li>Explain what large language models are and how they are trained (pre-training, SFT, RLHF).</li>
+      <li>Describe the forward and reverse processes of a diffusion model, explain the closed-form sampling trick, and interpret the noise-prediction loss.</li>
+      <li>Explain at a conceptual level how text conditioning guides a diffusion model to generate a specific type of image.</li>
       <li>Identify key physics applications of transformers and diffusion models.</li>
     </ul>
   </div>
 
-  <!-- Background -->
+  <!-- ─── Background ─── -->
   <div class="card">
-    <h2><span class="section-icon">🌍</span> Background &amp; Motivation</h2>
+    <h2><span class="section-icon">&#x1F30D;</span> Background &amp; Motivation</h2>
     <h3>From discriminative to generative models</h3>
     <p>
-      The networks from Lessons 35–36 are discriminative models — they map inputs to class labels or probabilities. The architectures in this lesson do something more ambitious: transformers process sequences with arbitrary long-range dependencies, and diffusion models learn to generate entirely new data.
+      The networks from Lessons 35&ndash;37 are <em>discriminative</em> models &mdash; they map inputs to class labels or probabilities. The architectures in this lesson do something more ambitious: <strong>transformers</strong> process sequences with arbitrary long-range dependencies (making LLMs like ChatGPT possible), and <strong>diffusion models</strong> learn to generate entirely new data &mdash; images, molecules, audio &mdash; from noise.
     </p>
     <h3>Why this matters for physicists</h3>
     <p>
-      Transformers power the LLMs that are transforming how scientists write, code, and analyze data. AlphaFold 2/3 uses transformers for protein structure prediction. Diffusion models are now standard tools for molecular generation, inverse problems in imaging, and probabilistic weather forecasting. Understanding these architectures at a mechanistic level is increasingly essential for physicists and engineers working at the frontier.
+      AlphaFold 2/3 uses transformers to predict protein structure from amino-acid sequences. Diffusion models generate novel drug molecules and reconstruct images from noisy measurements &mdash; a problem deeply familiar to physicists (MRI, CT, lidar). Understanding these architectures at a mechanistic level is increasingly essential for anyone working at the frontier of physics and engineering.
     </p>
   </div>
 
-  <!-- Transformers -->
+  <!-- ═══════════════════════════════════════════════════
+       TRANSFORMERS
+       ═══════════════════════════════════════════════════ -->
   <div class="card">
-    <h2><span class="section-icon">🔄</span> Transformers &amp; the Attention Mechanism</h2>
+    <h2><span class="section-icon">&#x1F504;</span> Transformers &amp; the Attention Mechanism</h2>
 
     <h3>The problem with sequences</h3>
     <p>
-      For sequential data (text, time series, sensor streams), the key challenge is <em>long-range dependency</em>: the meaning of a word can depend on something said many sentences ago. Recurrent networks (RNNs, LSTMs) struggled with this because they process sequences step-by-step and "forget" distant context. Transformers solved this with <strong>attention</strong>.
+      For sequential data (text, time series, sensor streams) the central challenge is <em>long-range dependency</em>: the meaning of a word can depend on something said many sentences ago. Recurrent networks (RNNs, LSTMs) struggled because they process tokens step-by-step and compress all past context into a fixed-size hidden state &mdash; distant information fades. Transformers solve this with <strong>attention</strong>: every token can directly look at every other token in one step, regardless of distance.
     </p>
 
-    <h3>Scaled Dot-Product Attention</h3>
+    <!-- Word Embeddings -->
+    <h3>Step 1 &mdash; Word Embeddings: turning tokens into vectors</h3>
     <p>
-      Given a sequence of \(n\) input vectors, attention computes, for each position, a <em>weighted average</em> of all other positions — where the weights encode relevance. Each input \(\mathbf{x}_i\) is linearly projected into three roles:
+      Neural networks operate on numbers, not words. The first step is to map each word (or sub-word <em>token</em>) to a dense vector in \(\mathbb{R}^d\), called an <strong>embedding</strong>. These vectors are <em>learned</em> during training, not hand-designed.
     </p>
-    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;">
-      <li><strong>Query</strong> \(\mathbf{q}_i = \mathbf{W}_Q \mathbf{x}_i\): "what am I looking for?"</li>
-      <li><strong>Key</strong> \(\mathbf{k}_j = \mathbf{W}_K \mathbf{x}_j\): "what do I contain?"</li>
-      <li><strong>Value</strong> \(\mathbf{v}_j = \mathbf{W}_V \mathbf{x}_j\): "what information do I provide?"</li>
-    </ul>
     <p>
-      The attention output for position \(i\) is:
+      A famous property of well-trained embeddings is that arithmetic on the vectors captures semantic relationships:
     </p>
     <div class="math-block">
       \[
-        \text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V}) = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
+        \text{embed}(\text{"king"}) - \text{embed}(\text{"man"}) + \text{embed}(\text{"woman"})
+        \;\approx\; \text{embed}(\text{"queen"})
       \]
     </div>
     <p>
-      The dot product \(\mathbf{q}_i \cdot \mathbf{k}_j\) measures how relevant position \(j\) is to position \(i\). The softmax normalizes these into weights summing to 1. The output is a weighted average of the values — a context-aware representation of position \(i\).
+      In practice, embedding dimensions are large: GPT-2 uses \(d=768\), GPT-3 uses \(d=12{,}288\). The intuition is that different directions in the embedding space encode different semantic features (gender, animacy, tense, &hellip;). You can explore this interactively at <a href="https://projector.tensorflow.org" target="_blank" rel="noopener">projector.tensorflow.org</a> &mdash; drag and rotate to see clusters of semantically similar words in 3-D.
     </p>
     <div class="callout info">
-      <strong>Why \(\sqrt{d_k}\)?</strong> The scaling factor prevents dot products from growing too large when \(d_k\) is large (which would push softmax into saturation, killing gradients).
+      <strong>Positional encoding:</strong> Because attention treats all positions symmetrically, the transformer must be explicitly told the order of tokens. A <strong>positional encoding</strong> vector &mdash; a fixed sinusoidal pattern indexed by position &mdash; is added to each embedding before the first attention layer. Without it, "dog bites man" and "man bites dog" would look identical to the network.
     </div>
 
+    <!-- Scaled dot-product attention -->
+    <h3>Step 2 &mdash; Scaled Dot-Product Attention</h3>
+    <p>
+      Given a sequence of \(n\) embedded tokens, each token is linearly projected into three roles:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li><strong>Query</strong> \(\mathbf{q}_i = \mathbf{W}_Q \mathbf{x}_i\): &ldquo;what information am I looking for?&rdquo;</li>
+      <li><strong>Key</strong> \(\mathbf{k}_j = \mathbf{W}_K \mathbf{x}_j\): &ldquo;what information do I advertise?&rdquo;</li>
+      <li><strong>Value</strong> \(\mathbf{v}_j = \mathbf{W}_V \mathbf{x}_j\): &ldquo;what information do I actually provide?&rdquo;</li>
+    </ul>
+    <p style="margin-top:0.75rem;">The output for position \(i\) is a <em>weighted average of all values</em>, where weight \(a_{ij}\) encodes how relevant token \(j\) is to token \(i\):</p>
+    <div class="math-block">
+      \[
+        a_{ij} = \frac{\exp\!\left(\mathbf{q}_i \cdot \mathbf{k}_j \,/\, \sqrt{d_k}\right)}
+                      {\sum_{l=1}^n \exp\!\left(\mathbf{q}_i \cdot \mathbf{k}_l \,/\, \sqrt{d_k}\right)},
+        \qquad
+        \mathbf{z}_i = \sum_{j=1}^n a_{ij}\,\mathbf{v}_j
+      \]
+    </div>
+    <p>In matrix form (all positions at once):</p>
+    <div class="math-block">
+      \[
+        \text{Attention}(\mathbf{Q}, \mathbf{K}, \mathbf{V})
+        = \text{softmax}\!\left(\frac{\mathbf{Q}\mathbf{K}^\top}{\sqrt{d_k}}\right)\mathbf{V}
+      \]
+    </div>
+    <div class="callout info">
+      <strong>Why \(\sqrt{d_k}\)?</strong> For large \(d_k\), dot products grow in magnitude, pushing softmax into near-zero gradient regions. Dividing by \(\sqrt{d_k}\) keeps the inputs to softmax in a well-conditioned range.
+    </div>
+
+    <!-- Concrete example -->
+    <h3>Concrete example: "cat chases mouse"</h3>
+    <p>
+      To make the computation tangible, consider three tokens: <strong>"cat"</strong>, <strong>"chases"</strong>, <strong>"mouse"</strong>. After embedding and projecting to Q, K, V, suppose the raw dot products \(\mathbf{q}_i \cdot \mathbf{k}_j\) (before scaling) are:
+    </p>
+
+    <!-- Attention score table -->
+    <div style="overflow-x:auto;margin:1rem 0;">
+      <table class="summary-table" style="max-width:480px;margin:0 auto;">
+        <thead>
+          <tr>
+            <th style="text-align:center;">Query \(\downarrow\) &nbsp;/&nbsp; Key \(\rightarrow\)</th>
+            <th style="text-align:center;color:#003087;">cat</th>
+            <th style="text-align:center;color:#003087;">chases</th>
+            <th style="text-align:center;color:#003087;">mouse</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight:600;color:#003087;">cat</td>
+            <td style="text-align:center;">2.4</td><td style="text-align:center;">0.6</td><td style="text-align:center;">1.0</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;color:#003087;">chases</td>
+            <td style="text-align:center;">1.2</td><td style="text-align:center;">1.6</td><td style="text-align:center;">1.2</td>
+          </tr>
+          <tr>
+            <td style="font-weight:600;color:#003087;">mouse</td>
+            <td style="text-align:center;">0.8</td><td style="text-align:center;">0.8</td><td style="text-align:center;">2.4</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>After dividing by \(\sqrt{d_k}\) and applying row-wise softmax, each row becomes a probability distribution — the <strong>attention weights</strong>:</p>
+
+    <!-- Attention heatmap SVG -->
+    <figure style="margin:1rem 0; text-align:center;">
+      <svg viewBox="0 0 340 310" style="max-width:380px;width:100%;font-family:var(--font-sans,sans-serif);" aria-label="Attention weight matrix heatmap for 'cat chases mouse'">
+
+        <!-- Title -->
+        <text x="170" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#003087">Attention Weight Matrix</text>
+        <text x="170" y="32" text-anchor="middle" font-size="9" fill="#666">sentence: &ldquo;cat chases mouse&rdquo;</text>
+
+        <!-- Column header label -->
+        <text x="160" y="50" text-anchor="middle" font-size="9" fill="#555">Key (attended-to token)</text>
+        <!-- Column headers -->
+        <text x="100" y="63" text-anchor="middle" font-size="10" font-weight="700" fill="#003087">cat</text>
+        <text x="160" y="63" text-anchor="middle" font-size="10" font-weight="700" fill="#003087">chases</text>
+        <text x="220" y="63" text-anchor="middle" font-size="10" font-weight="700" fill="#003087">mouse</text>
+
+        <!-- Row header rotated label -->
+        <text x="28" y="170" text-anchor="middle" font-size="9" fill="#555" transform="rotate(-90 28 170)">Query (attending token)</text>
+        <!-- Row headers -->
+        <text x="62" y="105" text-anchor="end" font-size="10" font-weight="700" fill="#003087">cat</text>
+        <text x="62" y="165" text-anchor="end" font-size="10" font-weight="700" fill="#003087">chases</text>
+        <text x="62" y="225" text-anchor="end" font-size="10" font-weight="700" fill="#003087">mouse</text>
+
+        <!-- Row 0: cat attends → cat=0.60, chases=0.15, mouse=0.25 -->
+        <rect x="70" y="75" width="58" height="58" fill="rgba(0,48,135,0.60)" stroke="white" stroke-width="1" rx="2"/>
+        <text x="99" y="108" text-anchor="middle" font-size="12" font-weight="700" fill="white">0.60</text>
+
+        <rect x="130" y="75" width="58" height="58" fill="rgba(0,48,135,0.15)" stroke="white" stroke-width="1" rx="2"/>
+        <text x="159" y="108" text-anchor="middle" font-size="12" fill="#444">0.15</text>
+
+        <rect x="190" y="75" width="58" height="58" fill="rgba(0,48,135,0.25)" stroke="white" stroke-width="1" rx="2"/>
+        <text x="219" y="108" text-anchor="middle" font-size="12" fill="#333">0.25</text>
+
+        <!-- Row 1: chases attends → cat=0.30, chases=0.40, mouse=0.30 -->
+        <rect x="70" y="135" width="58" height="58" fill="rgba(0,48,135,0.30)" stroke="white" stroke-width="1" rx="2"/>
+        <text x="99" y="168" text-anchor="middle" font-size="12" fill="#333">0.30</text>
+
+        <rect x="130" y="135" width="58" height="58" fill="rgba(0,48,135,0.40)" stroke="white" stroke-width="1" rx="2"/>
+        <text x="159" y="168" text-anchor="middle" font-size="12" fill="#333">0.40</text>
+
+        <rect x="190" y="135" width="58" height="58" fill="rgba(0,48,135,0.30)" stroke="white" stroke-width="1" rx="2"/>
+        <text x="219" y="168" text-anchor="middle" font-size="12" fill="#333">0.30</text>
+
+        <!-- Row 2: mouse attends → cat=0.20, chases=0.20, mouse=0.60 -->
+        <rect x="70" y="195" width="58" height="58" fill="rgba(0,48,135,0.20)" stroke="white" stroke-width="1" rx="2"/>
+        <text x="99" y="228" text-anchor="middle" font-size="12" fill="#444">0.20</text>
+
+        <rect x="130" y="195" width="58" height="58" fill="rgba(0,48,135,0.20)" stroke="white" stroke-width="1" rx="2"/>
+        <text x="159" y="228" text-anchor="middle" font-size="12" fill="#444">0.20</text>
+
+        <rect x="190" y="195" width="58" height="58" fill="rgba(0,48,135,0.60)" stroke="white" stroke-width="1" rx="2"/>
+        <text x="219" y="228" text-anchor="middle" font-size="12" font-weight="700" fill="white">0.60</text>
+
+        <!-- Colorbar -->
+        <defs>
+          <linearGradient id="cbGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="rgba(0,48,135,0.75)"/>
+            <stop offset="100%" stop-color="rgba(0,48,135,0.08)"/>
+          </linearGradient>
+        </defs>
+        <rect x="265" y="75" width="14" height="178" fill="url(#cbGrad)" stroke="#bbb" stroke-width="0.5" rx="2"/>
+        <text x="272" y="71" text-anchor="middle" font-size="8" fill="#555">1.0</text>
+        <text x="272" y="262" text-anchor="middle" font-size="8" fill="#555">0.0</text>
+
+        <!-- Footer note -->
+        <text x="168" y="284" text-anchor="middle" font-size="8" fill="#888">Each row sums to 1.0 (softmax). Darker = stronger attention.</text>
+        <text x="168" y="296" text-anchor="middle" font-size="8" fill="#888">Diagonal = self-attention. &ldquo;chases&rdquo; evenly attends to all tokens (verb integrates context).</text>
+
+      </svg>
+      <figcaption style="font-size:0.82rem;color:#666;margin-top:0.4rem;">
+        The output for token \(i\) is \(\mathbf{z}_i = \sum_j a_{ij}\,\mathbf{v}_j\): a weighted blend of all value vectors. Here "cat" and "mouse" mostly attend to themselves (high self-attention), while "chases" distributes weight more evenly &mdash; the verb integrates information from both subject and object to form a context-rich representation.
+      </figcaption>
+    </figure>
+
+    <!-- Multi-head attention -->
     <h3>Multi-Head Attention</h3>
     <p>
-      Instead of one attention operation, transformers run \(h\) attention "heads" in parallel, each with different \(\mathbf{W}_Q, \mathbf{W}_K, \mathbf{W}_V\) projections. The outputs are concatenated and projected:
+      A single attention operation can only capture one type of relationship at a time. Transformers run \(h\) attention "heads" in <em>parallel</em>, each with independently learned \(\mathbf{W}_Q^{(i)}, \mathbf{W}_K^{(i)}, \mathbf{W}_V^{(i)}\) matrices. The outputs are concatenated and projected:
     </p>
     <div class="math-block">
       \[
@@ -116,43 +257,66 @@
       \]
     </div>
     <p>
-      Each head can attend to different relationships simultaneously — one head might track grammatical agreement, another might track coreference (who "they" refers to).
+      Different heads specialize: one head might track grammatical agreement (subject&ndash;verb), another might track co-reference (who &ldquo;they&rdquo; refers to), another might attend to nearby position. The model learns these specializations automatically from data.
     </p>
 
+    <!-- Transformer Block -->
     <h3>The Transformer Block</h3>
     <p>
-      A single transformer block consists of:
-    </p>
-    <ol style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
-      <li><strong>Multi-head self-attention:</strong> each token attends to all others.</li>
-      <li><strong>Add &amp; Norm:</strong> residual connection (\(\mathbf{x} + \text{attention}(\mathbf{x})\)) then layer normalization.</li>
-      <li><strong>Feed-forward network:</strong> two-layer MLP applied independently to each position.</li>
-      <li><strong>Add &amp; Norm</strong> again.</li>
-    </ol>
-    <p>
-      Stacking \(N_\ell = 12, 24, 96, \ldots\) such blocks gives the full transformer depth. Depth is what gives transformers their power.
+      A single transformer block wraps multi-head attention in a two-sublayer structure with residual connections:
     </p>
 
+    <!-- Block diagram (HTML-based) -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0;margin:1rem 0;">
+      <div style="background:#e8eef5;border:2px solid #003087;border-radius:6px;padding:0.5rem 2rem;font-size:0.9rem;font-weight:600;color:#003087;text-align:center;">Input tokens + Positional Encoding</div>
+      <div style="width:2px;height:20px;background:#888;"></div>
+      <div style="background:#fff8e1;border:2px solid #c5a900;border-radius:6px;padding:0.5rem 2rem;font-size:0.9rem;text-align:center;"><strong>Multi-Head Self-Attention</strong></div>
+      <div style="width:2px;height:10px;background:#888;"></div>
+      <div style="background:#f0f4f8;border:1px solid #aaa;border-radius:6px;padding:0.35rem 2rem;font-size:0.85rem;color:#555;text-align:center;">Add &amp; LayerNorm &nbsp;(residual: output + input)</div>
+      <div style="width:2px;height:10px;background:#888;"></div>
+      <div style="background:#e6f4ea;border:2px solid #2a802a;border-radius:6px;padding:0.5rem 2rem;font-size:0.9rem;text-align:center;"><strong>Feed-Forward Network</strong> (two-layer MLP, applied per-token)</div>
+      <div style="width:2px;height:10px;background:#888;"></div>
+      <div style="background:#f0f4f8;border:1px solid #aaa;border-radius:6px;padding:0.35rem 2rem;font-size:0.85rem;color:#555;text-align:center;">Add &amp; LayerNorm</div>
+      <div style="width:2px;height:10px;background:#888;"></div>
+      <div style="background:#eee;border:1px dashed #888;border-radius:4px;padding:0.3rem 1.5rem;font-size:0.8rem;color:#777;text-align:center;">&#x21ba; &nbsp;Repeat \(N_\ell = 12, 24, 96, \ldots\) times</div>
+      <div style="width:2px;height:10px;background:#888;"></div>
+      <div style="background:#e8eef5;border:2px solid #003087;border-radius:6px;padding:0.5rem 2rem;font-size:0.9rem;font-weight:600;color:#003087;text-align:center;">Output (classification head or next-token distribution)</div>
+    </div>
+
+    <p>The <strong>residual connection</strong> \(\mathbf{x} + \text{Attention}(\mathbf{x})\) lets gradients flow directly to early layers during backpropagation &mdash; the same idea as ResNets in CNNs. <strong>Layer normalization</strong> stabilizes activations within each sublayer. Depth (\(N_\ell\)) is the primary driver of capability.</p>
+
     <div class="callout info">
-      <strong>Self-attention vs. cross-attention:</strong> In self-attention, Q, K, V all come from the same sequence. In cross-attention (encoder-decoder), Q comes from the decoder, K and V from the encoder — enabling translation and summarization tasks.
+      <strong>Self-attention vs. cross-attention:</strong> In <em>self-attention</em>, Q, K, V all come from the same sequence (used in encoders and decoder-only LLMs). In <em>cross-attention</em> (encoder-decoder), Q comes from one sequence (the decoder) and K, V from another (the encoder output) &mdash; enabling tasks like translation where two different sequences must communicate.
+    </div>
+
+    <!-- Interactive resources -->
+    <h3>Interactive resources</h3>
+    <div class="callout info">
+      <strong>&#x1F5A5; Explore transformers interactively:</strong>
+      <ul style="margin-top:0.5rem;padding-left:1.2rem;display:flex;flex-direction:column;gap:0.3rem;">
+        <li><a href="https://www.math.purdue.edu/~buzzard/notes/transformers/" target="_blank" rel="noopener">math.purdue.edu/~buzzard/notes/transformers/</a> &mdash; Interactive Jupyter notebooks covering attention, multi-head attention, positional encoding, and vision transformers. Excellent companion to this lesson [7].</li>
+        <li><a href="https://bbycroft.net/llm" target="_blank" rel="noopener">bbycroft.net/llm</a> &mdash; 3-D animated visualization of a small GPT running a forward pass token-by-token. Shows exactly what happens at each matrix multiplication.</li>
+        <li><a href="https://projector.tensorflow.org" target="_blank" rel="noopener">projector.tensorflow.org</a> &mdash; Explore word embedding geometry in 3-D with PCA/t-SNE projection.</li>
+      </ul>
     </div>
   </div>
 
-  <!-- LLMs -->
+  <!-- ─── LLMs ─── -->
   <div class="card">
-    <h2><span class="section-icon">🤖</span> Large Language Models (LLMs)</h2>
+    <h2><span class="section-icon">&#x1F916;</span> Large Language Models (LLMs)</h2>
 
     <h3>What is an LLM?</h3>
     <p>
-      A <strong>Large Language Model</strong> is a transformer trained on massive text corpora (hundreds of billions of tokens) to predict the next token in a sequence. The training task is deceptively simple — predict the next word — but requires the model to develop a rich internal representation of language, facts, and reasoning.
+      A <strong>Large Language Model</strong> is a transformer trained on massive text corpora (hundreds of billions of tokens) to predict the next token in a sequence. The training task is deceptively simple &mdash; predict the next word &mdash; but requires the model to develop rich internal representations of language, facts, and reasoning in order to do it well.
     </p>
     <div class="math-block">
       \[
-        p(\text{token}_{t+1} \mid \text{token}_1, \ldots, \text{token}_t) = \text{softmax}(\mathbf{W}_\text{out} \cdot \mathbf{h}_t)
+        p(\text{token}_{t+1} \mid \text{token}_1, \ldots, \text{token}_t)
+        = \text{softmax}\!\left(\mathbf{W}_\text{out}\, \mathbf{h}_t\right)
       \]
     </div>
     <p>
-      Where \(\mathbf{h}_t\) is the final transformer layer's hidden state at position \(t\). At inference time, tokens are sampled autoregressively — each predicted token is fed back as input to generate the next.
+      where \(\mathbf{h}_t\) is the final transformer layer&rsquo;s hidden state at position \(t\). At <strong>inference</strong> time (using the trained model to generate text), tokens are sampled autoregressively: each predicted token is fed back as the next input to generate the following one, continuing until the model generates an end-of-sequence token.
     </p>
 
     <h3>Training: Pre-training + Fine-tuning</h3>
@@ -161,144 +325,435 @@
       <tbody>
         <tr>
           <td><strong>Pre-training</strong></td>
-          <td>Next token prediction (self-supervised)</td>
-          <td>Entire internet, books, code (\(\sim\)10T tokens)</td>
-          <td>General language understanding</td>
+          <td>Next-token prediction (self-supervised)</td>
+          <td>Entire internet, books, code (&sim;10T tokens)</td>
+          <td>General language understanding and world knowledge</td>
         </tr>
         <tr>
           <td><strong>Supervised Fine-Tuning (SFT)</strong></td>
           <td>Imitate expert demonstrations</td>
-          <td>Human-written instruction-response pairs</td>
-          <td>Follows instructions</td>
+          <td>Human-written instruction&ndash;response pairs</td>
+          <td>Follows instructions reliably</td>
         </tr>
         <tr>
           <td><strong>RLHF</strong></td>
           <td>Maximize human preference reward</td>
-          <td>Human preference rankings</td>
-          <td>Aligned, helpful, safe</td>
+          <td>Human preference rankings of model outputs</td>
+          <td>Aligned, helpful, safe behavior</td>
         </tr>
       </tbody>
     </table>
 
-    <h3>Scale and Emergent Abilities</h3>
+    <h3>Scale and emergent abilities</h3>
     <p>
-      LLM capabilities improve predictably with scale (parameters × data × compute). Strikingly, certain abilities — multi-step reasoning, code generation, in-context learning — appear to <em>emerge</em> discontinuously as models scale, even though the training task never changes. This is not fully understood and is an active research area.
+      LLM capabilities improve predictably with scale (parameters &times; data &times; compute). Certain abilities &mdash; multi-step reasoning, code generation, in-context learning &mdash; appear to <em>emerge</em> discontinuously as models scale, even though the training task never changes. This emergent behavior is not fully understood and is an active research area.
     </p>
 
-    <h3>Physics Applications of LLMs/Transformers</h3>
-    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;">
-      <li><strong>AlphaFold 2/3:</strong> transformer + equivariant layers for protein structure prediction.</li>
-      <li><strong>Plasma physics:</strong> transformers for time-series modeling of tokamak disruptions.</li>
-      <li><strong>Climate science:</strong> Pangu-Weather, GraphCast — transformer-based forecast models.</li>
-      <li><strong>Space domain awareness:</strong> sequence modeling of orbital maneuver patterns.</li>
+    <h3>Physics applications of LLMs and transformers</h3>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li><strong>AlphaFold 2/3:</strong> transformer + equivariant layers for protein structure prediction from amino-acid sequence.</li>
+      <li><strong>Plasma physics:</strong> transformers for time-series modeling of tokamak plasma disruptions.</li>
+      <li><strong>Climate &amp; weather:</strong> Pangu-Weather, GraphCast &mdash; transformer-based global forecast models.</li>
+      <li><strong>Space domain awareness:</strong> sequence modeling of orbital maneuver and conjunction patterns.</li>
     </ul>
-  </div>
 
-  <!-- Diffusion Models -->
-  <div class="card">
-    <h2><span class="section-icon">🌫</span> Diffusion Models</h2>
-
-    <h3>The core idea: learn to denoise</h3>
-    <p>
-      Diffusion models are a class of generative model that learn to generate data by learning to <em>reverse a noising process</em>. The key insight is elegant: if you can learn to remove a small amount of noise from a corrupted image, you can iteratively apply that denoising to pure random noise until a coherent image emerges.
-    </p>
-
-    <h3>Forward process (noising)</h3>
-    <p>
-      Given a clean data sample \(\mathbf{x}_0\), the forward process gradually adds Gaussian noise over \(T\) steps:
-    </p>
-    <div class="math-block">
-      \[
-        q(\mathbf{x}_t \mid \mathbf{x}_{t-1}) = \mathcal{N}(\mathbf{x}_t;\, \sqrt{1-\beta_t}\,\mathbf{x}_{t-1},\, \beta_t \mathbf{I})
-      \]
-    </div>
-    <p>
-      Where \(\beta_t\) is a small noise variance schedule (e.g., linearly increasing from \(10^{-4}\) to \(0.02\)). After \(T \approx 1000\) steps, \(\mathbf{x}_T\) is approximately pure Gaussian noise. Crucially, you can sample any noisy \(\mathbf{x}_t\) directly from \(\mathbf{x}_0\) in closed form:
-    </p>
-    <div class="math-block">
-      \[
-        \mathbf{x}_t = \sqrt{\bar{\alpha}_t}\,\mathbf{x}_0 + \sqrt{1 - \bar{\alpha}_t}\,\boldsymbol{\epsilon}, \qquad \boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})
-      \]
-    </div>
-    <p>where \(\bar{\alpha}_t = \prod_{s=1}^t (1-\beta_s)\).</p>
-
-    <h3>Reverse process (denoising)</h3>
-    <p>
-      The model learns the reverse: given a noisy sample \(\mathbf{x}_t\), predict the noise \(\boldsymbol{\epsilon}\) that was added. This is a neural network \(\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)\) trained with a simple mean-squared loss:
-    </p>
-    <div class="math-block">
-      \[
-        L = \mathbb{E}_{t, \mathbf{x}_0, \boldsymbol{\epsilon}}\!\left[\left\|\boldsymbol{\epsilon} - \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)\right\|^2\right]
-      \]
-    </div>
-    <p>
-      At inference, start from \(\mathbf{x}_T \sim \mathcal{N}(\mathbf{0},\mathbf{I})\) and iteratively apply the learned denoiser to get \(\mathbf{x}_{T-1}, \ldots, \mathbf{x}_0\) — a brand-new sample.
-    </p>
-    <div class="callout info">
-      <strong>Architecture:</strong> The denoising network \(\boldsymbol{\epsilon}_\theta\) is typically a U-Net (a CNN with skip connections) or a Diffusion Transformer (DiT) — transformers applied to image patches. The same training and inference infrastructure from Lessons 35–37 (forward pass, backprop, SGD) applies directly.
-    </div>
-
-    <h3>Why diffusion models produce such high-quality outputs</h3>
-    <p>
-      Unlike GANs (which can be unstable to train) or VAEs (which can produce blurry outputs), diffusion models have a stable training objective and iteratively refine outputs over many steps. Each denoising step makes a small, learned correction — errors do not compound catastrophically.
-    </p>
-
-    <h3>Physics applications of diffusion models</h3>
-    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;">
-      <li><strong>Molecular generation:</strong> Generating novel drug-like molecules or crystal structures (e.g., DiffSBDD, DiffCSP).</li>
-      <li><strong>Inverse problems:</strong> Reconstructing clean signals from noisy measurements — directly analogous to physics image reconstruction (MRI, CT, SAR).</li>
-      <li><strong>Weather &amp; climate:</strong> Probabilistic forecast generation (SEEDS, GenCast).</li>
-      <li><strong>Simulation acceleration:</strong> Generating synthetic training data or emulating expensive physics simulations.</li>
-    </ul>
-  </div>
-
-  <!-- Video -->
-  <div class="card">
-    <h2><span class="section-icon">▶</span> Recommended Video</h2>
-    <p>Andrej Karpathy's "Let's build GPT from scratch" is the best hands-on walkthrough of transformers available. Watch at least the first 45 minutes for the core architecture:</p>
+    <!-- Karpathy video -->
+    <h3>Recommended video</h3>
+    <p>Andrej Karpathy&rsquo;s &ldquo;Let&rsquo;s build GPT from scratch&rdquo; is the definitive hands-on walkthrough. Watch at least the first 45&nbsp;minutes for the core architecture:</p>
     <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener" class="video-link-card">
-      <div class="video-link-thumb">▶</div>
+      <div class="video-link-thumb">&#x25B6;</div>
       <div class="video-link-info">
-        <div class="video-link-title">Let's build GPT: from scratch, in code, spelled out (focus: 0:00–45:00)</div>
+        <div class="video-link-title">Let&rsquo;s build GPT: from scratch, in code, spelled out &mdash; focus 0:00&ndash;45:00</div>
         <div class="video-link-channel">Andrej Karpathy &mdash; YouTube</div>
       </div>
     </a>
   </div>
 
-  <!-- Summary -->
+  <!-- ═══════════════════════════════════════════════════
+       DIFFUSION MODELS
+       ═══════════════════════════════════════════════════ -->
   <div class="card">
-    <h2><span class="section-icon">📝</span> Summary</h2>
+    <h2><span class="section-icon">&#x1F32B;&#xFE0F;</span> Diffusion Models</h2>
+
+    <h3>The core idea: learn to denoise</h3>
+    <p>
+      Diffusion models are a class of <em>generative model</em> that learn to generate data by learning to reverse a noising process. The key insight is elegant: if a neural network can learn to remove a small amount of noise from a corrupted image, then iteratively applying that denoiser to <em>pure random noise</em> will gradually produce a coherent image.
+    </p>
+
+    <h3>How do diffusion models compare to GANs and VAEs?</h3>
+    <p>
+      Diffusion models were not the first approach to generative modeling. Two earlier approaches are worth knowing:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.5rem;font-size:0.95rem;margin-bottom:0.75rem;">
+      <li>
+        <strong>Variational Autoencoders (VAEs):</strong> An <em>encoder</em> network compresses the input image into a compact latent vector \(\mathbf{z}\), and a <em>decoder</em> reconstructs an image from \(\mathbf{z}\). New images are generated by sampling a random \(\mathbf{z}\) and decoding it. VAEs are stable to train but tend to produce blurry outputs because the loss averages over plausible reconstructions.
+      </li>
+      <li>
+        <strong>Generative Adversarial Networks (GANs):</strong> Two networks compete &mdash; a <em>generator</em> \(G\) produces fake images, and a <em>discriminator</em> \(D\) tries to tell real from fake. The generator learns to fool the discriminator. GANs can produce extremely sharp images but are notoriously unstable to train (mode collapse, training divergence).
+      </li>
+    </ul>
+    <p>
+      Diffusion models have a stable, simple training objective and iteratively refine outputs over many steps. Each denoising step makes a small, learned correction &mdash; errors do not compound catastrophically. This stability, combined with their ability to match complex distributions, is why they have largely replaced GANs for high-quality image generation.
+    </p>
+
+    <!-- Forward process -->
+    <h3>Forward process &mdash; gradually adding noise</h3>
+    <p>
+      Given a clean data sample \(\mathbf{x}_0\) (e.g., a 28&times;28 image), the <strong>forward process</strong> \(q\) defines a Markov chain that gradually adds Gaussian noise over \(T\) steps. The notation \(q\) (rather than \(p\)) follows variational inference conventions: \(q\) is the <em>fixed</em>, <em>non-learned</em> process we define; \(p_\theta\) will be the <em>learned</em> reverse process.
+    </p>
+    <div class="math-block">
+      \[
+        q(\mathbf{x}_t \mid \mathbf{x}_{t-1}) \;=\;
+        \mathcal{N}\!\bigl(\mathbf{x}_t;\;
+          \underbrace{\sqrt{1-\beta_t}\,\mathbf{x}_{t-1}}_{\text{mean}},\;
+          \underbrace{\beta_t\,\mathbf{I}}_{\text{variance}}\bigr)
+      \]
+    </div>
+    <p>Breaking down the three arguments inside \(\mathcal{N}(\,\cdot\,;\,\cdot\,,\,\cdot\,)\):</p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;">
+      <li><strong>First argument \(\mathbf{x}_t\):</strong> the random variable being distributed (the noisy image at step \(t\)).</li>
+      <li><strong>Second argument \(\sqrt{1-\beta_t}\,\mathbf{x}_{t-1}\):</strong> the mean of the distribution. Multiplying by \(\sqrt{1-\beta_t} < 1\) slightly shrinks the previous image toward zero, preventing the signal from growing unboundedly as noise accumulates.</li>
+      <li><strong>Third argument \(\beta_t\,\mathbf{I}\):</strong> the covariance matrix. \(\mathbf{I}\) is the identity (each pixel gets independent noise), and \(\beta_t\) sets the noise variance. The schedule \(\beta_1 < \beta_2 < \cdots < \beta_T\) increases slowly (e.g., linearly from \(10^{-4}\) to \(0.02\)), so noise is added a little at a time.</li>
+    </ul>
+    <p style="margin-top:0.75rem;">After \(T \approx 1000\) steps, \(\mathbf{x}_T\) is approximately pure Gaussian noise: the original image is completely destroyed.</p>
+
+    <!-- Forward/reverse process diagram -->
+    <figure style="margin:1.25rem 0; text-align:center;">
+      <svg viewBox="0 0 620 120" style="max-width:700px;width:100%;font-family:var(--font-sans,sans-serif);font-size:10px;" aria-label="Diffusion forward and reverse process">
+        <defs>
+          <marker id="arrf" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#c00"/></marker>
+          <marker id="arrr" markerWidth="7" markerHeight="7" refX="1" refY="3" orient="auto"><path d="M7,0 L7,6 L0,3 z" fill="#2a802a"/></marker>
+        </defs>
+
+        <!-- Stage boxes (representing image at each diffusion step) -->
+        <!-- x_0: clean (dark solid) -->
+        <rect x="10" y="30" width="48" height="48" fill="#1a3a6e" rx="3"/>
+        <image x="10" y="30" width="48" height="48" href="images/digit3_example.png" preserveAspectRatio="none" style="image-rendering:pixelated;opacity:0.9;"/>
+        <text x="34" y="92" text-anchor="middle" font-size="9" fill="#444">\(\mathbf{x}_0\)</text>
+        <text x="34" y="103" text-anchor="middle" font-size="8" fill="#888">clean</text>
+
+        <!-- x_{T/4}: lightly noisy -->
+        <rect x="138" y="30" width="48" height="48" fill="#4a6a9e" rx="3"/>
+        <image x="138" y="30" width="48" height="48" href="images/digit3_example.png" preserveAspectRatio="none" style="image-rendering:pixelated;opacity:0.55;"/>
+        <rect x="138" y="30" width="48" height="48" fill="rgba(180,190,200,0.45)" rx="3"/>
+        <text x="162" y="92" text-anchor="middle" font-size="9" fill="#444">\(\mathbf{x}_{T/4}\)</text>
+        <text x="162" y="103" text-anchor="middle" font-size="8" fill="#888">light noise</text>
+
+        <!-- x_{T/2}: medium noisy -->
+        <rect x="266" y="30" width="48" height="48" fill="#8aaabe" rx="3"/>
+        <image x="266" y="30" width="48" height="48" href="images/digit3_example.png" preserveAspectRatio="none" style="image-rendering:pixelated;opacity:0.22;"/>
+        <rect x="266" y="30" width="48" height="48" fill="rgba(180,190,200,0.70)" rx="3"/>
+        <text x="290" y="92" text-anchor="middle" font-size="9" fill="#444">\(\mathbf{x}_{T/2}\)</text>
+        <text x="290" y="103" text-anchor="middle" font-size="8" fill="#888">noisy</text>
+
+        <!-- x_{3T/4}: mostly noise -->
+        <rect x="394" y="30" width="48" height="48" fill="#b0bfcc" rx="3"/>
+        <rect x="394" y="30" width="48" height="48" fill="rgba(180,190,200,0.88)" rx="3"/>
+        <text x="418" y="92" text-anchor="middle" font-size="9" fill="#444">\(\mathbf{x}_{3T/4}\)</text>
+        <text x="418" y="103" text-anchor="middle" font-size="8" fill="#888">mostly noise</text>
+
+        <!-- x_T: pure noise -->
+        <rect x="522" y="30" width="48" height="48" fill="#c8d0d8" rx="3"/>
+        <text x="546" y="92" text-anchor="middle" font-size="9" fill="#444">\(\mathbf{x}_T\)</text>
+        <text x="546" y="103" text-anchor="middle" font-size="8" fill="#888">pure noise</text>
+
+        <!-- Forward arrows (top, red) -->
+        <line x1="62"  y1="38" x2="134" y2="38" stroke="#c00" stroke-width="1.5" marker-end="url(#arrf)"/>
+        <line x1="190" y1="38" x2="262" y2="38" stroke="#c00" stroke-width="1.5" marker-end="url(#arrf)"/>
+        <line x1="318" y1="38" x2="390" y2="38" stroke="#c00" stroke-width="1.5" marker-end="url(#arrf)"/>
+        <line x1="446" y1="38" x2="518" y2="38" stroke="#c00" stroke-width="1.5" marker-end="url(#arrf)"/>
+        <text x="310" y="18" text-anchor="middle" font-size="9" font-weight="700" fill="#c00">Forward process q &nbsp;&nbsp;(add Gaussian noise &mdash; fixed, no learning)</text>
+
+        <!-- Reverse arrows (bottom, green) -->
+        <line x1="134" y1="66" x2="62"  y2="66" stroke="#2a802a" stroke-width="1.5" marker-end="url(#arrr)"/>
+        <line x1="262" y1="66" x2="190" y2="66" stroke="#2a802a" stroke-width="1.5" marker-end="url(#arrr)"/>
+        <line x1="390" y1="66" x2="318" y2="66" stroke="#2a802a" stroke-width="1.5" marker-end="url(#arrr)"/>
+        <line x1="518" y1="66" x2="446" y2="66" stroke="#2a802a" stroke-width="1.5" marker-end="url(#arrr)"/>
+        <text x="310" y="115" text-anchor="middle" font-size="9" font-weight="700" fill="#2a802a">Reverse process p&#x03B8; &nbsp;&nbsp;(predict &amp; remove noise &mdash; learned neural network)</text>
+
+      </svg>
+      <figcaption style="font-size:0.82rem;color:#666;margin-top:0.4rem;">
+        The <strong style="color:#c00;">forward process</strong> (red) gradually corrupts the clean image into pure Gaussian noise over \(T\) steps. The <strong style="color:#2a802a;">reverse process</strong> (green) is learned: starting from pure noise, a neural network iteratively removes noise to reconstruct a plausible clean image. Input is the DigitDataset &ldquo;3&rdquo; from Lesson&nbsp;37 for illustration.
+      </figcaption>
+    </figure>
+
+    <!-- Closed-form sampling -->
+    <h3>Closed-form sampling &mdash; jumping to any noise level instantly</h3>
+    <p>
+      To train the denoiser, we need many \((\mathbf{x}_0, \mathbf{x}_t)\) pairs at random timesteps \(t\). Naively this would require running the full \(t\)-step chain for every training example &mdash; extremely slow. The key mathematical trick is that the forward process has a <strong>closed-form marginal</strong>: you can jump directly from \(\mathbf{x}_0\) to \(\mathbf{x}_t\) at any step \(t\) without iterating:
+    </p>
+    <div class="math-block">
+      \[
+        \mathbf{x}_t = \sqrt{\bar{\alpha}_t}\;\mathbf{x}_0 \;+\; \sqrt{1 - \bar{\alpha}_t}\;\boldsymbol{\epsilon},
+        \qquad \boldsymbol{\epsilon} \sim \mathcal{N}(\mathbf{0}, \mathbf{I})
+      \]
+    </div>
+    <p>where \(\bar{\alpha}_t = \prod_{s=1}^{t}(1 - \beta_s)\). As \(t\) increases, \(\bar{\alpha}_t \to 0\) and the formula collapses to pure noise. This follows from the fact that applying the forward step repeatedly is equivalent to one larger Gaussian, since Gaussians are closed under convolution.</p>
+    <p>
+      <strong>Why this matters for training:</strong> We can instantly construct a noisy sample at any timestep \(t\) by drawing a single noise vector \(\boldsymbol{\epsilon}\) and computing the formula above. This makes training efficient: pick a random \(t\), corrupt \(\mathbf{x}_0\), train the network to predict \(\boldsymbol{\epsilon}\).
+    </p>
+
+    <!-- Reverse process -->
+    <h3>Reverse process &mdash; the denoising network</h3>
+    <p>
+      The model learns the reverse: given a noisy sample \(\mathbf{x}_t\) at timestep \(t\), predict the noise \(\boldsymbol{\epsilon}\) that was added. This neural network \(\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)\) is trained with a mean-squared error loss:
+    </p>
+    <div class="math-block">
+      \[
+        L = \mathbb{E}_{t,\,\mathbf{x}_0,\,\boldsymbol{\epsilon}}\!
+            \left[\left\|\boldsymbol{\epsilon} - \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)\right\|^2\right]
+      \]
+    </div>
+    <p>
+      <strong>Why predict \(\boldsymbol{\epsilon}\) (the noise) rather than \(\mathbf{x}_0\) directly?</strong> Several reasons, shown empirically by Ho et al. (2020):
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li>The target \(\boldsymbol{\epsilon}\) is always a standard Gaussian regardless of timestep, giving the network a consistent prediction target.</li>
+      <li>The resulting loss gives equal weight to all noise levels, rather than down-weighting high-noise (early) steps where the image has little signal.</li>
+      <li>Empirically, noise prediction produces sharper, more realistic samples than predicting \(\mathbf{x}_0\) directly.</li>
+    </ul>
+    <p style="margin-top:0.75rem;">
+      <strong>Inference</strong> means using the trained model to generate new images &mdash; the "generation" step as opposed to training. During inference, start from \(\mathbf{x}_T \sim \mathcal{N}(\mathbf{0}, \mathbf{I})\) (pure random noise) and iteratively apply the learned denoiser for \(T\) steps to arrive at \(\mathbf{x}_0\) &mdash; a brand-new image that was never in the training set.
+    </p>
+
+    <!-- Guidance -->
+    <h3>Conditional generation &mdash; how &ldquo;a blue car&rdquo; guides the output</h3>
+    <p>
+      Unconditioned diffusion models generate random samples from the data distribution. Real systems like Stable Diffusion or DALL&middot;E generate images that match a text prompt. How?
+    </p>
+    <p>
+      The most common technique is <strong>classifier-free guidance</strong> (Ho &amp; Salimans, 2022). The denoising network \(\boldsymbol{\epsilon}_\theta\) is trained in two modes simultaneously: (1) with a conditioning signal \(c\) (e.g., a text embedding of &ldquo;a blue car&rdquo;) and (2) with the conditioning dropped out (unconditional). At inference, the noise estimate is computed as:
+    </p>
+    <div class="math-block">
+      \[
+        \tilde{\boldsymbol{\epsilon}}_\theta(\mathbf{x}_t, c)
+        = (1 + w)\,\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, c)
+          \;-\; w\,\boldsymbol{\epsilon}_\theta(\mathbf{x}_t)
+      \]
+    </div>
+    <p>
+      where \(w \geq 0\) is the <strong>guidance scale</strong>. At \(w=0\) the model is unconditional; at large \(w\) the model is strongly pushed toward images consistent with \(c\). The conditioning signal \(c\) is typically the embedding of the text prompt produced by a text encoder (like CLIP), so the same diffusion backbone can generate images for arbitrary prompts without retraining.
+    </p>
+
+    <!-- U-Net -->
+    <h3>The denoising network &mdash; U-Net architecture</h3>
+    <p>
+      The neural network \(\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)\) must take in a noisy image and a timestep scalar, and output a noise estimate of the same spatial size. The standard architecture is a <strong>U-Net</strong>: a CNN with a contracting encoder path and a symmetric expanding decoder path, connected by <em>skip connections</em> that carry spatial detail from encoder to decoder.
+    </p>
+    <p>
+      The timestep \(t\) is injected at each resolution level as a sinusoidal embedding (similar to the transformer&rsquo;s positional encoding), telling the network how noisy the input is. In modern systems (Stable Diffusion 3, DALL&middot;E 3), the U-Net is sometimes replaced by a <strong>Diffusion Transformer (DiT)</strong> &mdash; a pure attention-based architecture applied to image patches.
+    </p>
+    <div class="callout info">
+      <strong>U-Net reference:</strong> The U-Net was originally introduced for biomedical image segmentation (Ronneberger et al., 2015). Its encoder-decoder structure with skip connections is ideal for diffusion because it can capture both global structure (bottleneck) and fine spatial detail (skip connections) simultaneously. See the original paper at <a href="https://arxiv.org/abs/1505.04597" target="_blank" rel="noopener">arxiv.org/abs/1505.04597</a> for the architecture diagram.
+    </div>
+
+    <!-- Diffusion model outputs -->
+    <h3>What diffusion models produce</h3>
+    <p>
+      Stable Diffusion, DALL&middot;E 3, and Midjourney are all diffusion models. Starting from pure Gaussian noise and iteratively applying the learned denoiser for ~20&ndash;50 inference steps (using accelerated samplers like DDIM or DPM-Solver), they produce photorealistic images, artwork, and more. A few publicly documented examples:
+    </p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li><strong>Stable Diffusion:</strong> open-source text-to-image model; the <a href="https://en.wikipedia.org/wiki/Stable_Diffusion" target="_blank" rel="noopener">Wikipedia article</a> shows representative outputs.</li>
+      <li><strong>Protein structure:</strong> RFDiffusion generates novel protein backbone geometries from noise in 3-D coordinate space.</li>
+      <li><strong>Weather:</strong> GenCast (Google DeepMind) generates ensemble weather forecasts via diffusion over atmospheric state variables.</li>
+    </ul>
+
+    <!-- Physics applications -->
+    <h3>Physics applications of diffusion models</h3>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
+      <li><strong>Molecular generation:</strong> Generating novel drug-like molecules or crystal structures (DiffSBDD, DiffCSP).</li>
+      <li><strong>Inverse problems:</strong> Reconstructing clean signals from noisy measurements &mdash; directly analogous to MRI, CT, and SAR image reconstruction in physics.</li>
+      <li><strong>Weather &amp; climate:</strong> Probabilistic ensemble forecast generation (SEEDS, GenCast).</li>
+      <li><strong>Simulation acceleration:</strong> Generating synthetic training data or emulating expensive physics simulations.</li>
+    </ul>
+
+    <!-- Diffusion video -->
+    <h3>Recommended video</h3>
+    <p>A clear, math-friendly explanation of how diffusion models work from the ground up:</p>
+    <a href="https://www.youtube.com/watch?v=fbLgFrlTnGU" target="_blank" rel="noopener" class="video-link-card">
+      <div class="video-link-thumb">&#x25B6;</div>
+      <div class="video-link-info">
+        <div class="video-link-title">What are Diffusion Models?</div>
+        <div class="video-link-channel">Outlier &mdash; YouTube</div>
+      </div>
+    </a>
+  </div>
+
+  <!-- ─── MATLAB Demos ─── -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F4BB;</span> MATLAB Demos</h2>
+
+    <!-- Demo 1: Attention -->
+    <h3>Demo 1 &mdash; Scaled Dot-Product Attention heatmap</h3>
+    <p>
+      This script computes attention weights for a small example from scratch &mdash; no training, no toolboxes beyond core MATLAB. It produces the attention heatmap from the lesson for any sequence of hand-assigned embeddings. Run it, then change the embedding vectors to see how the heatmap changes.
+    </p>
+<pre><code class="language-matlab">%% Lesson 38 — Demo 1: Scaled Dot-Product Attention
+% Computes and visualizes the attention weight matrix for a 3-token sequence.
+% No training required. Illustrates the Q-K dot product and softmax mechanically.
+clear; clc; rng(42);
+
+%% 1. Hand-assign word embeddings (d_model = 4)
+%    Columns: "cat"  "chases"  "mouse"
+%    Features: (animacy, action, subject-role, object-role)
+E = [ 0.9   0.3   0.2;    % animacy
+      0.1   0.8   0.2;    % action
+      0.7   0.4   0.1;    % subject-role
+      0.1   0.4   0.8];   % object-role
+% E is 4×3: column j = d=4 dim embedding for token j.
+
+words = {'cat','chases','mouse'};
+d_k   = 4;   % key/query dimension
+
+%% 2. Projection matrices W_Q, W_K, W_V  (d_k × d_model)
+%    Random but fixed — in a real transformer these are learned.
+rng(7);
+W_Q = randn(d_k, 4) * 0.6;
+W_K = randn(d_k, 4) * 0.6;
+W_V = randn(d_k, 4) * 0.6;
+
+Q = W_Q * E;   % d_k × n  (each column is the query for one token)
+K = W_K * E;
+V = W_V * E;
+
+%% 3. Attention scores:  scores(i,j) = q_i · k_j / sqrt(d_k)
+scores = (Q' * K) / sqrt(d_k);   % n × n
+
+%% 4. Softmax row-by-row → attention weights
+exp_s = exp(scores - max(scores,[],2));   % subtract row max for stability
+A     = exp_s ./ sum(exp_s, 2);           % n × n, rows sum to 1
+
+%% 5. Attention output
+Z = A * V';   % n × d_k  (each row = context-aware representation)
+
+%% 6. Visualise attention heatmap
+figure('Name','Attention Weights','NumberTitle','off');
+imagesc(A);
+colormap(flipud(gray));   % dark = high attention
+clim([0 1]);
+colorbar;
+set(gca, 'XTick',1:3, 'XTickLabel',words, ...
+         'YTick',1:3, 'YTickLabel',words, ...
+         'FontSize',12);
+xlabel('Key (attended-to token)');
+ylabel('Query (attending token)');
+title('Scaled Dot-Product Attention Weights', 'FontSize',13);
+
+% Annotate each cell with its weight value
+for i = 1:3
+    for j = 1:3
+        text(j, i, sprintf('%.2f', A(i,j)), ...
+             'HorizontalAlignment','center', 'FontSize',11, ...
+             'Color', ternary(A(i,j) > 0.45, 'w', 'k'));
+    end
+end
+
+fprintf('\nAttention weights A (rows sum to 1):\n');
+fprintf('%8s  %8s  %8s\n', words{:});
+for i = 1:3
+    fprintf('%7s: ', words{i});
+    fprintf('%8.3f', A(i,:));
+    fprintf('\n');
+end
+fprintf('\nContext-aware output Z (each row = weighted-average of values):\n');
+disp(Z);
+
+%% Helper (MATLAB anonymous function equivalent)
+function out = ternary(cond, a, b)
+    if cond; out = a; else; out = b; end
+end
+</code></pre>
+
+    <!-- Demo 2: DDPM forward process -->
+    <h3>Demo 2 &mdash; DDPM forward process on 2-D data</h3>
+    <p>
+      This script visualises the forward noising process on a 2-D Gaussian mixture &mdash; a dataset simple enough to plot but rich enough to show the key behavior. No network is trained; the script demonstrates how clean data is gradually destroyed into Gaussian noise according to the closed-form \(\mathbf{x}_t\) formula. Observe that the two clusters become indistinguishable well before \(t = T\).
+    </p>
+<pre><code class="language-matlab">%% Lesson 38 — Demo 2: DDPM Forward Process (visualisation only)
+% Demonstrates the closed-form forward noising: x_t = sqrt(ᾱ_t)·x_0 + sqrt(1-ᾱ_t)·ε
+% No reverse process / training is included here.
+clear; clc; rng(42);
+
+%% ── Noise schedule ─────────────────────────────────────────────────
+T          = 200;
+beta       = linspace(1e-4, 0.02, T);     % DDPM linear schedule
+alpha_bar  = cumprod(1 - beta);           % ᾱ_t  (cumulative product)
+
+%% ── Clean data: 2-D Gaussian mixture ──────────────────────────────
+n   = 600;
+x0  = [randn(2, n/2) + [2; 0], ...    % cluster centered at (+2, 0)
+       randn(2, n/2) + [-2; 0]];      % cluster centered at (-2, 0)
+% x0 is 2×n: each column is one data point
+
+%% ── Forward process: sample x_t for several timesteps ─────────────
+steps_plot = [1, 20, 60, 120, 200];   % which steps to visualise
+
+figure('Name','DDPM Forward Process','NumberTitle','off', ...
+       'Position',[100 100 1100 250]);
+
+for k = 1:numel(steps_plot)
+    t   = steps_plot(k);
+    ab  = alpha_bar(t);
+
+    eps = randn(size(x0));                          % ε ~ N(0,I)
+    xt  = sqrt(ab) .* x0 + sqrt(1-ab) .* eps;      % closed-form x_t
+
+    subplot(1, numel(steps_plot), k);
+    scatter(xt(1,:), xt(2,:), 8, '.', 'MarkerEdgeColor','#003087');
+    axis([-5 5 -5 5]); axis square; box on;
+    title(sprintf('t = %d\n\\bar{\\alpha}_t = %.3f', t, ab), 'FontSize',10);
+    if k == 1
+        ylabel('x_2'); xlabel('x_1');
+    end
+end
+sgtitle( ...
+  'DDPM Forward Process — x_t = \surd\bar{\alpha}_t x_0 + \surd(1-\bar{\alpha}_t) \epsilon', ...
+  'FontSize', 12);
+</code></pre>
+
+    <div class="callout info">
+      <strong>Implementing the reverse process in MATLAB:</strong> A full diffusion model (training a U-Net to denoise 28&times;28 images) is computationally demanding. MATLAB&rsquo;s Deep Learning Toolbox supports the required layers (<code>convolution2dLayer</code>, <code>transposedConv2dLayer</code>, attention layers); see the MATLAB documentation for &ldquo;Train Generative Adversarial Network&rdquo; as a starting template. For a runnable diffusion reference, the PyTorch implementation by Denoising Diffusion Probabilistic Models (Ho et al., 2020) is compact (~300&nbsp;lines) and well-commented.
+    </div>
+  </div>
+
+  <!-- ─── Summary ─── -->
+  <div class="card">
+    <h2><span class="section-icon">&#x1F4DD;</span> Summary</h2>
     <table class="summary-table">
       <thead><tr><th>Architecture</th><th>Key Innovation</th><th>Best For</th></tr></thead>
       <tbody>
-        <tr><td><strong>MLP (L35–36)</strong></td><td>Universal approximation via depth</td><td>Tabular data, general function fitting</td></tr>
+        <tr><td><strong>MLP (L35&ndash;36)</strong></td><td>Universal approximation through depth</td><td>Tabular data, general function fitting</td></tr>
         <tr><td><strong>CNN (L37)</strong></td><td>Parameter sharing via convolution; spatial locality</td><td>Images, 2D/3D data, spectrograms</td></tr>
         <tr><td><strong>Transformer</strong></td><td>Self-attention captures arbitrary long-range dependencies</td><td>Sequences: text, time series, molecules</td></tr>
-        <tr><td><strong>LLM</strong></td><td>Pre-trained transformer at massive scale</td><td>Language, code, reasoning, general-purpose AI</td></tr>
-        <tr><td><strong>Diffusion Model</strong></td><td>Learns to reverse a Gaussian noising process; trained with a simple MSE loss on predicted noise</td><td>Image/molecule/signal generation, inverse problems</td></tr>
+        <tr><td><strong>LLM</strong></td><td>Pre-trained transformer at massive scale; in-context learning</td><td>Language, code, reasoning, general AI</td></tr>
+        <tr><td><strong>VAE</strong></td><td>Encoder-decoder with latent distribution; stable training</td><td>Dimensionality reduction, generation (blurry)</td></tr>
+        <tr><td><strong>GAN</strong></td><td>Adversarial generator/discriminator; sharp outputs</td><td>High-fidelity image synthesis (unstable training)</td></tr>
+        <tr><td><strong>Diffusion Model</strong></td><td>Iterative denoising of a learned reverse Markov chain; simple MSE loss</td><td>Image/molecule/signal generation, inverse problems</td></tr>
       </tbody>
     </table>
-    <a href="hw/hw38.html" class="hw-button">📋 HW 38 — Transformers &amp; Diffusion (Qualitative + Optional Demo)</a>
   </div>
 
-  <!-- References -->
+  <!-- ─── References ─── -->
   <div class="card references">
-    <h2><span class="section-icon">📚</span> References</h2>
+    <h2><span class="section-icon">&#x1F4DA;</span> References</h2>
     <ol>
       <li>Vaswani, A., et al. (2017). Attention is all you need. <em>NeurIPS 2017</em>. arXiv:1706.03762.</li>
-      <li>Karpathy, A. (2023). <em>Let's build GPT: from scratch, in code, spelled out</em> [Video]. YouTube. <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">youtube.com</a></li>
       <li>Brown, T. B., et al. (2020). Language models are few-shot learners (GPT-3). <em>NeurIPS 2020</em>. arXiv:2005.14165.</li>
-      <li>Jumper, J., et al. (2021). Highly accurate protein structure prediction with AlphaFold. <em>Nature, 596</em>, 583–589.</li>
-      <li>Ho, J., Jain, A., &amp; Abbeel, P. (2020). Denoising diffusion probabilistic models (DDPM). <em>NeurIPS 2020</em>. arXiv:2006.11239.</li>
-      <li>Song, Y., et al. (2021). Score-based generative modeling through stochastic differential equations. <em>ICLR 2021</em>. arXiv:2011.13456.</li>
+      <li>Jumper, J., et al. (2021). Highly accurate protein structure prediction with AlphaFold. <em>Nature, 596</em>, 583&ndash;589.</li>
+      <li>Ho, J., Jain, A., &amp; Abbeel, P. (2020). Denoising diffusion probabilistic models. <em>NeurIPS 2020</em>. arXiv:2006.11239.</li>
+      <li>Ho, J., &amp; Salimans, T. (2022). Classifier-free diffusion guidance. arXiv:2207.12598.</li>
+      <li>Ronneberger, O., Fischer, P., &amp; Brox, T. (2015). U-Net: Convolutional networks for biomedical image segmentation. <em>MICCAI 2015</em>. arXiv:1505.04597.</li>
+      <li>Buzzard, G. (2024). <em>Notes on Transformers</em> [Interactive Jupyter notebooks]. Purdue University. <a href="https://www.math.purdue.edu/~buzzard/notes/transformers/" target="_blank" rel="noopener">math.purdue.edu/~buzzard/notes/transformers/</a></li>
+      <li>Karpathy, A. (2023). <em>Let&rsquo;s build GPT: from scratch, in code, spelled out</em> [Video]. YouTube. <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY" target="_blank" rel="noopener">youtube.com/watch?v=kCc8FmEb1nY</a></li>
+      <li>Outlier (2022). <em>What are Diffusion Models?</em> [Video]. YouTube. <a href="https://www.youtube.com/watch?v=fbLgFrlTnGU" target="_blank" rel="noopener">youtube.com/watch?v=fbLgFrlTnGU</a></li>
     </ol>
   </div>
 
   <div class="lesson-nav">
-    <a href="lesson37.html" class="prev">← L37: Convolutional Neural Networks</a>
+    <a href="lesson37.html" class="prev">&larr; L37: Convolutional Neural Networks</a>
     <a href="index.html" class="next">
       <div><span class="nav-label">Back to</span><br>Module Home</div>
-      →
+      &rarr;
     </a>
   </div>
 
