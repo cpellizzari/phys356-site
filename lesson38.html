@@ -110,14 +110,28 @@
     <!-- Scaled dot-product attention -->
     <h3>Step 2 &mdash; Scaled Dot-Product Attention</h3>
     <p>
-      Given a sequence of \(n\) embedded tokens, each token is linearly projected into three roles:
+      Let \(\mathbf{x}_i \in \mathbb{R}^d\) be the <em>input embedding vector</em> for token \(i\) — the word embedding plus its positional encoding. Each token is linearly projected into three distinct roles using learned weight matrices \(\mathbf{W}_Q\), \(\mathbf{W}_K\), \(\mathbf{W}_V\):
     </p>
-    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
-      <li><strong>Query</strong> \(\mathbf{q}_i = \mathbf{W}_Q \mathbf{x}_i\): &ldquo;what information am I looking for?&rdquo;</li>
-      <li><strong>Key</strong> \(\mathbf{k}_j = \mathbf{W}_K \mathbf{x}_j\): &ldquo;what information do I advertise?&rdquo;</li>
-      <li><strong>Value</strong> \(\mathbf{v}_j = \mathbf{W}_V \mathbf{x}_j\): &ldquo;what information do I actually provide?&rdquo;</li>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.6rem;font-size:0.95rem;margin-bottom:0.85rem;">
+      <li>
+        <strong>Query</strong> \(\mathbf{q}_i = \mathbf{W}_Q \mathbf{x}_i\): the &ldquo;question&rdquo; that token \(i\) is asking. It encodes what kind of information token \(i\) needs from the rest of the sequence in order to build its output representation. The index \(i\) marks the token that is <em>doing the asking</em> — every token generates exactly one query.
+      </li>
+      <li>
+        <strong>Key</strong> \(\mathbf{k}_j = \mathbf{W}_K \mathbf{x}_j\): a compact descriptor of what information token \(j\) <em>contains</em>. Think of it as a label on a file folder that tells you whether this folder is worth opening. The dot product \(\mathbf{q}_i \cdot \mathbf{k}_j\) is a relevance score: how well does token \(j\)&rsquo;s content match what token \(i\) is looking for? The index \(j\) runs over all tokens being &ldquo;looked at.&rdquo; In self-attention, \(j\) ranges over the same sequence as \(i\) — every token can look at every other token, including itself.
+      </li>
+      <li>
+        <strong>Value</strong> \(\mathbf{v}_j = \mathbf{W}_V \mathbf{x}_j\): the actual information that token \(j\) contributes if attention weight is high. The key decides <em>whether</em> token \(j\) gets selected; the value decides <em>what information gets transferred</em>. Think of it as the contents inside the file folder. The key and value are both indexed by \(j\) because they both belong to the token being attended to.
+      </li>
     </ul>
-    <p style="margin-top:0.75rem;">The output for position \(i\) is a <em>weighted average of all values</em>, where weight \(a_{ij}\) encodes how relevant token \(j\) is to token \(i\):</p>
+    <p>
+      <strong>Vectors \(\mathbf{q}_i, \mathbf{k}_j, \mathbf{v}_j\) vs. matrices \(\mathbf{Q}, \mathbf{K}, \mathbf{V}\).</strong>
+      The vector notation gives one token&rsquo;s projection at a time. In practice we stack all \(n\) tokens into matrices simultaneously:
+      \(\mathbf{Q} \in \mathbb{R}^{n \times d_k}\) (row \(i\) is \(\mathbf{q}_i^\top\)),
+      \(\mathbf{K} \in \mathbb{R}^{n \times d_k}\) (row \(j\) is \(\mathbf{k}_j^\top\)),
+      \(\mathbf{V} \in \mathbb{R}^{n \times d_v}\) (row \(j\) is \(\mathbf{v}_j^\top\)).
+      The matrix product \(\mathbf{Q}\mathbf{K}^\top \in \mathbb{R}^{n \times n}\) computes all \(n^2\) relevance scores in one operation: its \((i,j)\) entry is exactly \(\mathbf{q}_i \cdot \mathbf{k}_j\).
+    </p>
+    <p>The output for position \(i\) is a <em>weighted average of all values</em>, where weight \(a_{ij}\) encodes how relevant token \(j\) is to token \(i\):</p>
     <div class="math-block">
       \[
         a_{ij} = \frac{\exp\!\left(\mathbf{q}_i \cdot \mathbf{k}_j \,/\, \sqrt{d_k}\right)}
@@ -140,7 +154,10 @@
     <!-- Concrete example -->
     <h3>Concrete example: "cat chases mouse"</h3>
     <p>
-      To make the computation tangible, consider three tokens: <strong>"cat"</strong>, <strong>"chases"</strong>, <strong>"mouse"</strong>. After embedding and projecting to Q, K, V, suppose the raw dot products \(\mathbf{q}_i \cdot \mathbf{k}_j\) (before scaling) are:
+      In <em>self-attention</em>, every token simultaneously plays <em>both</em> roles: it generates a query (it is asking questions about the other tokens) <em>and</em> it exposes a key and value (it is available to be queried by others). Consider the three-token sentence <strong>"cat chases mouse"</strong>. The attention weight \(a_{ij}\) asks: when building token \(i\)&rsquo;s output representation, how much should it draw on token \(j\)?
+    </p>
+    <p>
+      In the tables below, <strong>rows correspond to queries</strong> (the token that is &ldquo;attending&rdquo; — asking the question) and <strong>columns correspond to keys</strong> (the token being &ldquo;attended to&rdquo; — supplying the answer). Read across a row to see where one token distributes its attention over all others. After embedding and projecting to Q, K, V, suppose the raw dot-product scores \(\mathbf{q}_i \cdot \mathbf{k}_j\) (before scaling or softmax) are:
     </p>
 
     <!-- Attention score table -->
@@ -266,24 +283,96 @@
       A single transformer block wraps multi-head attention in a two-sublayer structure with residual connections:
     </p>
 
-    <!-- Block diagram (HTML-based) -->
-    <div style="display:flex;flex-direction:column;align-items:center;gap:0;margin:1rem 0;">
-      <div style="background:#e8eef5;border:2px solid #003087;border-radius:6px;padding:0.5rem 2rem;font-size:0.9rem;font-weight:600;color:#003087;text-align:center;">Input tokens + Positional Encoding</div>
-      <div style="width:2px;height:20px;background:#888;"></div>
-      <div style="background:#fff8e1;border:2px solid #c5a900;border-radius:6px;padding:0.5rem 2rem;font-size:0.9rem;text-align:center;"><strong>Multi-Head Self-Attention</strong></div>
-      <div style="width:2px;height:10px;background:#888;"></div>
-      <div style="background:#f0f4f8;border:1px solid #aaa;border-radius:6px;padding:0.35rem 2rem;font-size:0.85rem;color:#555;text-align:center;">Add &amp; LayerNorm &nbsp;(residual: output + input)</div>
-      <div style="width:2px;height:10px;background:#888;"></div>
-      <div style="background:#e6f4ea;border:2px solid #2a802a;border-radius:6px;padding:0.5rem 2rem;font-size:0.9rem;text-align:center;"><strong>Feed-Forward Network</strong> (two-layer MLP, applied per-token)</div>
-      <div style="width:2px;height:10px;background:#888;"></div>
-      <div style="background:#f0f4f8;border:1px solid #aaa;border-radius:6px;padding:0.35rem 2rem;font-size:0.85rem;color:#555;text-align:center;">Add &amp; LayerNorm</div>
-      <div style="width:2px;height:10px;background:#888;"></div>
-      <div style="background:#eee;border:1px dashed #888;border-radius:4px;padding:0.3rem 1.5rem;font-size:0.8rem;color:#777;text-align:center;">&#x21ba; &nbsp;Repeat \(N_\ell = 12, 24, 96, \ldots\) times</div>
-      <div style="width:2px;height:10px;background:#888;"></div>
-      <div style="background:#e8eef5;border:2px solid #003087;border-radius:6px;padding:0.5rem 2rem;font-size:0.9rem;font-weight:600;color:#003087;text-align:center;">Output (classification head or next-token distribution)</div>
-    </div>
+    <!-- Block diagram (SVG with residual skip connections) -->
+    <figure style="margin:1rem 0; text-align:center;">
+      <svg viewBox="0 0 300 358" style="max-width:340px;width:100%;font-family:var(--font-sans,sans-serif);" aria-label="Transformer block architecture diagram showing two sublayers with residual skip connections">
+        <defs>
+          <marker id="tbArr"  markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#444"/></marker>
+          <marker id="tbArrG" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#888"/></marker>
+        </defs>
 
-    <p>The <strong>residual connection</strong> \(\mathbf{x} + \text{Attention}(\mathbf{x})\) lets gradients flow directly to early layers during backpropagation &mdash; the same idea as ResNets in CNNs. <strong>Layer normalization</strong> stabilizes activations within each sublayer. Depth (\(N_\ell\)) is the primary driver of capability.</p>
+        <!-- Title -->
+        <text x="145" y="13" text-anchor="middle" font-size="10" font-weight="700" fill="#003087">Transformer Block &nbsp;(×N&#x2113; stacked)</text>
+
+        <!-- Input label -->
+        <text x="145" y="31" text-anchor="middle" font-size="9" font-style="italic" fill="#555">Input x &nbsp;(n &times; d&#x2098;&#x2092;&#x2089;&#x2091;&#x2097;)</text>
+
+        <!-- Main flow arrow: input → MHSA -->
+        <line x1="145" y1="34" x2="145" y2="46" stroke="#444" stroke-width="1.5" marker-end="url(#tbArr)"/>
+
+        <!-- ── Residual skip 1 ─────────────────────────────────────── -->
+        <!-- branch right at y=36, then down alongside MHSA, then left to Add1 -->
+        <line x1="145" y1="36" x2="253" y2="36"  stroke="#888" stroke-width="1.2" stroke-dasharray="5,3"/>
+        <line x1="253" y1="36" x2="253" y2="112" stroke="#888" stroke-width="1.2" stroke-dasharray="5,3"/>
+        <line x1="253" y1="112" x2="158" y2="112" stroke="#888" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#tbArrG)"/>
+        <!-- "skip 1" label rotated vertically alongside the dashed path -->
+        <text x="270" y="76" text-anchor="middle" font-size="8" fill="#aaa" transform="rotate(90,270,76)">skip 1</text>
+
+        <!-- ── MHSA box ────────────────────────────────────────────── -->
+        <rect x="72" y="48"  width="146" height="44" fill="#fff8e1" stroke="#c5a900" stroke-width="2" rx="5"/>
+        <text x="145" y="67"  text-anchor="middle" font-size="10" font-weight="700" fill="#7a5c00">Multi-Head</text>
+        <text x="145" y="82"  text-anchor="middle" font-size="10" font-weight="700" fill="#7a5c00">Self-Attention</text>
+
+        <!-- Arrow: MHSA → Add1 -->
+        <line x1="145" y1="92" x2="145" y2="100" stroke="#444" stroke-width="1.5" marker-end="url(#tbArr)"/>
+
+        <!-- ── Add1 circle ────────────────────────────────────────── -->
+        <circle cx="145" cy="112" r="11" fill="#f0f4f8" stroke="#666" stroke-width="1.5"/>
+        <text x="145" y="117" text-anchor="middle" font-size="13" font-weight="700" fill="#444">+</text>
+
+        <!-- Arrow: Add1 → LN1 -->
+        <line x1="145" y1="123" x2="145" y2="133" stroke="#444" stroke-width="1.5" marker-end="url(#tbArr)"/>
+
+        <!-- ── Layer Norm 1 box ────────────────────────────────────── -->
+        <rect x="72" y="135" width="146" height="30" fill="#e8eef5" stroke="#003087" stroke-width="1.5" rx="5"/>
+        <text x="145" y="155" text-anchor="middle" font-size="10" fill="#003087">Layer Normalization</text>
+
+        <!-- Arrow: LN1 → FFN (residual 2 branches off at y=168) -->
+        <line x1="145" y1="165" x2="145" y2="178" stroke="#444" stroke-width="1.5" marker-end="url(#tbArr)"/>
+
+        <!-- ── Residual skip 2 ─────────────────────────────────────── -->
+        <line x1="145" y1="168" x2="253" y2="168"  stroke="#888" stroke-width="1.2" stroke-dasharray="5,3"/>
+        <line x1="253" y1="168" x2="253" y2="244"  stroke="#888" stroke-width="1.2" stroke-dasharray="5,3"/>
+        <line x1="253" y1="244" x2="158" y2="244"  stroke="#888" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#tbArrG)"/>
+        <text x="270" y="208" text-anchor="middle" font-size="8" fill="#aaa" transform="rotate(90,270,208)">skip 2</text>
+
+        <!-- ── FFN box ─────────────────────────────────────────────── -->
+        <rect x="72" y="180" width="146" height="44" fill="#e6f4ea" stroke="#2a802a" stroke-width="2" rx="5"/>
+        <text x="145" y="199" text-anchor="middle" font-size="10" font-weight="700" fill="#1a5c1a">Feed-Forward</text>
+        <text x="145" y="214" text-anchor="middle" font-size="10" font-weight="700" fill="#1a5c1a">Network (per token)</text>
+
+        <!-- Arrow: FFN → Add2 -->
+        <line x1="145" y1="224" x2="145" y2="232" stroke="#444" stroke-width="1.5" marker-end="url(#tbArr)"/>
+
+        <!-- ── Add2 circle ─────────────────────────────────────────── -->
+        <circle cx="145" cy="244" r="11" fill="#f0f4f8" stroke="#666" stroke-width="1.5"/>
+        <text x="145" y="249" text-anchor="middle" font-size="13" font-weight="700" fill="#444">+</text>
+
+        <!-- Arrow: Add2 → LN2 -->
+        <line x1="145" y1="255" x2="145" y2="265" stroke="#444" stroke-width="1.5" marker-end="url(#tbArr)"/>
+
+        <!-- ── Layer Norm 2 box ────────────────────────────────────── -->
+        <rect x="72" y="267" width="146" height="30" fill="#e8eef5" stroke="#003087" stroke-width="1.5" rx="5"/>
+        <text x="145" y="287" text-anchor="middle" font-size="10" fill="#003087">Layer Normalization</text>
+
+        <!-- Arrow: LN2 → output -->
+        <line x1="145" y1="297" x2="145" y2="318" stroke="#444" stroke-width="1.5" marker-end="url(#tbArr)"/>
+
+        <!-- Output label -->
+        <text x="145" y="332" text-anchor="middle" font-size="9" font-style="italic" fill="#555">Output z &nbsp;(n &times; d&#x2098;&#x2092;&#x2089;&#x2091;&#x2097;)</text>
+
+        <!-- Legend -->
+        <line x1="72"  y1="347" x2="90"  y2="347" stroke="#888" stroke-width="1.2" stroke-dasharray="5,3"/>
+        <text x="93" y="351" font-size="7.5" fill="#888">= residual (skip) connection</text>
+      </svg>
+      <figcaption style="font-size:0.82rem;color:#666;margin-top:0.5rem;">
+        One transformer block has two sublayers: Multi-Head Self-Attention and a Feed-Forward Network. Each sublayer is wrapped with a <strong>residual (skip) connection</strong> (dashed path): the sublayer&rsquo;s input is added back to its output at the &#x2295; node before normalization. This lets gradients flow directly to earlier layers &mdash; the same principle as ResNets in CNNs. Because input and output share the shape \((n \times d_\text{model})\), blocks can be stacked to any depth.
+      </figcaption>
+    </figure>
+
+    <p>
+      The two sublayers each serve a distinct role. <strong>Multi-Head Self-Attention</strong> allows every token to gather information from any other position in the sequence &mdash; it handles long-range dependencies. The <strong>Feed-Forward Network</strong> (a two-layer MLP applied independently to each token&rsquo;s position) adds per-token nonlinear processing and increases representational capacity. <strong>Layer Normalization</strong> after each Add step stabilizes the magnitude of activations, which is critical for training deep stacks. GPT-2 uses \(N_\ell = 12\) blocks; GPT-3 uses 96. Depth is the primary driver of capability.
+    </p>
 
     <div class="callout info">
       <strong>Self-attention vs. cross-attention:</strong> In <em>self-attention</em>, Q, K, V all come from the same sequence (used in encoders and decoder-only LLMs). In <em>cross-attention</em> (encoder-decoder), Q comes from one sequence (the decoder) and K, V from another (the encoder output) &mdash; enabling tasks like translation where two different sequences must communicate.
