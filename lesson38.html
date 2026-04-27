@@ -897,8 +897,9 @@ dataFolder = fullfile(toolboxdir('nnet'),'nndemos','nndatasets','DigitDataset');
 imds = imageDatastore(dataFolder,'IncludeSubfolders',true,'LabelSource','foldernames');
 [imdsTrain, imdsTest] = splitEachLabel(imds, n_per_class, 'randomized');
 
-to_double = @(im) im2double(im);
-X_clean = cat(4, cellfun(to_double, readall(imdsTrain), 'UniformOutput', false){:});
+to_double   = @(im) im2double(im);
+imgs_train  = cellfun(to_double, readall(imdsTrain), 'UniformOutput', false);
+X_clean     = cat(4, imgs_train{:});
 
 %% ── Build training pairs: (noisy image, actual noise ε) ──────────
 % Target = ε, NOT the clean image. This is the key ε-prediction trick:
@@ -930,7 +931,8 @@ opts = trainingOptions('adam', ...
 net = trainNetwork(X_noisy, eps_train, layers, opts);
 
 %% ── Test on held-out images ──────────────────────────────────────
-X_test  = cat(4, cellfun(to_double, readall(imdsTest), 'UniformOutput', false){:});
+imgs_test = cellfun(to_double, readall(imdsTest), 'UniformOutput', false);
+X_test    = cat(4, imgs_test{:});
 n_show  = min(5, size(X_test,4));
 eps_t   = sigma * randn(28, 28, 1, n_show);
 Xn      = max(0, min(1, X_test(:,:,:,1:n_show) + eps_t));
