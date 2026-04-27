@@ -727,137 +727,234 @@
   <div class="card">
     <h2><span class="section-icon">&#x1F4BB;</span> MATLAB Demos</h2>
 
+    <div class="callout info" style="margin-bottom:1rem;">
+      <strong>What MATLAB provides out of the box:</strong>
+      <ul style="margin-top:0.4rem;padding-left:1.2rem;display:flex;flex-direction:column;gap:0.2rem;">
+        <li><code>denoisingNetwork('dncnn')</code> &mdash; a <em>pre-trained</em> DnCNN image denoiser (Demo 2, no training needed).</li>
+        <li><code>trainNetwork</code> with <code>regressionLayer</code> &mdash; trains a noise predictor with the same MSE-on-&epsilon; loss as DDPM (Demo 3).</li>
+        <li><code>selfAttentionLayer</code>, <code>positionEmbeddingLayer</code> &mdash; building blocks for custom transformer networks (Deep Learning Toolbox R2019b+).</li>
+      </ul>
+      A full diffusion model or production transformer requires more compute than a class session. The demos below focus on the core building blocks: attention mechanics and the denoising objective.
+    </div>
+
     <!-- Demo 1: Attention -->
     <h3>Demo 1 &mdash; Scaled Dot-Product Attention heatmap</h3>
     <p>
-      This script computes attention weights for a small example from scratch &mdash; no training, no toolboxes beyond core MATLAB. It produces the attention heatmap from the lesson for any sequence of hand-assigned embeddings. Run it, then change the embedding vectors to see how the heatmap changes.
+      This script uses <strong>identity projection matrices</strong> (\(\mathbf{W}_Q = \mathbf{W}_K = \mathbf{W}_V = \mathbf{I}\)) so that \(\mathbf{q}_i = \mathbf{x}_i\) directly. Attention then reflects the raw dot-product similarity of the hand-designed embeddings, making the heatmap directly interpretable from the embedding values. In a real trained transformer these matrices are learned &mdash; change the embeddings or add a non-identity \(\mathbf{W}_Q\) to see how the pattern shifts.
     </p>
 <pre><code class="language-matlab">%% Lesson 38 — Demo 1: Scaled Dot-Product Attention
-% Computes and visualizes the attention weight matrix for a 3-token sequence.
-% No training required. Illustrates the Q-K dot product and softmax mechanically.
-clear; clc; rng(42);
+% Computes the attention weight matrix for "cat chases mouse".
+% W_Q = W_K = W_V = I so attention = raw embedding similarity —
+% directly interpretable from the embedding design.
+% Try: replace eye(4) with randn(4)*0.6 to see how random projections
+%      scramble the pattern, motivating WHY W_Q/W_K/W_V must be learned.
+clear; clc;
 
-%% 1. Hand-assign word embeddings (d_model = 4)
-%    Columns: "cat"  "chases"  "mouse"
+%% 1. Hand-assign word embeddings  E is 4×3 (features × tokens)
 %    Features: (animacy, action, subject-role, object-role)
-E = [ 0.9   0.3   0.2;    % animacy
-      0.1   0.8   0.2;    % action
-      0.7   0.4   0.1;    % subject-role
-      0.1   0.4   0.8];   % object-role
-% E is 4×3: column j = d=4 dim embedding for token j.
-
+E = [ 0.9   0.3   0.2;    % animacy:      cat/mouse are animals, chases is a verb
+      0.1   0.8   0.2;    % action:       chases is the action word
+      0.7   0.4   0.1;    % subject-role: cat is the doer
+      0.1   0.4   0.8];   % object-role:  mouse is the receiver
 words = {'cat','chases','mouse'};
-d_k   = 4;   % key/query dimension
+d_k   = 4;
 
-%% 2. Projection matrices W_Q, W_K, W_V  (d_k × d_model)
-%    Random but fixed — in a real transformer these are learned.
-rng(7);
-W_Q = randn(d_k, 4) * 0.6;
-W_K = randn(d_k, 4) * 0.6;
-W_V = randn(d_k, 4) * 0.6;
+%% 2. Identity projection matrices → q_i = x_i, k_j = x_j
+%    Attention weight a_ij then measures raw embedding similarity.
+%    In a trained transformer W_Q, W_K, W_V are learned parameters.
+W_Q = eye(d_k);
+W_K = eye(d_k);
+W_V = eye(d_k);
 
-Q = W_Q * E;   % d_k × n  (each column is the query for one token)
+Q = W_Q * E;   % 4×3: column i = query vector for token i
 K = W_K * E;
 V = W_V * E;
 
-%% 3. Attention scores:  scores(i,j) = q_i · k_j / sqrt(d_k)
-scores = (Q' * K) / sqrt(d_k);   % n × n
+%% 3. Scaled dot-product scores  (i,j) = q_i · k_j / sqrt(d_k)
+scores = (Q' * K) / sqrt(d_k);   % 3×3
 
-%% 4. Softmax row-by-row → attention weights
-exp_s = exp(scores - max(scores,[],2));   % subtract row max for stability
-A     = exp_s ./ sum(exp_s, 2);           % n × n, rows sum to 1
+%% 4. Row-wise softmax → attention weights
+exp_s = exp(scores - max(scores, [], 2));   % numerical stability
+A     = exp_s ./ sum(exp_s, 2);            % rows sum to 1
 
-%% 5. Attention output
-Z = A * V';   % n × d_k  (each row = context-aware representation)
+%% 5. Context-aware output  Z = A * V'
+Z = A * V';   % 3×4  (row i = weighted blend of all value vectors)
 
-%% 6. Visualise attention heatmap
-figure('Name','Attention Weights','NumberTitle','off');
-imagesc(A);
-colormap(flipud(gray));   % dark = high attention
-clim([0 1]);
-colorbar;
-set(gca, 'XTick',1:3, 'XTickLabel',words, ...
-         'YTick',1:3, 'YTickLabel',words, ...
-         'FontSize',12);
-xlabel('Key (attended-to token)');
-ylabel('Query (attending token)');
-title('Scaled Dot-Product Attention Weights', 'FontSize',13);
-
-% Annotate each cell with its weight value
+%% 6. Print results
+fprintf('Raw scores (q_i·k_j / sqrt(d_k)):\n');
+fprintf('%10s %8s %8s %8s\n', '', words{:});
 for i = 1:3
-    for j = 1:3
-        text(j, i, sprintf('%.2f', A(i,j)), ...
-             'HorizontalAlignment','center', 'FontSize',11, ...
-             'Color', ternary(A(i,j) > 0.45, 'w', 'k'));
-    end
+    fprintf('%10s', words{i});
+    fprintf('%8.3f', scores(i,:));
+    fprintf('\n');
 end
-
-fprintf('\nAttention weights A (rows sum to 1):\n');
-fprintf('%8s  %8s  %8s\n', words{:});
+fprintf('\nAttention weights A (rows sum to 1.0):\n');
+fprintf('%10s %8s %8s %8s\n', '', words{:});
 for i = 1:3
-    fprintf('%7s: ', words{i});
+    fprintf('%10s', words{i});
     fprintf('%8.3f', A(i,:));
     fprintf('\n');
 end
-fprintf('\nContext-aware output Z (each row = weighted-average of values):\n');
-disp(Z);
+fprintf('\nInterpretation:\n');
+fprintf('  "cat"    attends most strongly to itself (high animacy+subject-role)\n');
+fprintf('  "chases" has the most balanced attention — the verb must integrate\n');
+fprintf('           information from both subject and object\n');
+fprintf('  "mouse"  attends most to itself but also reaches back to "cat"\n');
+fprintf('           (both share the animacy feature)\n');
 
-%% Helper (MATLAB anonymous function equivalent)
-function out = ternary(cond, a, b)
-    if cond; out = a; else; out = b; end
-end
-</code></pre>
-
-    <!-- Demo 2: DDPM forward process -->
-    <h3>Demo 2 &mdash; DDPM forward process on 2-D data</h3>
-    <p>
-      This script visualises the forward noising process on a 2-D Gaussian mixture &mdash; a dataset simple enough to plot but rich enough to show the key behavior. No network is trained; the script demonstrates how clean data is gradually destroyed into Gaussian noise according to the closed-form \(\mathbf{x}_t\) formula. Observe that the two clusters become indistinguishable well before \(t = T\).
-    </p>
-<pre><code class="language-matlab">%% Lesson 38 — Demo 2: DDPM Forward Process (visualisation only)
-% Demonstrates the closed-form forward noising: x_t = sqrt(ᾱ_t)·x_0 + sqrt(1-ᾱ_t)·ε
-% No reverse process / training is included here.
-clear; clc; rng(42);
-
-%% ── Noise schedule ─────────────────────────────────────────────────
-T          = 200;
-beta       = linspace(1e-4, 0.02, T);     % DDPM linear schedule
-alpha_bar  = cumprod(1 - beta);           % ᾱ_t  (cumulative product)
-
-%% ── Clean data: 2-D Gaussian mixture ──────────────────────────────
-n   = 600;
-x0  = [randn(2, n/2) + [2; 0], ...    % cluster centered at (+2, 0)
-       randn(2, n/2) + [-2; 0]];      % cluster centered at (-2, 0)
-% x0 is 2×n: each column is one data point
-
-%% ── Forward process: sample x_t for several timesteps ─────────────
-steps_plot = [1, 20, 60, 120, 200];   % which steps to visualise
-
-figure('Name','DDPM Forward Process','NumberTitle','off', ...
-       'Position',[100 100 1100 250]);
-
-for k = 1:numel(steps_plot)
-    t   = steps_plot(k);
-    ab  = alpha_bar(t);
-
-    eps = randn(size(x0));                          % ε ~ N(0,I)
-    xt  = sqrt(ab) .* x0 + sqrt(1-ab) .* eps;      % closed-form x_t
-
-    subplot(1, numel(steps_plot), k);
-    scatter(xt(1,:), xt(2,:), 8, '.', 'MarkerEdgeColor','#003087');
-    axis([-5 5 -5 5]); axis square; box on;
-    title(sprintf('t = %d\n\\bar{\\alpha}_t = %.3f', t, ab), 'FontSize',10);
-    if k == 1
-        ylabel('x_2'); xlabel('x_1');
+%% 7. Heatmap
+figure('Name','Attention Weights (W_Q=W_K=I)','NumberTitle','off');
+imagesc(A); colormap(flipud(gray)); clim([0 1]); colorbar;
+set(gca,'XTick',1:3,'XTickLabel',words,'YTick',1:3,'YTickLabel',words,'FontSize',12);
+xlabel('Key (token being attended to)');
+ylabel('Query (attending token)');
+title({'Attention weights — "cat chases mouse"'; ...
+       'W_Q = W_K = W_V = I  (attention \propto embedding similarity)'},'FontSize',11);
+for i = 1:3
+    for j = 1:3
+        clr = 'k'; if A(i,j) > 0.40, clr = 'w'; end
+        text(j, i, sprintf('%.2f', A(i,j)), ...
+            'HorizontalAlignment','center','FontSize',11,'FontWeight','bold','Color',clr);
     end
 end
-sgtitle( ...
-  'DDPM Forward Process — x_t = \surd\bar{\alpha}_t x_0 + \surd(1-\bar{\alpha}_t) \epsilon', ...
-  'FontSize', 12);
 </code></pre>
 
+    <!-- Demo 2: Pre-trained DnCNN -->
+    <h3>Demo 2 &mdash; Pre-trained DnCNN denoiser <span style="font-weight:400;font-size:0.9rem;">(Image Processing Toolbox)</span></h3>
+    <p>
+      MATLAB ships a pre-trained <strong>DnCNN</strong> (deep convolutional denoising network) via <code>denoisingNetwork('dncnn')</code>. No training, no waiting &mdash; load and apply. This demo directly illustrates the reverse-process concept: the network was trained with the same loss as DDPM, \(\mathbb{E}[\|\boldsymbol{\epsilon} - \hat{\boldsymbol{\epsilon}}_\theta\|^2]\), to predict and subtract residual Gaussian noise. Run it, then try <code>imread</code> on your own image.
+    </p>
+<pre><code class="language-matlab">%% Lesson 38 — Demo 2: Pre-trained DnCNN Denoiser
+% Requires: Image Processing Toolbox + Deep Learning Toolbox (MATLAB R2019b+)
+% No training needed — MATLAB provides pre-trained DnCNN weights.
+% The DnCNN loss is identical to the DDPM reverse-process objective:
+%   L = E[ || ε_true  −  ε_predicted ||² ]
+clear; clc;
+
+%% ── Test image and noise levels ──────────────────────────────────
+img    = im2double(imread('cameraman.tif'));   % 256×256 grayscale classic
+sigmas = [25, 50, 75] / 255;                  % σ as fraction of full range
+
+%% ── Load pre-trained DnCNN ───────────────────────────────────────
+% denoisingNetwork downloads/caches pre-trained weights (~2 MB).
+% Internally: denoised = noisy − net(noisy)  [predict-and-subtract noise]
+net = denoisingNetwork('dncnn');
+
+%% ── Apply at three noise levels ──────────────────────────────────
+figure('Name','Pre-trained DnCNN','NumberTitle','off','Position',[50 50 900 380]);
+for k = 1:numel(sigmas)
+    rng(k);
+    sigma    = sigmas(k);
+    noisy    = max(0, min(1, img + sigma * randn(size(img))));
+    denoised = denoiseImage(noisy, net);   % one forward pass through DnCNN
+
+    subplot(3,3,(k-1)*3+1); imshow(img);
+    ylabel(sprintf('\\sigma = %d/255', round(sigma*255)),'FontSize',10);
+    if k == 1, title('Clean original'); end
+
+    subplot(3,3,(k-1)*3+2); imshow(noisy);
+    if k == 1, title('Noisy input'); end
+
+    subplot(3,3,(k-1)*3+3); imshow(denoised);
+    if k == 1, title('DnCNN denoised'); end
+end
+sgtitle('Pre-trained DnCNN — one-step neural denoising (no training needed)','FontSize',11);
+
+%% ── PSNR table ───────────────────────────────────────────────────
+fprintf('\n%-10s  %-20s  %-20s\n','sigma/255','PSNR noisy (dB)','PSNR denoised (dB)');
+fprintf('%s\n', repmat('-',1,54));
+for k = 1:numel(sigmas)
+    rng(k);
+    sigma    = sigmas(k);
+    noisy    = max(0, min(1, img + sigma * randn(size(img))));
+    denoised = denoiseImage(noisy, net);
+    fprintf('%-10d  %-20.1f  %-20.1f\n', round(sigma*255), psnr(noisy,img), psnr(denoised,img));
+end
+fprintf('\nDDPM connection: the reverse process IS a sequence of small denoising\n');
+fprintf('steps, each trained with this same MSE-on-noise loss.\n');
+</code></pre>
+
+    <!-- Demo 3: Train noise predictor -->
+    <h3>Demo 3 &mdash; Train a noise predictor on DigitDataset <span style="font-weight:400;font-size:0.9rem;">(DDPM training objective)</span></h3>
+    <p>
+      This script trains a small CNN to <em>predict the noise that was added</em> to an image — the \(\boldsymbol{\epsilon}\)-prediction loss that is the heart of DDPM training. The network takes a noisy digit as input and outputs a noise estimate of the same size; subtracting it recovers the denoised image. Three tunable parameters control difficulty. After training, compare PSNR before and after denoising; try increasing <code>sigma</code> or cutting <code>n_epochs</code> to see overfitting vs. underfitting.
+    </p>
     <div class="callout info">
-      <strong>Implementing the reverse process in MATLAB:</strong> A full diffusion model (training a U-Net to denoise 28&times;28 images) is computationally demanding. MATLAB&rsquo;s Deep Learning Toolbox supports the required layers (<code>convolution2dLayer</code>, <code>transposedConv2dLayer</code>, attention layers); see the MATLAB documentation for &ldquo;Train Generative Adversarial Network&rdquo; as a starting template. For a runnable diffusion reference, the PyTorch implementation by Denoising Diffusion Probabilistic Models (Ho et al., 2020) is compact (~300&nbsp;lines) and well-commented.
+      <strong>How this connects to DDPM:</strong> DDPM trains this <em>exact same network</em>, but simultaneously for all noise levels \(t = 1, \ldots, T\) by passing the timestep as an additional input. Here we fix one \(\sigma\) for simplicity. Extending to a full DDPM requires conditioning the network on \(t\) (via sinusoidal embedding) and sampling \(\mathbf{x}_0\) iteratively through all \(T\) reverse steps.
     </div>
+<pre><code class="language-matlab">%% Lesson 38 — Demo 3: Train a Noise Predictor (DDPM ε-prediction loss)
+% Trains a small CNN on DigitDataset to predict the Gaussian noise added
+% to images. Loss = MSE(ε_true, ε_predicted) — identical to DDPM training.
+clear; clc; rng(42);
+
+%% ── Tunable parameters ──────────────────────────────────────────
+n_per_class = 200;   % training images per digit class (try 50–500)
+sigma       = 0.30;  % noise std (try 0.10 → easy, 0.50 → hard)
+n_epochs    = 20;    % training epochs (lower → faster, higher → better)
+
+%% ── Load DigitDataset ────────────────────────────────────────────
+dataFolder = fullfile(toolboxdir('nnet'),'nndemos','nndatasets','DigitDataset');
+imds = imageDatastore(dataFolder,'IncludeSubfolders',true,'LabelSource','foldernames');
+[imdsTrain, imdsTest] = splitEachLabel(imds, n_per_class, 'randomized');
+
+to_double = @(im) im2double(im);
+X_clean = cat(4, cellfun(to_double, readall(imdsTrain), 'UniformOutput', false){:});
+
+%% ── Build training pairs: (noisy image, actual noise ε) ──────────
+% Target = ε, NOT the clean image. This is the key ε-prediction trick:
+%   denoised = noisy − network(noisy) = x_0 + ε − ε̂  ≈  x_0
+eps_train = sigma * randn(size(X_clean));
+X_noisy   = max(0, min(1, X_clean + eps_train));
+
+%% ── Noise-predicting network ─────────────────────────────────────
+layers = [
+    imageInputLayer([28 28 1], 'Normalization', 'none')
+    convolution2dLayer(3, 32, 'Padding', 'same')
+    batchNormalizationLayer
+    reluLayer
+    convolution2dLayer(3, 32, 'Padding', 'same')
+    batchNormalizationLayer
+    reluLayer
+    convolution2dLayer(3,  1, 'Padding', 'same')   % output: ε̂  (same size as input)
+    regressionLayer                                 % loss = MSE(ε̂, ε_true)
+];
+
+opts = trainingOptions('adam', ...
+    'MaxEpochs',        n_epochs, ...
+    'MiniBatchSize',    64, ...
+    'InitialLearnRate', 5e-4, ...
+    'Shuffle',          'every-epoch', ...
+    'Verbose',          false, ...
+    'Plots',            'training-progress');
+
+net = trainNetwork(X_noisy, eps_train, layers, opts);
+
+%% ── Test on held-out images ──────────────────────────────────────
+X_test  = cat(4, cellfun(to_double, readall(imdsTest), 'UniformOutput', false){:});
+n_show  = min(5, size(X_test,4));
+eps_t   = sigma * randn(28, 28, 1, n_show);
+Xn      = max(0, min(1, X_test(:,:,:,1:n_show) + eps_t));
+eps_hat = predict(net, Xn);                      % predicted noise
+X_den   = max(0, min(1, Xn - eps_hat));          % subtract noise
+
+figure('Name','Noise Predictor (DDPM loss)','NumberTitle','off',...
+       'Position',[50 50 900 240]);
+for i = 1:n_show
+    subplot(3, n_show, i          ); imshow(X_test(:,:,:,i)); if i==1, ylabel('Clean'); end
+    subplot(3, n_show, n_show + i ); imshow(Xn(:,:,:,i));     if i==1, ylabel('Noisy'); end
+    subplot(3, n_show, 2*n_show+i ); imshow(X_den(:,:,:,i)); if i==1, ylabel('Denoised'); end
+end
+sgtitle(sprintf('Noise predictor  \\sigma=%.2f  %d epochs  —  \\epsilon-prediction loss',...
+    sigma, n_epochs), 'FontSize', 11);
+
+%% ── PSNR ─────────────────────────────────────────────────────────
+psnr_n = mean(arrayfun(@(i) psnr(Xn(:,:,:,i),    X_test(:,:,:,i)), 1:n_show));
+psnr_d = mean(arrayfun(@(i) psnr(X_den(:,:,:,i), X_test(:,:,:,i)), 1:n_show));
+fprintf('\nMean PSNR:  noisy = %.1f dB   →   denoised = %.1f dB\n', psnr_n, psnr_d);
+fprintf('To reach full DDPM: condition on timestep t, train at all σ(t) simultaneously,\n');
+fprintf('then iteratively apply the denoiser from x_T (pure noise) down to x_0.\n');
+</code></pre>
+
   </div>
 
   <!-- ─── Summary ─── -->
