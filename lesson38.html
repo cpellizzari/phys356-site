@@ -611,7 +611,7 @@
       Unconditioned diffusion models generate random samples from the data distribution. Real systems like Stable Diffusion or DALL&middot;E generate images that match a text prompt. How?
     </p>
     <p>
-      The most common technique is <strong>classifier-free guidance</strong> (Ho &amp; Salimans, 2022). The denoising network \(\boldsymbol{\epsilon}_\theta\) is trained in two modes simultaneously: (1) with a conditioning signal \(c\) (e.g., a text embedding of &ldquo;a blue car&rdquo;) and (2) with the conditioning dropped out (unconditional). At inference, the noise estimate is computed as:
+      The most common technique is <strong>classifier-free guidance</strong> (Ho &amp; Salimans, 2022). The denoising network \(\boldsymbol{\epsilon}_\theta\) is trained in two modes simultaneously: (1) with a conditioning signal \(c\) — typically the CLIP text embedding of the prompt &ldquo;a blue car&rdquo; — and (2) with the conditioning replaced by a null token \(\emptyset\) (unconditional mode). During a single training pass, each batch element is randomly conditioned or unconditioned. At inference, the two network outputs are combined as:
     </p>
     <div class="math-block">
       \[
@@ -620,31 +620,86 @@
           \;-\; w\,\boldsymbol{\epsilon}_\theta(\mathbf{x}_t)
       \]
     </div>
+    <p>Breaking down each term:</p>
+    <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;font-size:0.95rem;margin-bottom:0.8rem;">
+      <li>\(\tilde{\boldsymbol{\epsilon}}_\theta(\mathbf{x}_t, c)\): the <em>guided</em> noise estimate used at each inference step in place of the raw network output.</li>
+      <li>\(\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, c)\): the <strong>conditional</strong> noise estimate &mdash; what the network predicts when given both the noisy image \(\mathbf{x}_t\) <em>and</em> the text embedding \(c\) (&ldquo;a blue car&rdquo;).</li>
+      <li>\(\boldsymbol{\epsilon}_\theta(\mathbf{x}_t)\): the <strong>unconditional</strong> noise estimate &mdash; what the network predicts with no conditioning signal, as if no prompt were provided.</li>
+      <li>\(w \geq 0\): the <strong>guidance scale</strong>. Common values are \(w = 7\)&ndash;\(12\) for strong prompt adherence.</li>
+    </ul>
+    <p>Rewriting the formula makes the geometry clear:</p>
+    <div class="math-block">
+      \[
+        \tilde{\boldsymbol{\epsilon}}_\theta(\mathbf{x}_t, c)
+        = \underbrace{\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, c)}_{\text{conditional baseline}}
+          \;+\; w\!\underbrace{\bigl[\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, c)
+              - \boldsymbol{\epsilon}_\theta(\mathbf{x}_t)\bigr]}_{\text{guidance direction}}
+      \]
+    </div>
     <p>
-      where \(w \geq 0\) is the <strong>guidance scale</strong>. At \(w=0\) the model is unconditional; at large \(w\) the model is strongly pushed toward images consistent with \(c\). The conditioning signal \(c\) is typically the embedding of the text prompt produced by a text encoder (like CLIP), so the same diffusion backbone can generate images for arbitrary prompts without retraining.
+      The bracket is the <em>guidance direction</em> &mdash; a vector pointing from the unconditioned prediction toward the conditioned prediction. At \(w = 0\), \(\tilde{\boldsymbol{\epsilon}}_\theta = \boldsymbol{\epsilon}_\theta(\mathbf{x}_t, c)\) — the plain conditional prediction with no extra amplification; the prompt is used but not emphasized beyond its trained signal. As \(w\) increases, each denoising step is pushed further in the prompt-consistent direction. At very large \(w\), outputs become over-saturated or lose diversity &mdash; so in practice a moderate value like \(w = 7.5\) balances prompt fidelity against image quality. The conditioning signal \(c\) is typically produced by a frozen text encoder (like CLIP), so the same diffusion backbone generates images for any text prompt without retraining.
     </p>
 
     <!-- U-Net -->
     <h3>The denoising network &mdash; U-Net architecture</h3>
     <p>
-      The neural network \(\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)\) must take in a noisy image and a timestep scalar, and output a noise estimate of the same spatial size. The standard architecture is a <strong>U-Net</strong>: a CNN with a contracting encoder path and a symmetric expanding decoder path, connected by <em>skip connections</em> that carry spatial detail from encoder to decoder.
+      The neural network \(\boldsymbol{\epsilon}_\theta(\mathbf{x}_t, t)\) must take in a noisy image and a timestep scalar, and output a noise estimate of the same spatial size. The standard architecture is a <strong>U-Net</strong>: a CNN with a contracting encoder path and a symmetric expanding decoder path, connected by <em>skip connections</em> that copy feature maps directly from encoder to decoder at the same resolution.
     </p>
+
+    <!-- U-Net architecture figure from Ronneberger et al. 2015 -->
+    <figure style="margin:1.25rem 0; text-align:center;">
+      <a href="https://arxiv.org/abs/1505.04597" target="_blank" rel="noopener">
+        <img src="https://lmb.informatik.uni-freiburg.de/people/ronneber/u-net/u-net-architecture.png"
+             alt="U-Net architecture: blue boxes are multi-channel feature maps. Encoder path (left) applies 3×3 convolutions and 2×2 max-pool, halving spatial size and doubling channels at each level. Decoder path (right) applies up-convolutions and concatenates skip-connected encoder maps. Final 1×1 convolution maps to output."
+             style="max-width:100%;width:680px;border:1px solid #ccc;border-radius:4px;"
+             loading="lazy">
+      </a>
+      <figcaption style="font-size:0.82rem;color:#666;margin-top:0.5rem;">
+        <strong>U-Net architecture</strong> from Ronneberger et al. (MICCAI 2015, <a href="https://arxiv.org/abs/1505.04597" target="_blank" rel="noopener">arXiv:1505.04597</a>). <em>Left (encoder / contracting path):</em> repeated 3&times;3 convolutions followed by 2&times;2 max-pooling; spatial resolution halves and channel count doubles at each level. <em>Right (decoder / expansive path):</em> 2&times;2 up-convolutions that halve the channels, followed by concatenation with the skip-connected encoder feature map and further 3&times;3 convolutions. <em>Skip connections (gray horizontal arrows):</em> directly copy encoder feature maps into the decoder at the corresponding resolution, preserving spatial detail that would otherwise be lost in the bottleneck. In the diffusion model context the input is noisy \(\mathbf{x}_t\), the output is the noise estimate \(\hat{\boldsymbol{\epsilon}}\), and a sinusoidal timestep embedding is injected at each resolution level (not shown in the original segmentation figure).
+      </figcaption>
+    </figure>
+
     <p>
-      The timestep \(t\) is injected at each resolution level as a sinusoidal embedding (similar to the transformer&rsquo;s positional encoding), telling the network how noisy the input is. In modern systems (Stable Diffusion 3, DALL&middot;E 3), the U-Net is sometimes replaced by a <strong>Diffusion Transformer (DiT)</strong> &mdash; a pure attention-based architecture applied to image patches.
+      The timestep \(t\) is injected at each resolution level via a sinusoidal embedding (analogous to the transformer&rsquo;s positional encoding), telling the network how noisy the current input is so it can calibrate the size of the correction to apply. In modern systems (Stable Diffusion 3, DALL&middot;E 3), the U-Net backbone is sometimes replaced by a <strong>Diffusion Transformer (DiT)</strong> &mdash; a pure attention-based architecture applied to flattened image patches, which scales more favorably to very high resolutions.
     </p>
-    <div class="callout info">
-      <strong>U-Net reference:</strong> The U-Net was originally introduced for biomedical image segmentation (Ronneberger et al., 2015). Its encoder-decoder structure with skip connections is ideal for diffusion because it can capture both global structure (bottleneck) and fine spatial detail (skip connections) simultaneously. See the original paper at <a href="https://arxiv.org/abs/1505.04597" target="_blank" rel="noopener">arxiv.org/abs/1505.04597</a> for the architecture diagram.
-    </div>
 
     <!-- Diffusion model outputs -->
     <h3>What diffusion models produce</h3>
     <p>
-      Stable Diffusion, DALL&middot;E 3, and Midjourney are all diffusion models. Starting from pure Gaussian noise and iteratively applying the learned denoiser for ~20&ndash;50 inference steps (using accelerated samplers like DDIM or DPM-Solver), they produce photorealistic images, artwork, and more. A few publicly documented examples:
+      Stable Diffusion, DALL&middot;E 3, and Midjourney are all diffusion models. Starting from pure Gaussian noise and iteratively applying the learned denoiser for ~20&ndash;50 inference steps (using accelerated samplers like DDIM or DPM-Solver), they produce photorealistic images, artwork, molecules, and more.
     </p>
+
+    <!-- DDPM progressive generation figure -->
+    <figure style="margin:1.25rem 0; text-align:center;">
+      <a href="https://hojonathanho.github.io/diffusion/" target="_blank" rel="noopener">
+        <img src="https://hojonathanho.github.io/diffusion/assets/progressive_generation.gif"
+             alt="DDPM progressive generation: columns show how each image gradually emerges from pure noise over T reverse-diffusion steps, left (pure noise, t=T) to right (clean image, t=0)"
+             style="max-width:100%;width:680px;border:1px solid #ccc;border-radius:4px;background:#eee;"
+             loading="lazy">
+      </a>
+      <figcaption style="font-size:0.82rem;color:#666;margin-top:0.5rem;">
+        <strong>DDPM progressive generation</strong> (Ho et al., NeurIPS 2020, <a href="https://arxiv.org/abs/2006.11239" target="_blank" rel="noopener">arXiv:2006.11239</a>). Each column shows the reverse diffusion chain from \(\mathbf{x}_T\) (pure Gaussian noise, far left) to \(\mathbf{x}_0\) (clean generated face, far right), with intermediate denoising steps displayed at evenly spaced timesteps. The network is never shown a real face during inference &mdash; it is only started from noise and asked to iteratively remove it. Image from the <a href="https://hojonathanho.github.io/diffusion/" target="_blank" rel="noopener">DDPM project page</a>.
+      </figcaption>
+    </figure>
+
+    <!-- LDM / Stable Diffusion text-to-image figure -->
+    <figure style="margin:1.25rem 0; text-align:center;">
+      <a href="https://arxiv.org/abs/2112.10752" target="_blank" rel="noopener">
+        <img src="https://raw.githubusercontent.com/CompVis/latent-diffusion/main/assets/rdm/rdm-preview.jpg"
+             alt="Latent Diffusion Model text-to-image samples showing photorealistic and artistic image generation from text prompts"
+             style="max-width:100%;width:680px;border:1px solid #ccc;border-radius:4px;background:#eee;"
+             loading="lazy">
+      </a>
+      <figcaption style="font-size:0.82rem;color:#666;margin-top:0.5rem;">
+        <strong>Latent Diffusion Model (LDM) outputs</strong> — the architecture underlying Stable Diffusion (Rombach et al., CVPR 2022, <a href="https://arxiv.org/abs/2112.10752" target="_blank" rel="noopener">arXiv:2112.10752</a>). The key innovation of LDMs is performing the forward and reverse diffusion processes in a compressed <em>latent space</em> (learned by a VAE encoder/decoder), rather than in full pixel space. This reduces computation by 4&times;&ndash;16&times; while retaining image quality. Text prompts are encoded by CLIP and injected via cross-attention at each resolution level of the U-Net. Image from the <a href="https://github.com/CompVis/latent-diffusion" target="_blank" rel="noopener">CompVis/latent-diffusion GitHub repository</a>.
+      </figcaption>
+    </figure>
+
+    <p>Representative applications:</p>
     <ul style="padding-left:1.5rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.3rem;font-size:0.95rem;">
-      <li><strong>Stable Diffusion:</strong> open-source text-to-image model; the <a href="https://en.wikipedia.org/wiki/Stable_Diffusion" target="_blank" rel="noopener">Wikipedia article</a> shows representative outputs.</li>
-      <li><strong>Protein structure:</strong> RFDiffusion generates novel protein backbone geometries from noise in 3-D coordinate space.</li>
-      <li><strong>Weather:</strong> GenCast (Google DeepMind) generates ensemble weather forecasts via diffusion over atmospheric state variables.</li>
+      <li><strong>Text-to-image:</strong> Stable Diffusion (open source), DALL&middot;E 3, Midjourney &mdash; generate photorealistic or artistic images from any text prompt in seconds.</li>
+      <li><strong>Protein structure:</strong> RFDiffusion generates novel protein backbone geometries from noise directly in 3-D coordinate space, enabling de novo protein design.</li>
+      <li><strong>Weather:</strong> GenCast (Google DeepMind) generates ensemble weather forecasts via diffusion over atmospheric state variables, capturing forecast uncertainty naturally.</li>
     </ul>
 
     <!-- Physics applications -->
