@@ -17,7 +17,7 @@ AI_ML_Site/
 │   └── gd_gradient_fig1.jpg # Fig 1 from Gradient_Based_Optimization.pdf (used in lesson30.html)
 └── hw/
     ├── hw29.html – hw32.html
-    └── hw33.html – hw38.html
+    └── hw33.html – hw37.html   # hw38.html does not exist (no HW for L38)
 ```
 
 ## CDN Dependencies (no local installs)
@@ -78,7 +78,7 @@ All colors and sizing use CSS custom properties defined at the top of `style.css
 | 35 | Neural Networks — Architecture & Forward Pass | hw35.html | `sat_data.mat` |
 | 36 | Neural Networks — Backpropagation & Training | hw36.html | MATLAB DigitDataset |
 | 37 | CNNs | hw37.html | MATLAB DigitDataset |
-| 38 | Transformers & LLMs | hw38.html | — |
+| 38 | Transformers & Diffusion Models | — | No HW for L38 |
 
 **Note:** After the L35–L38 restructure, the source slide decks (`356_Lesson_35.pptx` etc.) no longer align with lesson topics. Slide decks will be updated separately; use slide content as a resource but do not assume slide number = lesson number.
 
@@ -92,6 +92,7 @@ In-lesson MATLAB examples must be **clearly distinct** from the homework problem
 - L35 example: synthetic spectral data with `patternnet` (3 features, 2 classes) — HW uses `sat_data.mat` (2 features, 4 classes) with `patternnet`
 - L36 example: MATLAB DigitDataset, DL Toolbox layers (`featureInputLayer` + `fullyConnectedLayer` + `dropoutLayer`), `trainNetwork` with Adam; 3 tunable params at top (`n_per_class=100`, `n_hidden=10`, `learn_rate=0.05`) default to overfitting; 5×5 prediction grid at end — HW uses same dataset/API, students sweep network size, early stopping, and learning rate
 - L37 example: MATLAB DigitDataset, CNN with `imageInputLayer` + `convolution2dLayer` + `batchNormalizationLayer` + `maxPooling2dLayer`; pass imageDatastore directly to `trainNetwork` (no flattening); 3 tunable params (n_per_class=200, n_filters=8, learn_rate=0.01); defaults show good generalization; includes L36 fair-comparison guidance (n_hidden=11 → ~8,755 params ≈ CNN ~9,100) — HW has students describe Training Progress pattern (P1), sweep filter count 4/8/16/32 + add 3rd conv block (P2), data efficiency CNN vs FC at n_per_class=20/50/100/200 (P3)
+- L38 example: Two optional demos — Demo 1: scaled dot-product attention heatmap (`imagesc`) using hand-assigned embeddings for "cat/chases/mouse" (4-d embedding, 3-word sequence); Demo 2: DDPM forward process on 2-D Gaussian mixture using `cumprod` for alpha-bar schedule, 5-subplot noise progression t=1,20,60,120,200. No HW for L38.
 
 ## Video Embedding Notes
 
@@ -115,7 +116,8 @@ Canonical video placements:
 - Futurology "Convolutional Neural Networks Explained (CNN Visualized)" (`pj9-rr1wDhM`) → L37 (first video)
 - 3B1B "What is backpropagation really doing?" (`Ilg3gGewQ5U`) → L36 (first video)
 - 3B1B "Backpropagation calculus" (`tIeHLnjs5U8`) → L36 (second video)
-- Karpathy "Let's build GPT" (`kCc8FmEb1nY`) → L38
+- Karpathy "Let's build GPT" (`kCc8FmEb1nY`) → L38 (LLMs section)
+- Outlier "What are Diffusion Models?" (`fbLgFrlTnGU`) → L38 (Diffusion section)
 
 ## Source Material
 
@@ -149,13 +151,13 @@ Canonical video placements:
 | lesson35.html | ✅ Final | Neural Networks: architecture, forward pass, activations; patternnet worked example; CS231n video (55:11–104:00); 3B1B gradient descent + "But what is a NN?" videos |
 | lesson36.html | ✅ Final | Backprop + training; chain rule; SGD; learning rate SVG diagram; 4-panel train/val curves SVG; 2 × 3B1B videos; MATLAB example on DigitDataset using DL Toolbox layers (`featureInputLayer`, `trainNetwork`); 3 tunable params at top (`n_per_class=100`, `n_hidden=10`, `learn_rate=0.05`); 5×5 test prediction grid; default params show overfitting |
 | lesson37.html | ✅ Final | CNNs; K=2 animated convolution SVG (two filters alternating, stacked output volume); max pooling SVG; volume flow SVG; "What are channels?" section; Futurology CNN video (pj9-rr1wDhM) + CS231n L5 (bNb2fEVKeEo); CNN Explainer interactive tool link; MATLAB example: CNN on DigitDataset with imageInputLayer, no flattening; 3 tunable params (n_per_class=200, n_filters=8, learn_rate=0.01); L36 fair-comparison note (n_hidden=11) |
-| lesson38.html | 🔄 Draft | Transformers |
+| lesson38.html | ✅ Final | Transformers & Diffusion Models; word embeddings + TF Projector link; attention score table + heatmap SVG; transformer block diagram; Purdue Buzzard notes reference; LLMs + Karpathy video; GANs/VAEs explained; DDPM forward process fully annotated (q notation, 3-arg N, closed-form marginal, ε-loss rationale); classifier-free guidance formula; U-Net description + arxiv link; forward/reverse process SVG; Outlier video (fbLgFrlTnGU); 2 MATLAB demos; 9 refs; no HW button |
 | hw29.html–hw33.html | ✅ Final | Reviewed; submit/.mlx line removed from all |
 | hw34.html | ✅ Final | KNN, SVM, logistic regression on sat_data.mat |
 | hw35.html | ✅ Final | patternnet on sat_data.mat (4-class GEO identification); modeled on old HW_37.docx |
 | hw36.html | ✅ Final | DigitDataset: network size exploration (Problem 1), overfitting + early stopping (Problem 2), sgdm lr sweep + Adam comparison (Problem 3); no redundant code from lesson; solution at AI_ML_Material/hw36_solution.m |
 | hw37.html | ✅ Final | CNN on DigitDataset: Training Progress pattern (P1, single question), filter count sweep 4/8/16/32 + 3rd conv block (P2), data efficiency CNN vs FC (P3); solution at AI_ML_Material/hw37_solution.m (local functions at end of file) |
-| hw38.html | 🔄 Draft | Not yet created |
+| hw38.html | ✅ N/A | No homework for Lesson 38; hw38 row removed from index.html |
 
 ## Git / GitHub
 
